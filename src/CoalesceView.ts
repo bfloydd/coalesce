@@ -77,6 +77,10 @@ export class CoalesceView {
             const blocks = await this.getFileContentPreview(sourcePath, this.currentNoteName);
             for (const block of blocks) {
                 const linkEl = linksContainer.createDiv('backlink-item');
+                linkEl.style.border = '1px solid var(--background-modifier-border)';
+                linkEl.style.padding = '10px';
+                linkEl.style.marginBottom = '10px';
+
                 const anchor = linkEl.createEl('a', {
                     text: block.title,
                     cls: 'internal-link',
