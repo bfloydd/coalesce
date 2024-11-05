@@ -47,14 +47,31 @@ export class CoalesceView {
             const file = this.view.app.vault.getAbstractFileByPath(filePath);
             if (file && file instanceof TFile) {
                 const content = await this.view.app.vault.read(file);
-                const mentionIndex = content.indexOf('[[' + currentNoteName + ']]');
+                const regex = new RegExp(`\\[\\[${currentNoteName}\\]\\]`, 'g');
+                let match;
 
-                if (mentionIndex !== -1) {
-                    const lines = content.substring(mentionIndex).split('---')[0];
-                    const block = new Block(lines, filePath, currentNoteName);
+                /**
+                 * There are three conditions of how a block can end:
+                 * 1. --- is found.
+                 * 2. End of the note.
+                 * 3. Another block is found.
+                 */
+
+                while ((match = regex.exec(content)) !== null) {
+                    const startIndex = match.index;
+                    const endIndex = content.indexOf('---', startIndex);
+                    const nextMentionIndex = content.indexOf(`[[${currentNoteName}]]`, startIndex + 1);
+
+                    let blockEndIndex = content.length;
+                    if (endIndex !== -1 && (nextMentionIndex === -1 || endIndex < nextMentionIndex)) {
+                        blockEndIndex = endIndex;
+                    } else if (nextMentionIndex !== -1) {
+                        blockEndIndex = nextMentionIndex;
+                    }
+
+                    const blockContent = content.substring(startIndex, blockEndIndex);
+                    const block = new Block(blockContent, filePath, currentNoteName);
                     blocks.push(block);
-                } else {
-                    console.warn(`Current note name "${currentNoteName}" not found in file ${filePath}.`);
                 }
             }
         } catch (error) {
