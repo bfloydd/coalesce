@@ -1,11 +1,13 @@
 import { MarkdownView, TFile, MarkdownRenderer } from 'obsidian';
 import { Block } from './Block';
 import { Logger } from './Logger';
+import { HeaderComponent } from './HeaderComponent';
 
 export class CoalesceView {
     private container: HTMLElement;
     private currentNoteName: string;
     private logger: Logger = new Logger();
+    private headerComponent: HeaderComponent = new HeaderComponent();
 
     constructor(private view: MarkdownView, currentNoteName: string) {
         this.currentNoteName = currentNoteName;
@@ -84,9 +86,7 @@ export class CoalesceView {
         this.logger.info("Updating backlinks:", filesLinkingToThis);
         this.container.empty();
 
-        const header = this.container.createEl('h4', {
-            text: `${filesLinkingToThis.length} Backlinks`
-        });
+        const header = this.headerComponent.createHeader(this.container, `${filesLinkingToThis.length} Backlinks`);
         this.logger.info("Header created:", header);
 
         const linksContainer = this.container.createDiv('backlinks-list');
