@@ -1,4 +1,4 @@
-import { MarkdownView, TFile } from 'obsidian';
+import { MarkdownView, TFile, MarkdownRenderer } from 'obsidian';
 import { Block } from './Block';
 import { Logger } from './Logger';
 
@@ -110,7 +110,14 @@ export class CoalesceView {
                 });
 
                 const contentPreview = linkEl.createDiv('content-preview');
-                contentPreview.textContent = block.contents;
+                // Use Obsidian's MarkdownRenderer to render markdown content
+                await MarkdownRenderer.render(
+                    this.view.app,   // app
+                    block.contents, // markdown
+                    contentPreview, // el
+                    sourcePath,     // sourcePath
+                    this.view,      // component
+                );
             }
         }
 
