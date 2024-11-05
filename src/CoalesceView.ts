@@ -1,7 +1,7 @@
 import { MarkdownView, TFile } from 'obsidian';
 import { Block } from './Block';
 
-export class BacklinksView {
+export class CoalesceView {
     private container: HTMLElement;
     private currentNoteName: string;
 
