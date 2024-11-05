@@ -1,8 +1,10 @@
 import { App, MarkdownView, TFile } from 'obsidian';
 import { CoalesceView as BacklinksView } from './CoalesceView';
+import { Logger } from './Logger';
 
 export class BacklinksManager {
     private backlinksView: BacklinksView | null = null;
+    private logger: Logger = new Logger();
 
     constructor(private app: App) {}
 
