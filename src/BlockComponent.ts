@@ -1,4 +1,4 @@
-export class Block {
+export class BlockComponent {
     constructor(
         public contents: string,
         public title: string,

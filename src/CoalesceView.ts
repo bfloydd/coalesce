@@ -1,5 +1,5 @@
 import { MarkdownView, TFile, MarkdownRenderer } from 'obsidian';
-import { Block } from './Block';
+import { BlockComponent } from './BlockComponent';
 import { Logger } from './Logger';
 import { HeaderComponent } from './HeaderComponent';
 
@@ -43,8 +43,8 @@ export class CoalesceView {
         return container;
     }
 
-    private async getFileContentPreview(filePath: string, currentNoteName: string): Promise<Block[]> {
-        const blocks: Block[] = [];
+    private async getFileContentPreview(filePath: string, currentNoteName: string): Promise<BlockComponent[]> {
+        const blocks: BlockComponent[] = [];
         try {
             const file = this.view.app.vault.getAbstractFileByPath(filePath);
             if (file && file instanceof TFile) {
@@ -72,7 +72,7 @@ export class CoalesceView {
                     }
 
                     const blockContent = content.substring(startIndex, blockEndIndex);
-                    const block = new Block(blockContent, filePath, currentNoteName);
+                    const block = new BlockComponent(blockContent, filePath, currentNoteName);
                     blocks.push(block);
                 }
             }
