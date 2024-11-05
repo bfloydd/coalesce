@@ -93,31 +93,7 @@ export class CoalesceView {
         for (const sourcePath of filesLinkingToThis) {
             const blocks = await this.getFileContentPreview(sourcePath, this.currentNoteName);
             for (const block of blocks) {
-                const linkEl = linksContainer.createDiv('backlink-item');
-                linkEl.style.border = '1px solid var(--background-modifier-border)';
-                linkEl.style.padding = '10px';
-                linkEl.style.marginBottom = '10px';
-
-                const anchor = linkEl.createEl('a', {
-                    text: block.title,
-                    cls: 'internal-link',
-                });
-                this.logger.info("Link element created:", anchor);
-
-                anchor.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    onLinkClick(sourcePath);
-                });
-
-                const contentPreview = linkEl.createDiv('content-preview');
-                // Use Obsidian's MarkdownRenderer to render markdown content
-                await MarkdownRenderer.render(
-                    this.view.app,   // app
-                    block.contents, // markdown
-                    contentPreview, // el
-                    sourcePath,     // sourcePath
-                    this.view,      // component
-                );
+                await block.render(linksContainer, this.view, onLinkClick);
             }
         }
 
