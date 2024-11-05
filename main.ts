@@ -1,20 +1,20 @@
 import { App, Plugin } from 'obsidian';
 import { SettingsManager } from './src/SettingsManager';
-import { BacklinksManager } from './src/BacklinksManager';
+import { CoalesceManager } from './src/CoalesceManager';
 import { Logger } from './src/Logger';
 
 export default class CoalescePlugin extends Plugin {
 	private settingsManager: SettingsManager;
-	private backlinksManager: BacklinksManager;
+	private coalesceManager: CoalesceManager;
 
 	async onload() {
 		this.settingsManager = new SettingsManager(this);
 		await this.settingsManager.loadSettings();
 
-		this.backlinksManager = new BacklinksManager(this.app);
+		this.coalesceManager = new CoalesceManager(this.app);
 		this.app.workspace.on('file-open', (file) => {
 			if (file) {
-				this.backlinksManager.handleFileOpen(file);
+				this.coalesceManager.handleFileOpen(file);
 			}
 		});
 
@@ -35,6 +35,6 @@ export default class CoalescePlugin extends Plugin {
 	}
 
 	onunload() {
-		this.backlinksManager.clearBacklinks();
+		this.coalesceManager.clearBacklinks();
 	}
 }
