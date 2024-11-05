@@ -1,4 +1,5 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { BacklinksView } from './src/BacklinksView';
 
 interface CoalescePluginSettings {
 	mySetting: string;
@@ -10,55 +11,38 @@ const DEFAULT_SETTINGS: CoalescePluginSettings = {
 
 export default class CoalescePlugin extends Plugin {
 	settings: CoalescePluginSettings;
+	private backlinksView: BacklinksView | null = null; // Store the BacklinksView instance
 
 	async onload() {
 		this.app.workspace.on('file-open', (file) => {
-			if (file) {
-				// Get all backlinks to the current file
-				const backlinks = this.app.metadataCache.resolvedLinks;
-				const filesLinkingToThis = Object.entries(backlinks)
-					.filter(([_, links]) => file.path in links)
-					.map(([sourcePath]) => sourcePath);
-				
-				// Get the current view
-				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (!view) return;
+			if (!file) return;
 
-				// Create or get the backlinks container
-				let backlinksContainer = view.containerEl.querySelector('.custom-backlinks-container');
-				if (!backlinksContainer) {
-					backlinksContainer = view.containerEl.createDiv('custom-backlinks-container');
-					const backlinksEl = backlinksContainer as HTMLElement;
-					backlinksEl.style.borderTop = '1px solid var(--background-modifier-border)';
-					backlinksEl.style.marginTop = '20px';
-					backlinksEl.style.paddingTop = '10px';
-				}
+			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (!view) return;
 
-				// Clear existing content
-				backlinksContainer.empty();
-
-				// Add header
-				const header = backlinksContainer.createEl('h4', {
-					text: `${filesLinkingToThis.length} Backlinks`
-				});
-
-				// Add backlinks
-				const linksContainer = backlinksContainer.createDiv('backlinks-list');
-				filesLinkingToThis.forEach(sourcePath => {
-					const linkEl = linksContainer.createDiv('backlink-item');
-					linkEl.createEl('a', {
-						text: sourcePath,
-						cls: 'internal-link',
-					}).addEventListener('click', (event) => {
-						event.preventDefault();
-						this.app.workspace.openLinkText(sourcePath, '');
-					});
-				});
+			// Always create a new backlinks view for each file open
+			if (this.backlinksView) {
+				this.backlinksView.clear();
 			}
+			this.backlinksView = new BacklinksView(view);
+
+			// Get all backlinks to the current file
+			const backlinks = this.app.metadataCache.resolvedLinks;
+			const filesLinkingToThis = Object.entries(backlinks)
+				.filter(([_, links]) => file.path in links)
+				.map(([sourcePath]) => sourcePath);
+
+			// Update backlinks view
+			this.backlinksView.updateBacklinks(filesLinkingToThis, (path) => {
+				this.app.workspace.openLinkText(path, '', false);
+			});
 		});
 	}
 
 	onunload() {
+		if (this.backlinksView) {
+			this.backlinksView.clear();
+		}
 	}
 
 	async loadSettings() {
