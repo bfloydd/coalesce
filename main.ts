@@ -24,7 +24,10 @@ export default class CoalescePlugin extends Plugin {
 			if (this.backlinksView) {
 				this.backlinksView.clear();
 			}
-			this.backlinksView = new BacklinksView(view);
+
+			// Pass the current file's name to the BacklinksView
+			const currentNoteName = file.basename;
+			this.backlinksView = new BacklinksView(view, currentNoteName);
 
 			// Get all backlinks to the current file
 			const backlinks = this.app.metadataCache.resolvedLinks;

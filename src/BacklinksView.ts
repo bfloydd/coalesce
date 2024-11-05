@@ -2,8 +2,10 @@ import { MarkdownView, TFile } from 'obsidian';
 
 export class BacklinksView {
     private container: HTMLElement;
+    private currentNoteName: string;
 
-    constructor(private view: MarkdownView) {
+    constructor(private view: MarkdownView, currentNoteName: string) {
+        this.currentNoteName = currentNoteName;
         this.container = this.createBacklinksContainer();
         console.log("Appending backlinks container to the view");
 
@@ -36,13 +38,21 @@ export class BacklinksView {
         return container;
     }
 
-    private async getFileContentPreview(filePath: string): Promise<string> {
+    private async getFileContentPreview(filePath: string, currentNoteName: string): Promise<string> {
         try {
             const file = this.view.app.vault.getAbstractFileByPath(filePath);
             if (file && file instanceof TFile) {
                 const content = await this.view.app.vault.read(file);
-                const lines = content.split('\n').slice(0, 3); // Get the first 3 lines
-                return lines.join('\n');
+                const mentionIndex = content.indexOf('[[' + currentNoteName + ']]');
+
+                if (mentionIndex !== -1) {
+                    // Return content starting from the mention
+                    const lines = content.substring(mentionIndex).split('---')[0]; // Get everything up to the first ---
+                    return lines; // Directly return the string
+                } else {
+                    console.warn(`Current note name "${currentNoteName}" not found in file ${filePath}.`);
+                    return "Current note name not found in file.";
+                }
             }
         } catch (error) {
             console.error(`Error reading file content for ${filePath}:`, error);
@@ -60,6 +70,9 @@ export class BacklinksView {
         });
         console.log("Header created:", header);
 
+        // Use the current note name passed to the constructor
+        const currentNoteName = this.currentNoteName;
+
         // Add backlinks
         const linksContainer = this.container.createDiv('backlinks-list');
         for (const sourcePath of filesLinkingToThis) {
@@ -76,7 +89,7 @@ export class BacklinksView {
             });
 
             // Fetch and display a few lines of the file
-            const fileContent = await this.getFileContentPreview(sourcePath);
+            const fileContent = await this.getFileContentPreview(sourcePath, currentNoteName);
             const contentPreview = linkEl.createDiv('content-preview');
             contentPreview.textContent = fileContent;
         }
