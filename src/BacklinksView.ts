@@ -8,8 +8,12 @@ export class BacklinksView {
         console.log("Appending backlinks container to the view");
 
         // Append the container directly to the markdown view's content area
-        const markdownContent = this.view.containerEl.querySelector('.markdown-preview-view') || this.view.contentEl;
+        const markdownContent = this.view.containerEl.querySelector('.markdown-preview-view') as HTMLElement || this.view.contentEl as HTMLElement;
         if (markdownContent) {
+            // Ensure the parent container respects the readable line length
+            markdownContent.style.setProperty('max-width', 'var(--readable-line-length, 800px)', 'important');
+            markdownContent.style.setProperty('margin-left', 'auto', 'important');
+            markdownContent.style.setProperty('margin-right', 'auto', 'important');
             markdownContent.appendChild(this.container);
         } else {
             console.warn("Markdown content area not found.");
@@ -22,10 +26,13 @@ export class BacklinksView {
         container.style.borderTop = '1px solid var(--background-modifier-border)';
         container.style.marginTop = '20px';
         container.style.paddingTop = '10px';
-        container.style.position = 'relative'; // Ensure it's positioned relative to its parent
-        container.style.zIndex = '10'; // Ensure it appears above other elements
-        container.style.backgroundColor = 'var(--background-primary)'; // Use theme variable for background
-        container.style.color = 'var(--text-normal)'; // Use theme variable for text color
+        container.style.position = 'relative';
+        container.style.zIndex = '10';
+        container.style.backgroundColor = 'var(--background-primary)';
+        container.style.color = 'var(--text-normal)';
+        container.style.maxWidth = 'var(--readable-line-length)';
+        container.style.marginLeft = 'auto';
+        container.style.marginRight = 'auto';
         return container;
     }
 
