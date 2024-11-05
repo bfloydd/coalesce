@@ -60,9 +60,21 @@ export class BacklinksView {
                 event.preventDefault();
                 onLinkClick(sourcePath);
             });
+
+            // Fetch and display a few lines of the file
+            const fileContent = this.getFileContentPreview(sourcePath);
+            const contentPreview = linkEl.createDiv('content-preview');
+            contentPreview.textContent = fileContent;
         });
 
         console.log("Links container:", linksContainer);
+    }
+
+    private getFileContentPreview(filePath: string): string {
+        // This is a placeholder function. You need to implement the logic to fetch
+        // the file content and return a preview (e.g., first few lines).
+        // For example, you might use this.app.vault.read(file) to read the file content.
+        return "Preview of the file content...";
     }
 
     clear() {
