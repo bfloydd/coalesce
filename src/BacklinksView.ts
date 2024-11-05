@@ -1,4 +1,4 @@
-import { MarkdownView } from 'obsidian';
+import { MarkdownView, TFile } from 'obsidian';
 
 export class BacklinksView {
     private container: HTMLElement;
@@ -36,7 +36,21 @@ export class BacklinksView {
         return container;
     }
 
-    public updateBacklinks(filesLinkingToThis: string[], onLinkClick: (path: string) => void): void {
+    private async getFileContentPreview(filePath: string): Promise<string> {
+        try {
+            const file = this.view.app.vault.getAbstractFileByPath(filePath);
+            if (file && file instanceof TFile) {
+                const content = await this.view.app.vault.read(file);
+                const lines = content.split('\n').slice(0, 3); // Get the first 3 lines
+                return lines.join('\n');
+            }
+        } catch (error) {
+            console.error(`Error reading file content for ${filePath}:`, error);
+        }
+        return "Unable to fetch file content preview.";
+    }
+
+    public async updateBacklinks(filesLinkingToThis: string[], onLinkClick: (path: string) => void): Promise<void> {
         console.log("Updating backlinks:", filesLinkingToThis);
         this.container.empty();
 
@@ -48,7 +62,7 @@ export class BacklinksView {
 
         // Add backlinks
         const linksContainer = this.container.createDiv('backlinks-list');
-        filesLinkingToThis.forEach(sourcePath => {
+        for (const sourcePath of filesLinkingToThis) {
             const linkEl = linksContainer.createDiv('backlink-item');
             const anchor = linkEl.createEl('a', {
                 text: sourcePath,
@@ -62,19 +76,12 @@ export class BacklinksView {
             });
 
             // Fetch and display a few lines of the file
-            const fileContent = this.getFileContentPreview(sourcePath);
+            const fileContent = await this.getFileContentPreview(sourcePath);
             const contentPreview = linkEl.createDiv('content-preview');
             contentPreview.textContent = fileContent;
-        });
+        }
 
         console.log("Links container:", linksContainer);
-    }
-
-    private getFileContentPreview(filePath: string): string {
-        // This is a placeholder function. You need to implement the logic to fetch
-        // the file content and return a preview (e.g., first few lines).
-        // For example, you might use this.app.vault.read(file) to read the file content.
-        return "Preview of the file content...";
     }
 
     clear() {
