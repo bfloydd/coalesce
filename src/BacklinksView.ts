@@ -1,4 +1,5 @@
 import { MarkdownView, TFile } from 'obsidian';
+import { Block } from './Block';
 
 export class BacklinksView {
     private container: HTMLElement;
@@ -38,7 +39,8 @@ export class BacklinksView {
         return container;
     }
 
-    private async getFileContentPreview(filePath: string, currentNoteName: string): Promise<string> {
+    private async getFileContentPreview(filePath: string, currentNoteName: string): Promise<Block[]> {
+        const blocks: Block[] = [];
         try {
             const file = this.view.app.vault.getAbstractFileByPath(filePath);
             if (file && file instanceof TFile) {
@@ -46,52 +48,47 @@ export class BacklinksView {
                 const mentionIndex = content.indexOf('[[' + currentNoteName + ']]');
 
                 if (mentionIndex !== -1) {
-                    // Return content starting from the mention
-                    const lines = content.substring(mentionIndex).split('---')[0]; // Get everything up to the first ---
-                    return lines; // Directly return the string
+                    const lines = content.substring(mentionIndex).split('---')[0];
+                    const block = new Block(lines, filePath, currentNoteName);
+                    blocks.push(block);
                 } else {
                     console.warn(`Current note name "${currentNoteName}" not found in file ${filePath}.`);
-                    return "Current note name not found in file.";
                 }
             }
         } catch (error) {
             console.error(`Error reading file content for ${filePath}:`, error);
         }
-        return "Unable to fetch file content preview.";
+        return blocks;
     }
 
     public async updateBacklinks(filesLinkingToThis: string[], onLinkClick: (path: string) => void): Promise<void> {
         console.log("Updating backlinks:", filesLinkingToThis);
         this.container.empty();
 
-        // Add header
         const header = this.container.createEl('h4', {
             text: `${filesLinkingToThis.length} Backlinks`
         });
         console.log("Header created:", header);
 
-        // Use the current note name passed to the constructor
-        const currentNoteName = this.currentNoteName;
-
-        // Add backlinks
         const linksContainer = this.container.createDiv('backlinks-list');
         for (const sourcePath of filesLinkingToThis) {
-            const linkEl = linksContainer.createDiv('backlink-item');
-            const anchor = linkEl.createEl('a', {
-                text: sourcePath,
-                cls: 'internal-link',
-            });
-            console.log("Link element created:", anchor);
+            const blocks = await this.getFileContentPreview(sourcePath, this.currentNoteName);
+            for (const block of blocks) {
+                const linkEl = linksContainer.createDiv('backlink-item');
+                const anchor = linkEl.createEl('a', {
+                    text: block.title,
+                    cls: 'internal-link',
+                });
+                console.log("Link element created:", anchor);
 
-            anchor.addEventListener('click', (event) => {
-                event.preventDefault();
-                onLinkClick(sourcePath);
-            });
+                anchor.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    onLinkClick(sourcePath);
+                });
 
-            // Fetch and display a few lines of the file
-            const fileContent = await this.getFileContentPreview(sourcePath, currentNoteName);
-            const contentPreview = linkEl.createDiv('content-preview');
-            contentPreview.textContent = fileContent;
+                const contentPreview = linkEl.createDiv('content-preview');
+                contentPreview.textContent = block.contents;
+            }
         }
 
         console.log("Links container:", linksContainer);
