@@ -37,10 +37,10 @@
    CoalesceView Styles
    ============================ */
 
-.backlink-item {
-    border: 1px solid var(--background-modifier-border);
-    padding: 5px 10px;
+.backlink-item:not(:last-child) {
+    border-bottom: 1px solid var(--background-modifier-border);
     margin-bottom: 10px;
+    padding: 5px 10px;
 }
 
 .content-preview {
