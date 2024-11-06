@@ -21,7 +21,6 @@ export class CoalesceView {
         // Append the container directly to the markdown view's content area
         const markdownContent = this.view.containerEl.querySelector('.markdown-preview-view') as HTMLElement || this.view.contentEl as HTMLElement;
         if (markdownContent) {
-            // Add the markdown-content class for styling
             markdownContent.classList.add('markdown-content');
             markdownContent.appendChild(this.container);
 
@@ -139,7 +138,7 @@ export class CoalesceView {
     }
 
     clear() {
-        // Remove the container from the DOM
+        // Remove the container from the DOM totally
         if (this.container.parentElement) {
             this.container.parentElement.removeChild(this.container);
         }
