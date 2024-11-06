@@ -29,8 +29,8 @@ export class HeaderComponent {
         const sortButton = document.createElement('button');
         sortButton.classList.add('clickable-icon', 'sort-button');
         sortButton.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 16 16" style="transform: ${sortDescending ? 'rotate(180deg)' : 'none'}">
-                <path fill="currentColor" d="M8 3L4 7h8L8 3zm0 10l4-4H4l4 4z"/>
+            <svg width="16" height="16" viewBox="0 0 16 16" style="transform: ${sortDescending ? 'none' : 'rotate(180deg)'}">
+                <path fill="currentColor" d="M4 4l4 4 4-4H4z"/>
             </svg>
         `;
         sortButton.addEventListener('click', onSortToggle);
