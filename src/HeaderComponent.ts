@@ -5,7 +5,8 @@ export class HeaderComponent {
         blockCount: number,
         sortDescending: boolean,
         onSortToggle: () => void,
-        onCollapseToggle: () => void
+        onCollapseToggle: () => void,
+        isCollapsed: boolean
     ): HTMLElement {
         const header = document.createElement('div');
 
@@ -40,8 +41,8 @@ export class HeaderComponent {
         const collapseButton = document.createElement('button');
         collapseButton.classList.add('clickable-icon', 'collapse-button');
         collapseButton.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 16 16">
-                <path fill="currentColor" d="M4 4l4 4 4-4H4z"/> <!-- Adjust the path as needed -->
+            <svg width="16" height="16" viewBox="0 0 16 16" style="transform: ${isCollapsed ? 'rotate(-90deg)' : 'none'}">
+                <path fill="currentColor" d="M4 4l4 4 4-4H4z"/>
             </svg>
         `;
         collapseButton.addEventListener('click', onCollapseToggle);

@@ -111,21 +111,30 @@ export class CoalesceView {
         }
 
         // Create header after blocks are rendered
-        const header = this.headerComponent.createHeader(
-            this.container, 
-            filesLinkingToThis.length, 
-            this.allBlocks.length,
-            this.sortDescending,
-            () => {
-                this.toggleSort();
-                this.updateBacklinks(filesLinkingToThis, onLinkClick);
-            },
-            () => {
-                this.toggleAllBlocks();
-            }
-        );
-        this.logger.info("Header created:", header);
+        const createHeader = () => {
+            return this.headerComponent.createHeader(
+                this.container, 
+                filesLinkingToThis.length, 
+                this.allBlocks.length,
+                this.sortDescending,
+                () => {
+                    this.toggleSort();
+                    this.updateBacklinks(filesLinkingToThis, onLinkClick);
+                },
+                () => {
+                    this.toggleAllBlocks();
+                    // Update header
+                    const oldHeader = this.container.querySelector('.backlinks-header');
+                    if (oldHeader) {
+                        const newHeader = createHeader();
+                        this.container.replaceChild(newHeader, oldHeader);
+                    }
+                },
+                this.blocksCollapsed
+            );
+        };
 
+        const header = createHeader();
         this.container.insertBefore(header, linksContainer);
     }
 

@@ -33,6 +33,10 @@
     align-items: center;
 }
 
+.collapse-button svg {
+    transition: transform 0.2s ease;
+}
+
 /* ============================
    CoalesceView Styles
    ============================ */
