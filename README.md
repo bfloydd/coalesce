@@ -13,3 +13,12 @@ Coalesce is an Obsidian plugin that brings all your linked notes into one view, 
 - Automatically hides in daily notes.
 - Only appears in view mode.
 - Arranged in chronological order by default.
+
+
+- **Uninterrupted** notetaking.
+- Enhanced **journaling** experience.
+- Stop searching for your notes.
+- End overorganizing. 
+- No more losing your thoughts.
+- No more losing your place.
+- No more losing your train of thought.
