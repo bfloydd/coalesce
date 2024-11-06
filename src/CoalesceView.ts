@@ -3,6 +3,8 @@ import { BlockComponent } from './BlockComponent';
 import { Logger } from './Logger';
 import { HeaderComponent } from './HeaderComponent';
 import { SettingsManager } from './SettingsManager';
+import { BlockBoundaryStrategy } from './BlockBoundaryStrategy';
+import { DefaultBlockBoundaryStrategy } from './DefaultBlockBoundaryStrategy';
 
 export class CoalesceView {
     private container: HTMLElement;
@@ -12,9 +14,16 @@ export class CoalesceView {
     private sortDescending: boolean;
     private blocksCollapsed: boolean;
     private allBlocks: { block: BlockComponent; sourcePath: string }[] = [];
+    private blockBoundaryStrategy: BlockBoundaryStrategy;
 
-    constructor(private view: MarkdownView, currentNoteName: string, private settingsManager: SettingsManager) {
+    constructor(
+        private view: MarkdownView,
+        currentNoteName: string,
+        private settingsManager: SettingsManager,
+        blockBoundaryStrategy: BlockBoundaryStrategy = new DefaultBlockBoundaryStrategy()
+    ) {
         this.currentNoteName = currentNoteName;
+        this.blockBoundaryStrategy = blockBoundaryStrategy;
         this.sortDescending = this.settingsManager.settings.sortDescending;
         this.blocksCollapsed = this.settingsManager.settings.blocksCollapsed;
         this.container = this.createBacklinksContainer();
@@ -45,30 +54,10 @@ export class CoalesceView {
             
             if (file && file instanceof TFile) {
                 const content = await this.view.app.vault.read(file);
-                const regex = new RegExp(`\\[\\[${currentNoteName}\\]\\]`, 'g');
-                let match;
+                const boundaries = this.blockBoundaryStrategy.findBlockBoundaries(content, currentNoteName);
 
-                /**
-                 * There are three conditions of how a block can end:
-                 * 1. --- is found.
-                 * 2. End of the note.
-                 * 3. Another block is found.
-                 */
-                
-                while ((match = regex.exec(content)) !== null) {
-                    // Find the start of the line containing the match
-                    const lineStartIndex = content.lastIndexOf('\n', match.index) + 1;
-                    const endIndex = content.indexOf('---', match.index);
-                    const nextMentionIndex = content.indexOf(`[[${currentNoteName}]]`, match.index + 1);
-
-                    let blockEndIndex = content.length;
-                    if (endIndex !== -1 && (nextMentionIndex === -1 || endIndex < nextMentionIndex)) {
-                        blockEndIndex = endIndex;
-                    } else if (nextMentionIndex !== -1) {
-                        blockEndIndex = nextMentionIndex;
-                    }
-
-                    const blockContent = content.substring(lineStartIndex, blockEndIndex);
+                for (const { start, end } of boundaries) {
+                    const blockContent = content.substring(start, end);
                     const block = new BlockComponent(blockContent, filePath, currentNoteName);
                     blocks.push(block);
                 }
