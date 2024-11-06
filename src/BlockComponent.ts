@@ -15,10 +15,8 @@ export class BlockComponent {
         const displayTextEl = container.createEl('a', {
             text: displayText,
             cls: 'display-text',
-            href: '#', // Use a placeholder href
+            href: '#', // Placeholder href
         });
-        displayTextEl.style.display = 'block'; // Ensure it behaves like a block element
-        displayTextEl.style.marginBottom = '5px'; // Add some space between the text and the block
 
         displayTextEl.addEventListener('click', (event) => {
             event.preventDefault();

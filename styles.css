@@ -10,3 +10,8 @@
     margin-top: 5px;
     padding: 5px 0;
 }
+
+.display-text {
+    display: block;
+    margin-bottom: 5px;
+}
