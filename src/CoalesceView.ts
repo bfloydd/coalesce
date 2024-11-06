@@ -58,11 +58,12 @@ export class CoalesceView {
                  * 2. End of the note.
                  * 3. Another block is found.
                  */
-
+                
                 while ((match = regex.exec(content)) !== null) {
-                    const startIndex = match.index;
-                    const endIndex = content.indexOf('---', startIndex);
-                    const nextMentionIndex = content.indexOf(`[[${currentNoteName}]]`, startIndex + 1);
+                    // Find the start of the line containing the match
+                    const lineStartIndex = content.lastIndexOf('\n', match.index) + 1;
+                    const endIndex = content.indexOf('---', match.index);
+                    const nextMentionIndex = content.indexOf(`[[${currentNoteName}]]`, match.index + 1);
 
                     let blockEndIndex = content.length;
                     if (endIndex !== -1 && (nextMentionIndex === -1 || endIndex < nextMentionIndex)) {
@@ -71,7 +72,7 @@ export class CoalesceView {
                         blockEndIndex = nextMentionIndex;
                     }
 
-                    const blockContent = content.substring(startIndex, blockEndIndex);
+                    const blockContent = content.substring(lineStartIndex, blockEndIndex);
                     const block = new BlockComponent(blockContent, filePath, currentNoteName);
                     blocks.push(block);
                 }
