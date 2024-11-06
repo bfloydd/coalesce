@@ -60,7 +60,12 @@ export class BlockComponent {
                 const href = link.getAttribute('href');
                 if (href) {
                     const decodedPath = decodeURI(href);
-                    const fullPath = decodedPath.endsWith('.md') ? decodedPath : `${decodedPath}.md`;
+                    // Check if it's a canvas file first, otherwise handle as markdown
+                    const fullPath = decodedPath.endsWith('.canvas') 
+                        ? decodedPath 
+                        : decodedPath.endsWith('.md') 
+                            ? decodedPath 
+                            : `${decodedPath}.md`;
                     onLinkClick(fullPath);
                 }
             });
