@@ -108,7 +108,16 @@ export class CoalesceView {
             await block.render(linksContainer, this.view, onLinkClick);
         }
 
-        const header = this.headerComponent.createHeader(this.container, filesLinkingToThis.length, allBlocks.length);
+        const header = this.headerComponent.createHeader(
+            this.container, 
+            filesLinkingToThis.length, 
+            allBlocks.length,
+            this.sortDescending,
+            () => {
+                this.toggleSort();
+                this.updateBacklinks(filesLinkingToThis, onLinkClick);
+            }
+        );
         this.logger.info("Header created:", header);
 
         this.container.insertBefore(header, linksContainer);
