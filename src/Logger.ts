@@ -20,4 +20,10 @@ export class Logger {
             console.warn(message, ...optionalParams);
         }
     }
+
+    debug(message?: any, ...optionalParams: any[]) {
+        if (Logger.enabled) {
+            console.debug(message, ...optionalParams);
+        }
+    }
 }

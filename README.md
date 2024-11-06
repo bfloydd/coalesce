@@ -16,3 +16,6 @@ Go on..
 1. Add and enable the plugin.
 2. Open today's daily note and backlink another note.
 3. Open that note and look below.
+
+## Notes
+- Don't show on daily notes.
