@@ -36,7 +36,7 @@ export class CoalesceView {
         return container;
     }
 
-    private async getFileContentPreview(filePath: string, currentNoteName: string): Promise<BlockComponent[]> {
+    private async getBlockData(filePath: string, currentNoteName: string): Promise<BlockComponent[]> {
         const blocks: BlockComponent[] = [];
         
         try {
@@ -88,7 +88,7 @@ export class CoalesceView {
         this.allBlocks = [];
         
         for (const sourcePath of filesLinkingToThis) {
-            const blocks = await this.getFileContentPreview(sourcePath, this.currentNoteName);
+            const blocks = await this.getBlockData(sourcePath, this.currentNoteName);
             blocks.forEach(block => {
                 this.allBlocks.push({ block, sourcePath });
             });
