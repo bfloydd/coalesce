@@ -1,3 +1,7 @@
+/* ============================
+   HeaderComponent Styles
+   ============================ */
+
 .block-header {
     display: flex;
     align-items: center;
@@ -8,6 +12,10 @@
     margin-right: 5px;
     transition: transform 0.2s ease;
 }
+
+/* ============================
+   CoalesceView Styles
+   ============================ */
 
 .backlink-item {
     border: 1px solid var(--background-modifier-border);
@@ -21,12 +29,15 @@
     padding: 5px;
 }
 
-/* Adjust margins for <p> elements within .content-preview */
 .content-preview p {
-    margin-top: 5px; /* Adjust as needed */
-    margin-bottom: 5px; /* Adjust as needed */
-    padding: 0; /* Ensure no padding is added */
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding: 0;
 }
+
+/* ============================
+   BlockComponent Styles
+   ============================ */
 
 .display-text {
     display: block;
