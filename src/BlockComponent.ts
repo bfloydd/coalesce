@@ -4,7 +4,7 @@ export class BlockComponent {
     constructor(
         public contents: string,
         public filePath: string,
-        public title: string
+        public noteName: string
     ) {}
 
     async render(container: HTMLElement, view: MarkdownView, onLinkClick: (path: string) => void): Promise<void> {
@@ -14,9 +14,12 @@ export class BlockComponent {
         blockContainer.style.padding = '10px';
         blockContainer.style.marginBottom = '10px';
 
+        // Remove the .md extension from the filePath for display
+        const displayText = this.filePath.replace(/\.md$/, '');
+
         // Create and style the link
         const anchor = blockContainer.createEl('a', {
-            text: this.title,
+            text: displayText,
             cls: 'internal-link',
         });
 
