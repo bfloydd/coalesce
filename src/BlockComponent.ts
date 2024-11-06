@@ -25,15 +25,11 @@ export class BlockComponent {
             onLinkClick(this.filePath);
         });
 
-        // Create a block container
-        const blockContainer = container.createDiv('backlink-item');
-        blockContainer.style.border = '1px solid var(--background-modifier-border)';
-        blockContainer.style.padding = '10px';
-        blockContainer.style.marginBottom = '10px';
+        // Create a block container with the class 'backlink-item'
+        const blockContainer = container.createDiv({ cls: 'backlink-item' });
 
         // Render the markdown content
         const contentPreview = blockContainer.createDiv('content-preview');
-        contentPreview.style.padding = '5px 0'; // Adjust padding to reduce space above and below
 
         await MarkdownRenderer.render(
             view.app,       // app

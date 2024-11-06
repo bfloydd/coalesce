@@ -1,6 +1,6 @@
 .backlink-item {
-    border-bottom: 1px solid var(--background-modifier-border);
-    padding-bottom: 10px;
+    border: 1px solid var(--background-modifier-border);
+    padding: 10px;
     margin-bottom: 10px;
 }
 
@@ -8,4 +8,5 @@
     color: var(--text-muted);
     font-size: 0.9em;
     margin-top: 5px;
+    padding: 5px 0;
 }
