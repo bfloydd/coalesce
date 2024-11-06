@@ -8,14 +8,22 @@ export class BlockComponent {
     ) {}
 
     async render(container: HTMLElement, view: MarkdownView, onLinkClick: (path: string) => void): Promise<void> {
-        // Remove the .md extension from the filePath for display
         const displayText = this.filePath.replace(/\.md$/, '');
 
-        // Create a separate clickable element for displayText above the block border
-        const displayTextEl = container.createEl('a', {
+        // Create a container for the display text and toggle button
+        const headerContainer = container.createDiv({ cls: 'block-header' });
+
+        // Create the toggle button
+        const toggleButton = headerContainer.createEl('span', {
+            cls: 'toggle-arrow',
+            text: '▼', // Down-pointing arrow for open state
+        });
+
+        // Create the display text element
+        const displayTextEl = headerContainer.createEl('a', {
             text: displayText,
             cls: 'display-text',
-            href: '#', // Placeholder href
+            href: '#',
         });
 
         displayTextEl.addEventListener('click', (event) => {
@@ -30,11 +38,21 @@ export class BlockComponent {
         const contentPreview = blockContainer.createDiv('content-preview');
 
         await MarkdownRenderer.render(
-            view.app,       // app
-            this.contents,  // markdown
-            contentPreview, // el
-            this.filePath,  // sourcePath
-            view,           // component
+            view.app,
+            this.contents,
+            contentPreview,
+            this.filePath,
+            view,
         );
+
+        // Initially show the entire block container
+        blockContainer.style.display = 'block';
+
+        // Add toggle functionality
+        toggleButton.addEventListener('click', () => {
+            const isCollapsed = blockContainer.style.display === 'none';
+            blockContainer.style.display = isCollapsed ? 'block' : 'none';
+            toggleButton.textContent = isCollapsed ? '▼' : '▶'; // Toggle arrow direction
+        });
     }
 }
