@@ -2,6 +2,7 @@ import { App, Plugin, TFile } from 'obsidian';
 import { SettingsManager } from './src/SettingsManager';
 import { CoalesceManager } from './src/CoalesceManager';
 import { Logger } from './src/Logger';
+import { CoalesceSettingTab } from './src/SettingsTab';
 
 export default class CoalescePlugin extends Plugin {
 	private settingsManager: SettingsManager;
@@ -13,9 +14,14 @@ export default class CoalescePlugin extends Plugin {
 		this.settingsManager = new SettingsManager(this);
 		await this.settingsManager.loadSettings();
 
+		this.addSettingTab(new CoalesceSettingTab(this.app, this, this.settingsManager));
+
 		this.coalesceManager = new CoalesceManager(this.app, this.settingsManager);
 		this.app.workspace.on('file-open', (file: TFile) => {
-			if (file && !this.isDailyNote(file)) {
+			if (!file) return;
+			
+			const isDaily = this.isDailyNote(file);
+			if (!isDaily || (isDaily && this.settingsManager.settings.showInDailyNotes)) {
 				this.coalesceManager.handleFileOpen(file);
 			} else {
 				this.coalesceManager.clearBacklinks();

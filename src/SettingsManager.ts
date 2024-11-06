@@ -2,12 +2,14 @@ interface CoalescePluginSettings {
     mySetting: string;
     sortDescending: boolean;
     blocksCollapsed: boolean;
+    showInDailyNotes: boolean;
 }
 
 const DEFAULT_SETTINGS: CoalescePluginSettings = {
     mySetting: 'default',
     sortDescending: true,
-    blocksCollapsed: true
+    blocksCollapsed: true,
+    showInDailyNotes: false
 };
 
 interface Plugin {
