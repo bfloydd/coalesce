@@ -1,9 +1,11 @@
 interface CoalescePluginSettings {
     mySetting: string;
+    sortDescending: boolean;
 }
 
 const DEFAULT_SETTINGS: CoalescePluginSettings = {
-    mySetting: 'default'
+    mySetting: 'default',
+    sortDescending: true
 };
 
 // Assuming Plugin is an interface, add the method signature

@@ -13,7 +13,7 @@ export default class CoalescePlugin extends Plugin {
 		this.settingsManager = new SettingsManager(this);
 		await this.settingsManager.loadSettings();
 
-		this.coalesceManager = new CoalesceManager(this.app);
+		this.coalesceManager = new CoalesceManager(this.app, this.settingsManager);
 		this.app.workspace.on('file-open', (file: TFile) => {
 			if (file && !this.isDailyNote(file)) {
 				this.coalesceManager.handleFileOpen(file);

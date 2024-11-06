@@ -2,16 +2,18 @@ import { MarkdownView, TFile, MarkdownRenderer } from 'obsidian';
 import { BlockComponent } from './BlockComponent';
 import { Logger } from './Logger';
 import { HeaderComponent } from './HeaderComponent';
+import { SettingsManager } from './SettingsManager';
 
 export class CoalesceView {
     private container: HTMLElement;
     private currentNoteName: string;
     private logger: Logger = new Logger();
     private headerComponent: HeaderComponent = new HeaderComponent();
-    private sortDescending: boolean = true;
+    private sortDescending: boolean;
 
-    constructor(private view: MarkdownView, currentNoteName: string) {
+    constructor(private view: MarkdownView, currentNoteName: string, private settingsManager: SettingsManager) {
         this.currentNoteName = currentNoteName;
+        this.sortDescending = this.settingsManager.settings.sortDescending;
         this.container = this.createBacklinksContainer();
         this.logger.info("Appending backlinks container to the view");
 
@@ -125,6 +127,8 @@ export class CoalesceView {
 
     public toggleSort(): void {
         this.sortDescending = !this.sortDescending;
+        this.settingsManager.settings.sortDescending = this.sortDescending;
+        this.settingsManager.saveSettings();
     }
 
     clear() {

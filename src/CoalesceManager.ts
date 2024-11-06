@@ -1,12 +1,13 @@
 import { App, MarkdownView, TFile } from 'obsidian';
 import { CoalesceView } from './CoalesceView';
 import { Logger } from './Logger';
+import { SettingsManager } from './SettingsManager';
 
 export class CoalesceManager {
     private coalesceView: CoalesceView | null = null;
     private logger: Logger = new Logger();
 
-    constructor(private app: App) {}
+    constructor(private app: App, private settingsManager: SettingsManager) {}
 
     handleFileOpen(file: TFile) {
         if (!file) return;
@@ -19,7 +20,7 @@ export class CoalesceManager {
         }
 
         const currentNoteName = file.basename;
-        this.coalesceView = new CoalesceView(view, currentNoteName);
+        this.coalesceView = new CoalesceView(view, currentNoteName, this.settingsManager);
 
         const backlinks = this.app.metadataCache.resolvedLinks;
         const filesLinkingToThis = Object.entries(backlinks)
