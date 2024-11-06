@@ -7,6 +7,10 @@
     align-items: center;
 }
 
+.header-title {
+    font-weight: normal;
+}
+
 .toggle-arrow {
     cursor: pointer;
     margin-right: 5px;
@@ -18,10 +22,6 @@
     align-items: center;
     gap: 8px;
     margin-bottom: 10px;
-}
-
-.header-title {
-    font-weight: bold;
 }
 
 .sort-button {
@@ -82,7 +82,9 @@
    BlockComponent Styles
    ============================ */
 
-.display-text {
+.block-title {
     display: block;
     margin-bottom: 0px;
+    text-decoration: none;
+    color: var(--text-normal);
 }

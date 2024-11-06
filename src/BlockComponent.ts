@@ -23,12 +23,12 @@ export class BlockComponent {
         });
 
         // Block header
-        const displayTextEl = headerContainer.createEl('a', {
+        const blockTitle = headerContainer.createEl('a', {
             text: displayText,
-            cls: 'display-text',
+            cls: 'block-title',
             href: '#',
         });
-        displayTextEl.addEventListener('click', (event) => {
+        blockTitle.addEventListener('click', (event) => {
             event.preventDefault();
             onLinkClick(this.filePath);
         });
