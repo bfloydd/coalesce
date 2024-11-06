@@ -8,6 +8,7 @@ export class CoalesceView {
     private currentNoteName: string;
     private logger: Logger = new Logger();
     private headerComponent: HeaderComponent = new HeaderComponent();
+    private sortDescending: boolean = true;
 
     constructor(private view: MarkdownView, currentNoteName: string) {
         this.currentNoteName = currentNoteName;
@@ -90,19 +91,31 @@ export class CoalesceView {
         const linksContainer = this.container.createDiv('backlinks-list');
         this.logger.info("Links container:", linksContainer);
 
-        let totalBlocksCount = 0;
+        const allBlocks: { block: BlockComponent; sourcePath: string }[] = [];
+        
         for (const sourcePath of filesLinkingToThis) {
             const blocks = await this.getFileContentPreview(sourcePath, this.currentNoteName);
-            totalBlocksCount += blocks.length;
-            for (const block of blocks) {
-                await block.render(linksContainer, this.view, onLinkClick);
-            }
+            blocks.forEach(block => {
+                allBlocks.push({ block, sourcePath });
+            });
         }
 
-        const header = this.headerComponent.createHeader(this.container, filesLinkingToThis.length, totalBlocksCount);
+        allBlocks.sort((a, b) => this.sortDescending 
+            ? b.sourcePath.localeCompare(a.sourcePath)
+            : a.sourcePath.localeCompare(b.sourcePath));
+
+        for (const { block } of allBlocks) {
+            await block.render(linksContainer, this.view, onLinkClick);
+        }
+
+        const header = this.headerComponent.createHeader(this.container, filesLinkingToThis.length, allBlocks.length);
         this.logger.info("Header created:", header);
 
         this.container.insertBefore(header, linksContainer);
+    }
+
+    public toggleSort(): void {
+        this.sortDescending = !this.sortDescending;
     }
 
     clear() {
