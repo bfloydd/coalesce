@@ -1,14 +1,18 @@
 import { MarkdownRenderer, MarkdownView } from 'obsidian';
+import { Logger } from './Logger';
 
 export class BlockComponent {
     private blockContainer: HTMLElement;
     private toggleButton: HTMLElement;
+    private logger: Logger;
 
     constructor(
         public contents: string,
         public filePath: string,
         public noteName: string
-    ) {}
+    ) {
+        this.logger = new Logger();
+    }
 
     async render(container: HTMLElement, view: MarkdownView, onLinkClick: (path: string) => void): Promise<void> {
         const displayText = this.filePath.replace(/\.md$/, '');
@@ -46,6 +50,21 @@ export class BlockComponent {
             this.filePath,
             view,
         );
+
+        // Add click handlers for internal links, without debug logging
+        contentPreview.querySelectorAll('a.internal-link').forEach((link: HTMLElement) => {
+            link.addEventListener('click', (event) => {
+                this.logger.info("Link clicked!");
+
+                event.preventDefault();
+                const href = link.getAttribute('href');
+                if (href) {
+                    const decodedPath = decodeURI(href);
+                    const fullPath = decodedPath.endsWith('.md') ? decodedPath : `${decodedPath}.md`;
+                    onLinkClick(fullPath);
+                }
+            });
+        });
 
         // Initially show the entire block container
         blockContainer.style.display = 'block';
