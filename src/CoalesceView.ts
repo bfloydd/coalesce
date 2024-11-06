@@ -87,18 +87,22 @@ export class CoalesceView {
         this.logger.info("Updating backlinks:", filesLinkingToThis);
         this.container.empty();
 
-        const header = this.headerComponent.createHeader(this.container, `${filesLinkingToThis.length} Backlinks`);
-        this.logger.info("Header created:", header);
-
         const linksContainer = this.container.createDiv('backlinks-list');
+        this.logger.info("Links container:", linksContainer);
+
+        let totalBlocksCount = 0;
         for (const sourcePath of filesLinkingToThis) {
             const blocks = await this.getFileContentPreview(sourcePath, this.currentNoteName);
+            totalBlocksCount += blocks.length;
             for (const block of blocks) {
                 await block.render(linksContainer, this.view, onLinkClick);
             }
         }
 
-        this.logger.info("Links container:", linksContainer);
+        const header = this.headerComponent.createHeader(this.container, filesLinkingToThis.length, totalBlocksCount);
+        this.logger.info("Header created:", header);
+
+        this.container.insertBefore(header, linksContainer);
     }
 
     clear() {
