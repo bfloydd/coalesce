@@ -1,11 +1,13 @@
 interface CoalescePluginSettings {
     mySetting: string;
     sortDescending: boolean;
+    blocksCollapsed: boolean;
 }
 
 const DEFAULT_SETTINGS: CoalescePluginSettings = {
     mySetting: 'default',
-    sortDescending: true
+    sortDescending: true,
+    blocksCollapsed: true
 };
 
 // Assuming Plugin is an interface, add the method signature

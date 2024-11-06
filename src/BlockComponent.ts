@@ -2,6 +2,7 @@ import { MarkdownRenderer, MarkdownView } from 'obsidian';
 
 export class BlockComponent {
     private blockContainer: HTMLElement; // Store the block container
+    private toggleButton: HTMLElement;  // Add this line
 
     constructor(
         public contents: string,
@@ -16,7 +17,7 @@ export class BlockComponent {
         const headerContainer = container.createDiv({ cls: 'block-header' });
 
         // Create the toggle button
-        const toggleButton = headerContainer.createEl('span', {
+        this.toggleButton = headerContainer.createEl('span', {
             cls: 'toggle-arrow',
             text: '▼', // Down-pointing arrow for open state
         });
@@ -50,10 +51,10 @@ export class BlockComponent {
         blockContainer.style.display = 'block';
 
         // Show/hide a single block
-        toggleButton.addEventListener('click', () => {
+        this.toggleButton.addEventListener('click', () => {
             const isCollapsed = blockContainer.style.display === 'none';
             blockContainer.style.display = isCollapsed ? 'block' : 'none';
-            toggleButton.textContent = isCollapsed ? '▼' : '▶'; // Toggle arrow direction
+            this.toggleButton.textContent = isCollapsed ? '▼' : '▶'; // Toggle arrow direction
         });
 
         this.blockContainer = blockContainer; // Save the reference
@@ -61,5 +62,11 @@ export class BlockComponent {
 
     getContainer(): HTMLElement {
         return this.blockContainer;
+    }
+
+    setArrowState(isExpanded: boolean): void {
+        if (this.toggleButton) {
+            this.toggleButton.textContent = isExpanded ? '▼' : '▶';
+        }
     }
 }

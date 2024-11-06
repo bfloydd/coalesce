@@ -10,11 +10,13 @@ export class CoalesceView {
     private logger: Logger = new Logger();
     private headerComponent: HeaderComponent = new HeaderComponent();
     private sortDescending: boolean;
+    private blocksCollapsed: boolean;
     private allBlocks: { block: BlockComponent; sourcePath: string }[] = [];
 
     constructor(private view: MarkdownView, currentNoteName: string, private settingsManager: SettingsManager) {
         this.currentNoteName = currentNoteName;
         this.sortDescending = this.settingsManager.settings.sortDescending;
+        this.blocksCollapsed = this.settingsManager.settings.blocksCollapsed;
         this.container = this.createBacklinksContainer();
         this.logger.info("Appending backlinks container to the view");
 
@@ -86,6 +88,7 @@ export class CoalesceView {
 
         this.allBlocks = [];
         
+        // Collect all blocks first
         for (const sourcePath of filesLinkingToThis) {
             const blocks = await this.getBlockData(sourcePath, this.currentNoteName);
             blocks.forEach(block => {
@@ -93,14 +96,21 @@ export class CoalesceView {
             });
         }
 
+        // Sort blocks
         this.allBlocks.sort((a, b) => this.sortDescending 
             ? b.sourcePath.localeCompare(a.sourcePath)
             : a.sourcePath.localeCompare(b.sourcePath));
 
+        // Render blocks with correct initial state
         for (const { block } of this.allBlocks) {
             await block.render(linksContainer, this.view, onLinkClick);
+            const blockContainer = block.getContainer();
+            // Use the class property instead of accessing settings directly
+            blockContainer.style.display = this.blocksCollapsed ? 'none' : 'block';
+            block.setArrowState(!this.blocksCollapsed);
         }
 
+        // Create header after blocks are rendered
         const header = this.headerComponent.createHeader(
             this.container, 
             filesLinkingToThis.length, 
@@ -126,14 +136,15 @@ export class CoalesceView {
     }
 
     private toggleAllBlocks(): void {
-        const isAnyBlockVisible = this.allBlocks.some(({ block }) => {
-            const blockContainer = block.getContainer();
-            return blockContainer.style.display !== 'none';
-        });
+        this.blocksCollapsed = !this.blocksCollapsed;
+        this.settingsManager.settings.blocksCollapsed = this.blocksCollapsed;
+        this.settingsManager.saveSettings();
 
+        // Update all blocks based on the new state
         this.allBlocks.forEach(({ block }) => {
             const blockContainer = block.getContainer();
-            blockContainer.style.display = isAnyBlockVisible ? 'none' : 'block';
+            blockContainer.style.display = this.blocksCollapsed ? 'none' : 'block';
+            block.setArrowState(!this.blocksCollapsed);
         });
     }
 
