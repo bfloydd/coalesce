@@ -1,8 +1,8 @@
 import { MarkdownRenderer, MarkdownView } from 'obsidian';
 
 export class BlockComponent {
-    private blockContainer: HTMLElement; // Store the block container
-    private toggleButton: HTMLElement;  // Add this line
+    private blockContainer: HTMLElement;
+    private toggleButton: HTMLElement;
 
     constructor(
         public contents: string,

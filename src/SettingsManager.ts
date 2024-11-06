@@ -10,21 +10,17 @@ const DEFAULT_SETTINGS: CoalescePluginSettings = {
     blocksCollapsed: true
 };
 
-// Assuming Plugin is an interface, add the method signature
 interface Plugin {
     loadData(): Promise<Partial<CoalescePluginSettings>>;
     saveData(settings: CoalescePluginSettings): Promise<void>;
 }
 
-// If Plugin is a class, add the method implementation
 class Plugin {
     async loadData(): Promise<Partial<CoalescePluginSettings>> {
-        // Return a partial settings object
-        return {}; // or return the actual data if available
+        return {};
     }
 
     async saveData(settings: CoalescePluginSettings): Promise<void> {
-        // Implement the method to save the settings
     }
 }
 
