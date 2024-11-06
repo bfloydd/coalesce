@@ -55,6 +55,25 @@
     padding: 0;
 }
 
+.custom-backlinks-container {
+    border-top: 1px solid var(--background-modifier-border);
+    margin-top: 20px;
+    padding-top: 10px;
+    position: relative;
+    z-index: 10;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    max-width: var(--readable-line-length);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.markdown-content {
+    max-width: var(--readable-line-length, 800px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
 /* ============================
    BlockComponent Styles
    ============================ */

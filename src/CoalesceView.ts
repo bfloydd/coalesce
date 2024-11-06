@@ -20,11 +20,10 @@ export class CoalesceView {
         // Append the container directly to the markdown view's content area
         const markdownContent = this.view.containerEl.querySelector('.markdown-preview-view') as HTMLElement || this.view.contentEl as HTMLElement;
         if (markdownContent) {
-            // Ensure the parent container respects the readable line length
-            markdownContent.style.setProperty('max-width', 'var(--readable-line-length, 800px)', 'important');
-            markdownContent.style.setProperty('margin-left', 'auto', 'important');
-            markdownContent.style.setProperty('margin-right', 'auto', 'important');
+            // Add the markdown-content class for styling
+            markdownContent.classList.add('markdown-content');
             markdownContent.appendChild(this.container);
+
         } else {
             this.logger.warn("Markdown content area not found.");
         }
@@ -33,23 +32,15 @@ export class CoalesceView {
     private createBacklinksContainer(): HTMLElement {
         const container = document.createElement('div');
         container.classList.add('custom-backlinks-container');
-        container.style.borderTop = '1px solid var(--background-modifier-border)';
-        container.style.marginTop = '20px';
-        container.style.paddingTop = '10px';
-        container.style.position = 'relative';
-        container.style.zIndex = '10';
-        container.style.backgroundColor = 'var(--background-primary)';
-        container.style.color = 'var(--text-normal)';
-        container.style.maxWidth = 'var(--readable-line-length)';
-        container.style.marginLeft = 'auto';
-        container.style.marginRight = 'auto';
         return container;
     }
 
     private async getFileContentPreview(filePath: string, currentNoteName: string): Promise<BlockComponent[]> {
         const blocks: BlockComponent[] = [];
+        
         try {
             const file = this.view.app.vault.getAbstractFileByPath(filePath);
+            
             if (file && file instanceof TFile) {
                 const content = await this.view.app.vault.read(file);
                 const regex = new RegExp(`\\[\\[${currentNoteName}\\]\\]`, 'g');
