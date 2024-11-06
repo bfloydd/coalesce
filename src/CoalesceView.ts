@@ -10,6 +10,7 @@ export class CoalesceView {
     private logger: Logger = new Logger();
     private headerComponent: HeaderComponent = new HeaderComponent();
     private sortDescending: boolean;
+    private allBlocks: { block: BlockComponent; sourcePath: string }[] = [];
 
     constructor(private view: MarkdownView, currentNoteName: string, private settingsManager: SettingsManager) {
         this.currentNoteName = currentNoteName;
@@ -84,31 +85,34 @@ export class CoalesceView {
         const linksContainer = this.container.createDiv('backlinks-list');
         this.logger.info("Links container:", linksContainer);
 
-        const allBlocks: { block: BlockComponent; sourcePath: string }[] = [];
+        this.allBlocks = [];
         
         for (const sourcePath of filesLinkingToThis) {
             const blocks = await this.getFileContentPreview(sourcePath, this.currentNoteName);
             blocks.forEach(block => {
-                allBlocks.push({ block, sourcePath });
+                this.allBlocks.push({ block, sourcePath });
             });
         }
 
-        allBlocks.sort((a, b) => this.sortDescending 
+        this.allBlocks.sort((a, b) => this.sortDescending 
             ? b.sourcePath.localeCompare(a.sourcePath)
             : a.sourcePath.localeCompare(b.sourcePath));
 
-        for (const { block } of allBlocks) {
+        for (const { block } of this.allBlocks) {
             await block.render(linksContainer, this.view, onLinkClick);
         }
 
         const header = this.headerComponent.createHeader(
             this.container, 
             filesLinkingToThis.length, 
-            allBlocks.length,
+            this.allBlocks.length,
             this.sortDescending,
             () => {
                 this.toggleSort();
                 this.updateBacklinks(filesLinkingToThis, onLinkClick);
+            },
+            () => {
+                this.toggleAllBlocks();
             }
         );
         this.logger.info("Header created:", header);
@@ -120,6 +124,18 @@ export class CoalesceView {
         this.sortDescending = !this.sortDescending;
         this.settingsManager.settings.sortDescending = this.sortDescending;
         this.settingsManager.saveSettings();
+    }
+
+    private toggleAllBlocks(): void {
+        const isAnyBlockVisible = this.allBlocks.some(({ block }) => {
+            const blockContainer = block.getContainer();
+            return blockContainer.style.display !== 'none';
+        });
+
+        this.allBlocks.forEach(({ block }) => {
+            const blockContainer = block.getContainer();
+            blockContainer.style.display = isAnyBlockVisible ? 'none' : 'block';
+        });
     }
 
     clear() {

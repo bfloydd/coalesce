@@ -1,6 +1,8 @@
 import { MarkdownRenderer, MarkdownView } from 'obsidian';
 
 export class BlockComponent {
+    private blockContainer: HTMLElement; // Store the block container
+
     constructor(
         public contents: string,
         public filePath: string,
@@ -19,13 +21,12 @@ export class BlockComponent {
             text: '▼', // Down-pointing arrow for open state
         });
 
-        // Create the display text element
+        // Block header
         const displayTextEl = headerContainer.createEl('a', {
             text: displayText,
             cls: 'display-text',
             href: '#',
         });
-
         displayTextEl.addEventListener('click', (event) => {
             event.preventDefault();
             onLinkClick(this.filePath);
@@ -48,11 +49,17 @@ export class BlockComponent {
         // Initially show the entire block container
         blockContainer.style.display = 'block';
 
-        // Add toggle functionality
+        // Show/hide a single block
         toggleButton.addEventListener('click', () => {
             const isCollapsed = blockContainer.style.display === 'none';
             blockContainer.style.display = isCollapsed ? 'block' : 'none';
             toggleButton.textContent = isCollapsed ? '▼' : '▶'; // Toggle arrow direction
         });
+
+        this.blockContainer = blockContainer; // Save the reference
+    }
+
+    getContainer(): HTMLElement {
+        return this.blockContainer;
     }
 }

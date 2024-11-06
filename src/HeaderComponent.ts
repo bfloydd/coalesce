@@ -4,8 +4,8 @@ export class HeaderComponent {
         fileCount: number, 
         blockCount: number,
         sortDescending: boolean,
-        onSortToggle: () => void
-
+        onSortToggle: () => void,
+        onCollapseToggle: () => void
     ): HTMLElement {
         const header = document.createElement('div');
 
@@ -35,6 +35,17 @@ export class HeaderComponent {
         `;
         sortButton.addEventListener('click', onSortToggle);
         header.appendChild(sortButton);
+
+        // Create and add collapse/expand all icon
+        const collapseButton = document.createElement('button');
+        collapseButton.classList.add('clickable-icon', 'collapse-button');
+        collapseButton.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 16 16">
+                <path fill="currentColor" d="M4 4l4 4 4-4H4z"/> <!-- Adjust the path as needed -->
+            </svg>
+        `;
+        collapseButton.addEventListener('click', onCollapseToggle);
+        header.appendChild(collapseButton);
 
         return header;
     }
