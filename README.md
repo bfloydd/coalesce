@@ -1,23 +1,15 @@
-# Obsidian Coalesce
+# Obsidian Coalesce Community Plugin
 
-## Description
+## Description:
 
-Coalesce is a plugin for Obsidian that reassembles your backlinks into a single document.
-This is simlar to "Show backlinks at the bottom of notes" that is a standard feature in Obsidian,
-but we make it look nicer and make some assumptions about the structure of your notes.
+Coalesce is an Obsidian plugin that brings all your linked notes into one view, creating a cohesive document out of your scattered thoughts. Like Obsidian's backlink feature but with enhanced structure and a polished look, Coalesce helps you consolidate ideas seamlessly.
 
-Go on..
-1. Take notes wrecklessly in daily notes (or wherever), then add backlinks..
-2. Let the backlinks guide your research and writing.
-3. Now view it all together in Coalesce, as one.
+## How It Works
+- **Take Notes Freely**: Capture ideas in daily notes or any other notes.
+- **Link Together**: Use backlinks to connect related thoughts.
+- **View in Coalesce**: See all related content together in one organized document.
 
-## How to use
-
-1. Add and enable the plugin.
-2. Open today's daily note and backlink another note.
-3. Open that note and look below.
-
-## Notes
-- Don't show on daily notes.
-- Only shows in view mode.
-- Default sort is ascending by date.
+## Features
+- Automatically hides in daily notes.
+- Only appears in view mode.
+- Arranged in chronological order by default.
