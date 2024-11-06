@@ -27,7 +27,6 @@ export default class CoalescePlugin extends Plugin {
 		 * Usage: In the browser console, type `enableLogging()` to enable logging.
 		 * Usage: In the browser console, type `disableLogging()` to disable logging.
 		 */
-		// 
 		(window as any).enableLogging = function() {
 			Logger.enable();
 			console.log("Logging enabled");

@@ -19,3 +19,4 @@ Go on..
 
 ## Notes
 - Don't show on daily notes.
+- Only shows in view mode.
