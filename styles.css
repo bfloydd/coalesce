@@ -12,6 +12,26 @@
     margin-right: 5px;
     transition: transform 0.2s ease;
 }
+/* 
+.backlinks-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.header-title {
+    font-weight: bold;
+}
+
+.sort-button {
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+} */
 
 /* ============================
    CoalesceView Styles
