@@ -69,7 +69,7 @@ export class CoalesceView {
         return blocks;
     }
 
-    private updateStrategy(strategy: string) {
+    private updateBlockBoundaryStrategy(strategy: string) {
         switch (strategy) {
             case 'single-line':
                 this.blockBoundaryStrategy = new SingleLineBlockBoundaryStrategy();
@@ -136,7 +136,7 @@ export class CoalesceView {
                     this.settingsManager.settings.blockBoundaryStrategy = strategy;
                     await this.settingsManager.saveSettings();
                     // Update the strategy before reloading
-                    this.updateStrategy(strategy);
+                    this.updateBlockBoundaryStrategy(strategy);
                     // Reload the contents and blocks
                     await this.updateBacklinks(filesLinkingToThis, onLinkClick);
                 }
