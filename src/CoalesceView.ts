@@ -21,7 +21,7 @@ export class CoalesceView {
         private view: MarkdownView,
         currentNoteName: string,
         private settingsManager: SettingsManager,
-        blockBoundaryStrategy: BlockBoundaryStrategy = new SingleLineBlockBoundaryStrategy(),
+        blockBoundaryStrategy: BlockBoundaryStrategy,
     ) {
         this.currentNoteName = currentNoteName;
         this.blockBoundaryStrategy = blockBoundaryStrategy;
@@ -69,6 +69,19 @@ export class CoalesceView {
         return blocks;
     }
 
+    private updateStrategy(strategy: string) {
+        // Update the strategy based on the new selection
+        switch (strategy) {
+            case 'single-line':
+                this.blockBoundaryStrategy = new SingleLineBlockBoundaryStrategy();
+                break;
+            case 'default':
+            default:
+                this.blockBoundaryStrategy = new DefaultBlockBoundaryStrategy();
+                break;
+        }
+    }
+
     public async updateBacklinks(filesLinkingToThis: string[], onLinkClick: (path: string) => void): Promise<void> {
         this.logger.info("Updating backlinks:", filesLinkingToThis);
         this.container.empty();
@@ -95,7 +108,6 @@ export class CoalesceView {
         for (const { block } of this.allBlocks) {
             await block.render(linksContainer, this.view, onLinkClick);
             const blockContainer = block.getContainer();
-            // Use the class property instead of accessing settings directly
             blockContainer.style.display = this.blocksCollapsed ? 'none' : 'block';
             block.setArrowState(!this.blocksCollapsed);
         }
@@ -113,9 +125,8 @@ export class CoalesceView {
                 },
                 () => {
                     this.toggleAllBlocks();
-                    // Update header
                     const oldHeader = this.container.querySelector('.backlinks-header');
-                    if (oldHeader) {
+                    if (oldHeader && this.container.contains(oldHeader)) {
                         const newHeader = createHeader();
                         this.container.replaceChild(newHeader, oldHeader);
                     }
@@ -125,13 +136,17 @@ export class CoalesceView {
                 async (strategy) => {
                     this.settingsManager.settings.blockBoundaryStrategy = strategy;
                     await this.settingsManager.saveSettings();
-                    this.updateBacklinks(filesLinkingToThis, onLinkClick);
+                    // Update the strategy before reloading
+                    this.updateStrategy(strategy);
+                    // Reload the contents and blocks
+                    await this.updateBacklinks(filesLinkingToThis, onLinkClick);
                 }
             );
         };
 
         const header = createHeader();
-        this.container.insertBefore(header, linksContainer);
+        this.container.appendChild(header);
+        this.container.appendChild(linksContainer);
     }
 
     public toggleSort(): void {
