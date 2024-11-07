@@ -5,6 +5,7 @@ import { HeaderComponent } from './HeaderComponent';
 import { SettingsManager } from './SettingsManager';
 import { BlockBoundaryStrategy } from './BlockBoundaryStrategy';
 import { DefaultBlockBoundaryStrategy } from './DefaultBlockBoundaryStrategy';
+import { SingleLineBlockBoundaryStrategy } from './SingleLineBlockBoundaryStrategy';
 
 export class CoalesceView {
     private container: HTMLElement;
@@ -20,7 +21,7 @@ export class CoalesceView {
         private view: MarkdownView,
         currentNoteName: string,
         private settingsManager: SettingsManager,
-        blockBoundaryStrategy: BlockBoundaryStrategy = new DefaultBlockBoundaryStrategy()
+        blockBoundaryStrategy: BlockBoundaryStrategy = new SingleLineBlockBoundaryStrategy(),
     ) {
         this.currentNoteName = currentNoteName;
         this.blockBoundaryStrategy = blockBoundaryStrategy;
@@ -119,7 +120,13 @@ export class CoalesceView {
                         this.container.replaceChild(newHeader, oldHeader);
                     }
                 },
-                this.blocksCollapsed
+                this.blocksCollapsed,
+                this.settingsManager.settings.blockBoundaryStrategy,
+                async (strategy) => {
+                    this.settingsManager.settings.blockBoundaryStrategy = strategy;
+                    await this.settingsManager.saveSettings();
+                    this.updateBacklinks(filesLinkingToThis, onLinkClick);
+                }
             );
         };
 

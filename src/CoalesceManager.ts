@@ -2,6 +2,8 @@ import { App, MarkdownView, TFile } from 'obsidian';
 import { CoalesceView } from './CoalesceView';
 import { Logger } from './Logger';
 import { SettingsManager } from './SettingsManager';
+import { DefaultBlockBoundaryStrategy } from './DefaultBlockBoundaryStrategy';
+import { SingleLineBlockBoundaryStrategy } from './SingleLineBlockBoundaryStrategy';
 
 export class CoalesceManager {
     private coalesceView: CoalesceView | null = null;
@@ -20,7 +22,8 @@ export class CoalesceManager {
         }
 
         const currentNoteName = file.basename;
-        this.coalesceView = new CoalesceView(view, currentNoteName, this.settingsManager);
+        const strategy = this.getStrategyFromSettings();
+        this.coalesceView = new CoalesceView(view, currentNoteName, this.settingsManager, strategy);
 
         const backlinks = this.app.metadataCache.resolvedLinks;
         const filesLinkingToThis = Object.entries(backlinks)
@@ -30,6 +33,17 @@ export class CoalesceManager {
         this.coalesceView.updateBacklinks(filesLinkingToThis, (path) => {
             this.app.workspace.openLinkText(path, '', false);
         });
+    }
+
+    private getStrategyFromSettings() {
+        const strategyName = this.settingsManager.settings.blockBoundaryStrategy;
+        switch (strategyName) {
+            case 'single-line':
+                return new SingleLineBlockBoundaryStrategy();
+            case 'default':
+            default:
+                return new DefaultBlockBoundaryStrategy();
+        }
     }
 
     clearBacklinks() {

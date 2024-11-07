@@ -3,13 +3,15 @@ interface CoalescePluginSettings {
     sortDescending: boolean;
     blocksCollapsed: boolean;
     showInDailyNotes: boolean;
+    blockBoundaryStrategy: string;
 }
 
 const DEFAULT_SETTINGS: CoalescePluginSettings = {
     mySetting: 'default',
     sortDescending: true,
     blocksCollapsed: true,
-    showInDailyNotes: false
+    showInDailyNotes: false,
+    blockBoundaryStrategy: 'default'
 };
 
 interface Plugin {

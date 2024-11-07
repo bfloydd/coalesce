@@ -6,7 +6,9 @@ export class HeaderComponent {
         sortDescending: boolean,
         onSortToggle: () => void,
         onCollapseToggle: () => void,
-        isCollapsed: boolean
+        isCollapsed: boolean,
+        currentStrategy: string,
+        onStrategyChange: (strategy: string) => void
     ): HTMLElement {
         const header = document.createElement('div');
 
@@ -47,6 +49,22 @@ export class HeaderComponent {
         `;
         collapseButton.addEventListener('click', onCollapseToggle);
         header.appendChild(collapseButton);
+
+        // Create and add strategy dropdown
+        const strategySelect = document.createElement('select');
+        strategySelect.classList.add('strategy-select');
+        const strategies = ['default', 'single-line'];
+        strategies.forEach(strategy => {
+            const option = document.createElement('option');
+            option.value = strategy;
+            option.textContent = strategy.replace('-', ' ').toUpperCase();
+            option.selected = strategy === currentStrategy;
+            strategySelect.appendChild(option);
+        });
+        strategySelect.addEventListener('change', () => {
+            onStrategyChange(strategySelect.value);
+        });
+        header.appendChild(strategySelect);
 
         return header;
     }
