@@ -22,8 +22,8 @@ export class CoalesceManager {
         }
 
         const currentNoteName = file.basename;
-        const strategy = this.getStrategyFromSettings();
-        this.coalesceView = new CoalesceView(view, currentNoteName, this.settingsManager, strategy);
+        const blockBoundaryStrategy = this.getStrategyFromSettings();
+        this.coalesceView = new CoalesceView(view, currentNoteName, this.settingsManager, blockBoundaryStrategy);
 
         const backlinks = this.app.metadataCache.resolvedLinks;
         const filesLinkingToThis = Object.entries(backlinks)
@@ -36,8 +36,8 @@ export class CoalesceManager {
     }
 
     private getStrategyFromSettings() {
-        const strategyName = this.settingsManager.settings.blockBoundaryStrategy;
-        switch (strategyName) {
+        const blockBoundaryStrategy = this.settingsManager.settings.blockBoundaryStrategy;
+        switch (blockBoundaryStrategy) {
             case 'single-line':
                 return new SingleLineBlockBoundaryStrategy();
             case 'default':

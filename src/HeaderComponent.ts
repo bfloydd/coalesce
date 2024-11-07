@@ -49,22 +49,22 @@ export class HeaderComponent {
         `;
         collapseButton.addEventListener('click', onCollapseToggle);
         header.appendChild(collapseButton);
-
+        
         // Create and add strategy dropdown
-        const strategySelect = document.createElement('select');
-        strategySelect.classList.add('strategy-select');
-        const strategies = ['default', 'single-line'];
-        strategies.forEach(strategy => {
+        const blockBoundaryStrategySelect = document.createElement('select');
+        blockBoundaryStrategySelect.classList.add('strategy-select');
+        const blockBoundaryStrategies = ['default', 'single-line'];
+        blockBoundaryStrategies.forEach(strategy => {
             const option = document.createElement('option');
             option.value = strategy;
             option.textContent = strategy.replace('-', ' ').toUpperCase();
             option.selected = strategy === currentStrategy;
-            strategySelect.appendChild(option);
+            blockBoundaryStrategySelect.appendChild(option);
         });
-        strategySelect.addEventListener('change', () => {
-            onStrategyChange(strategySelect.value);
+        blockBoundaryStrategySelect.addEventListener('change', () => {
+            onStrategyChange(blockBoundaryStrategySelect.value);
         });
-        header.appendChild(strategySelect);
+        header.appendChild(blockBoundaryStrategySelect);
 
         return header;
     }
