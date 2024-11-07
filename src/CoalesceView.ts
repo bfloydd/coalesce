@@ -70,7 +70,6 @@ export class CoalesceView {
     }
 
     private updateStrategy(strategy: string) {
-        // Update the strategy based on the new selection
         switch (strategy) {
             case 'single-line':
                 this.blockBoundaryStrategy = new SingleLineBlockBoundaryStrategy();

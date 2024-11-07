@@ -50,7 +50,7 @@ export class HeaderComponent {
         collapseButton.addEventListener('click', onCollapseToggle);
         header.appendChild(collapseButton);
         
-        // Create and add strategy dropdown
+        // Create and add blockBoundaryStrategySelect dropdown
         const blockBoundaryStrategySelect = document.createElement('select');
         blockBoundaryStrategySelect.classList.add('strategy-select');
         const blockBoundaryStrategies = ['default', 'single-line'];
