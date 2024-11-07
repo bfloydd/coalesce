@@ -1,5 +1,5 @@
 export class Logger {
-    private static enabled: boolean = true;
+    private static enabled: boolean = false;
 
     static enable() {
         Logger.enabled = true;
