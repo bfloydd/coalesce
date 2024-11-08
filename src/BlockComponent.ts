@@ -2,7 +2,8 @@ import { MarkdownRenderer, MarkdownView } from 'obsidian';
 import { Logger } from './Logger';
 
 export class BlockComponent {
-    private blockContainer: HTMLElement;
+    private mainContainer: HTMLElement;
+    private headerContainer: HTMLElement;
     private toggleButton: HTMLElement;
     private logger: Logger;
 
@@ -18,17 +19,20 @@ export class BlockComponent {
     async render(container: HTMLElement, view: MarkdownView, onLinkClick: (path: string) => void): Promise<void> {
         const displayText = this.filePath.replace(/\.md$/, '');
 
-        // Create a container for the display text and toggle button
-        const headerContainer = container.createDiv({ cls: 'block-header' });
+        // Create main container
+        this.mainContainer = container.createDiv({ cls: 'backlink-item' });
+
+        // Create header container
+        this.headerContainer = this.mainContainer.createDiv({ cls: 'block-header' });
 
         // Create the toggle button
-        this.toggleButton = headerContainer.createEl('span', {
+        this.toggleButton = this.headerContainer.createEl('span', {
             cls: 'toggle-arrow',
-            text: '▼', // Down-pointing arrow for open state
+            text: '▼',
         });
 
         // Block header
-        const blockTitle = headerContainer.createEl('a', {
+        const blockTitle = this.headerContainer.createEl('a', {
             text: this.getDisplayTitle(this.filePath, this.showFullPathTitle),
             cls: 'block-title',
             href: '#',
@@ -38,11 +42,8 @@ export class BlockComponent {
             onLinkClick(this.filePath);
         });
 
-        // Create a block container with the class 'backlink-item'
-        const blockContainer = container.createDiv({ cls: 'backlink-item' });
-
-        // Render the markdown content
-        const contentPreview = blockContainer.createDiv('content-preview');
+        // Create content container
+        const contentPreview = this.mainContainer.createDiv('content-preview');
 
         await MarkdownRenderer.render(
             view.app,
@@ -52,7 +53,7 @@ export class BlockComponent {
             view,
         );
 
-        // Add click handlers for internal links, without debug logging
+        // Add click handlers for internal links
         contentPreview.querySelectorAll('a.internal-link').forEach((link: HTMLElement) => {
             link.addEventListener('click', (event) => {
                 this.logger.info("Link clicked!");
@@ -73,20 +74,18 @@ export class BlockComponent {
         });
 
         // Initially show the entire block container
-        blockContainer.style.display = 'block';
+        contentPreview.style.display = 'block';
 
         // Show/hide a single block
         this.toggleButton.addEventListener('click', () => {
-            const isCollapsed = blockContainer.style.display === 'none';
-            blockContainer.style.display = isCollapsed ? 'block' : 'none';
-            this.toggleButton.textContent = isCollapsed ? '▼' : '▶'; // Toggle arrow direction
+            const isCollapsed = contentPreview.style.display === 'none';
+            contentPreview.style.display = isCollapsed ? 'block' : 'none';
+            this.toggleButton.textContent = isCollapsed ? '▼' : '▶';
         });
-
-        this.blockContainer = blockContainer; // Save the reference
     }
 
     getContainer(): HTMLElement {
-        return this.blockContainer;
+        return this.mainContainer;
     }
 
     setArrowState(isExpanded: boolean): void {
@@ -102,5 +101,16 @@ export class BlockComponent {
             const parts = filePath.split('/');
             return parts[parts.length - 1].replace(/\.md$/, '');
         }
+    }
+
+    public updateTitleDisplay(showFullPath: boolean): void {
+        const titleElement = this.headerContainer?.querySelector('.block-title') as HTMLAnchorElement;
+        if (titleElement) {
+            titleElement.textContent = this.getDisplayTitle(this.filePath, showFullPath);
+        }
+    }
+
+    private getFileName(path: string): string {
+        return path.split('/').pop()?.replace('.md', '') || path;
     }
 }

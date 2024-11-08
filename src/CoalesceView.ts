@@ -100,6 +100,12 @@ export class CoalesceView {
         this.applyTheme(theme);
     }
 
+    private async updateBlockTitles(show: boolean): Promise<void> {
+        this.allBlocks.forEach(({ block }) => {
+            block.updateTitleDisplay(show);
+        });
+    }
+
     public async updateBacklinks(filesLinkingToThis: string[], onLinkClick: (path: string) => void): Promise<void> {
         this.logger.info("Updating backlinks:", filesLinkingToThis);
         this.container.empty();
@@ -165,6 +171,7 @@ export class CoalesceView {
                 async (show: boolean) => {
                     this.settingsManager.settings.showFullPathTitle = show;
                     await this.settingsManager.saveSettings();
+                    await this.updateBlockTitles(show);
                 }
             );
         };
