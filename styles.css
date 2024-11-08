@@ -55,7 +55,7 @@
 .settings-button {
     background: none;
     border: none;
-    padding: 4px 8px;
+    padding: 4px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -67,12 +67,17 @@
     background-color: var(--background-modifier-hover);
 }
 
+.settings-button svg {
+    width: 16px;
+    height: 16px;
+}
+
 .settings-popup {
     position: absolute;
     background-color: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
     border-radius: 4px;
-    padding: 4px;
+    padding: 2px;
     z-index: 100;
     box-shadow: var(--shadow-s);
     min-width: 180px;
@@ -81,13 +86,13 @@
 .settings-item {
     display: flex;
     align-items: center;
-    padding: 2px 8px;
+    padding: 0 8px;
     cursor: pointer;
     position: relative;
     user-select: none;
     color: var(--text-normal);
-    height: 28px;
-    font-size: 14px;
+    height: 24px;
+    font-size: 13px;
 }
 
 .settings-item:hover {
@@ -108,6 +113,7 @@
     flex: 1;
     margin-left: 4px;
     color: var(--text-normal);
+    line-height: 1;
 }
 
 .checkmark-container {
@@ -121,8 +127,8 @@
 
 .checkmark {
     color: var(--text-accent);
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
 }
 
 .settings-item:hover .checkmark {
@@ -271,13 +277,4 @@
     background: var(--background-secondary-alt);
     border-radius: 6px;
     margin: 4px 8px;
-}
-
-/* Style for the theme selector dropdown */
-.theme-select {
-    margin-left: 8px;
-    padding: 2px 4px;
-    border-radius: 4px;
-    background: var(--background-modifier-form-field);
-    border: 1px solid var(--background-modifier-border);
 }
