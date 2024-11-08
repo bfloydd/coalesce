@@ -63,7 +63,7 @@ export class CoalesceView {
 
                 for (const { start, end } of boundaries) {
                     const blockContent = content.substring(start, end);
-                    const block = new BlockComponent(blockContent, filePath, currentNoteName);
+                    const block = new BlockComponent(blockContent, filePath, currentNoteName, this.settingsManager.settings.showFullPathTitle);
                     blocks.push(block);
                 }
             }

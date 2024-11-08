@@ -163,6 +163,10 @@ export class HeaderComponent {
                 currentFullPathState = !currentFullPathState;
                 checkmark.style.display = currentFullPathState ? 'block' : 'none';
                 onFullPathTitleChange(currentFullPathState);
+
+                // Note: The actual title transformation should happen in the parent component
+                // that receives the onFullPathTitleChange event. This component only
+                // handles the UI toggle state.
             });
 
             // Position the popup

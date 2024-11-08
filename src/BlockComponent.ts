@@ -9,7 +9,8 @@ export class BlockComponent {
     constructor(
         public contents: string,
         public filePath: string,
-        public noteName: string
+        public noteName: string,
+        private showFullPathTitle: boolean
     ) {
         this.logger = new Logger();
     }
@@ -28,7 +29,7 @@ export class BlockComponent {
 
         // Block header
         const blockTitle = headerContainer.createEl('a', {
-            text: displayText,
+            text: this.getDisplayTitle(this.filePath, this.showFullPathTitle),
             cls: 'block-title',
             href: '#',
         });
@@ -91,6 +92,15 @@ export class BlockComponent {
     setArrowState(isExpanded: boolean): void {
         if (this.toggleButton) {
             this.toggleButton.textContent = isExpanded ? '▼' : '▶';
+        }
+    }
+
+    private getDisplayTitle(filePath: string, showFullPath: boolean): string {
+        if (showFullPath) {
+            return filePath.replace(/\.md$/, '');
+        } else {
+            const parts = filePath.split('/');
+            return parts[parts.length - 1].replace(/\.md$/, '');
         }
     }
 }
