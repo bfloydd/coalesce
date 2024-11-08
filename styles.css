@@ -284,3 +284,7 @@
     background: var(--background-secondary-alt);
     border-radius: 6px;
 }
+
+.theme-modern .backlink-item {
+    padding: 3px 0px;
+}
