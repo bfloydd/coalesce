@@ -4,6 +4,7 @@ interface CoalescePluginSettings {
     blocksCollapsed: boolean;
     showInDailyNotes: boolean;
     blockBoundaryStrategy: string;
+    theme: string;
 }
 
 const DEFAULT_SETTINGS: CoalescePluginSettings = {
@@ -11,7 +12,8 @@ const DEFAULT_SETTINGS: CoalescePluginSettings = {
     sortDescending: true,
     blocksCollapsed: true,
     showInDailyNotes: false,
-    blockBoundaryStrategy: 'default'
+    blockBoundaryStrategy: 'default',
+    theme: 'default'
 };
 
 interface Plugin {

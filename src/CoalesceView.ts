@@ -16,6 +16,7 @@ export class CoalesceView {
     private blocksCollapsed: boolean;
     private allBlocks: { block: BlockComponent; sourcePath: string }[] = [];
     private blockBoundaryStrategy: BlockBoundaryStrategy;
+    private currentTheme: string;
 
     constructor(
         private view: MarkdownView,
@@ -29,6 +30,9 @@ export class CoalesceView {
         this.blocksCollapsed = this.settingsManager.settings.blocksCollapsed;
         this.container = this.createBacklinksContainer();
         this.logger.info("Appending backlinks container to the view");
+
+        this.currentTheme = this.settingsManager.settings.theme;
+        this.applyTheme(this.currentTheme);
 
         // Append the container directly to the markdown view's content area
         const markdownContent = this.view.containerEl.querySelector('.markdown-preview-view') as HTMLElement || this.view.contentEl as HTMLElement;
@@ -81,6 +85,21 @@ export class CoalesceView {
         }
     }
 
+    private applyTheme(theme: string) {
+        const themes = ['default', 'minimal', 'modern'];
+        themes.forEach(t => {
+            this.container.classList.remove(`theme-${t}`);
+        });
+        this.container.classList.add(`theme-${theme}`);
+    }
+
+    private async handleThemeChange(theme: string) {
+        this.currentTheme = theme;
+        this.settingsManager.settings.theme = theme;
+        await this.settingsManager.saveSettings();
+        this.applyTheme(theme);
+    }
+
     public async updateBacklinks(filesLinkingToThis: string[], onLinkClick: (path: string) => void): Promise<void> {
         this.logger.info("Updating backlinks:", filesLinkingToThis);
         this.container.empty();
@@ -115,7 +134,7 @@ export class CoalesceView {
         const createHeader = () => {
             return this.headerComponent.createHeader(
                 this.container, 
-                filesLinkingToThis.length, 
+                filesLinkingToThis.length,
                 this.allBlocks.length,
                 this.sortDescending,
                 () => {
@@ -135,10 +154,12 @@ export class CoalesceView {
                 async (strategy) => {
                     this.settingsManager.settings.blockBoundaryStrategy = strategy;
                     await this.settingsManager.saveSettings();
-                    // Update the strategy before reloading
                     this.updateBlockBoundaryStrategy(strategy);
-                    // Reload the contents and blocks
                     await this.updateBacklinks(filesLinkingToThis, onLinkClick);
+                },
+                this.currentTheme,
+                async (theme) => {
+                    await this.handleThemeChange(theme);
                 }
             );
         };

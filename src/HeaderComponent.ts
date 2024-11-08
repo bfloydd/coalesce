@@ -8,7 +8,9 @@ export class HeaderComponent {
         onCollapseToggle: () => void,
         isCollapsed: boolean,
         currentStrategy: string,
-        onStrategyChange: (strategy: string) => void
+        onStrategyChange: (strategy: string) => void,
+        currentTheme: string,
+        onThemeChange: (theme: string) => void
     ): HTMLElement {
         const header = document.createElement('div');
 
@@ -65,6 +67,22 @@ export class HeaderComponent {
             onStrategyChange(blockBoundaryStrategySelect.value);
         });
         header.appendChild(blockBoundaryStrategySelect);
+
+        // Add theme selector dropdown
+        const themeSelect = document.createElement('select');
+        themeSelect.classList.add('theme-select');
+        const themes = ['default', 'minimal', 'modern'];
+        themes.forEach(theme => {
+            const option = document.createElement('option');
+            option.value = theme;
+            option.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+            option.selected = theme === currentTheme;
+            themeSelect.appendChild(option);
+        });
+        themeSelect.addEventListener('change', () => {
+            onThemeChange(themeSelect.value);
+        });
+        header.appendChild(themeSelect);
 
         return header;
     }

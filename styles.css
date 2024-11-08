@@ -88,3 +88,69 @@
     text-decoration: none;
     color: var(--text-normal);
 }
+
+/* ============================
+   Themes
+   ============================ */
+
+/* Default Theme */
+.theme-default .backlinks-header {
+    padding: 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.theme-default .header-title {
+    margin-left: 8px;
+    font-weight: 600;
+}
+
+.theme-default .block-header {
+    padding: 4px 8px;
+    background: var(--background-primary);
+}
+
+/* Minimal Theme */
+.theme-minimal .backlinks-header {
+    padding: 4px;
+    border: none;
+}
+
+.theme-minimal .header-title {
+    margin-left: 4px;
+    font-weight: normal;
+}
+
+.theme-minimal .block-header {
+    padding: 2px 4px;
+    background: transparent;
+}
+
+/* Modern Theme */
+.theme-modern .backlinks-header {
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--background-secondary);
+    margin: 8px;
+}
+
+.theme-modern .header-title {
+    margin-left: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.theme-modern .block-header {
+    padding: 8px 12px;
+    background: var(--background-secondary-alt);
+    border-radius: 6px;
+    margin: 4px 8px;
+}
+
+/* Style for the theme selector dropdown */
+.theme-select {
+    margin-left: 8px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    background: var(--background-modifier-form-field);
+    border: 1px solid var(--background-modifier-border);
+}
