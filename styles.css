@@ -22,6 +22,20 @@
     align-items: center;
     gap: 8px;
     margin-bottom: 10px;
+    justify-content: space-between;
+}
+
+.backlinks-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.backlinks-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
 }
 
 .sort-button {
@@ -35,6 +49,43 @@
 
 .collapse-button svg {
     transition: transform 0.2s ease;
+}
+
+/* Add these new styles before the themes section */
+.settings-button {
+    background: none;
+    border: none;
+    padding: 4px 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    color: var(--text-muted);
+    border-radius: 4px;
+}
+
+.settings-button:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+.settings-popup {
+    position: absolute;
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 4px;
+    padding: 8px;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.settings-item {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+
+.settings-item:hover {
+    background-color: var(--background-modifier-hover);
 }
 
 /* ============================
