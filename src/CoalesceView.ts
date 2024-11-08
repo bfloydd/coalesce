@@ -132,7 +132,10 @@ export class CoalesceView {
         for (const { block } of this.allBlocks) {
             await block.render(linksContainer, this.view, onLinkClick);
             const blockContainer = block.getContainer();
-            blockContainer.style.display = this.blocksCollapsed ? 'none' : 'block';
+            const contentPreview = blockContainer.querySelector('.content-preview') as HTMLElement;
+            if (contentPreview) {
+                contentPreview.style.display = this.blocksCollapsed ? 'none' : 'block';
+            }
             block.setArrowState(!this.blocksCollapsed);
         }
 
@@ -195,7 +198,10 @@ export class CoalesceView {
         // Update all blocks based on the new state
         this.allBlocks.forEach(({ block }) => {
             const blockContainer = block.getContainer();
-            blockContainer.style.display = this.blocksCollapsed ? 'none' : 'block';
+            const contentPreview = blockContainer.querySelector('.content-preview') as HTMLElement;
+            if (contentPreview) {
+                contentPreview.style.display = this.blocksCollapsed ? 'none' : 'block';
+            }
             block.setArrowState(!this.blocksCollapsed);
         });
     }
