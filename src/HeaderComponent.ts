@@ -122,29 +122,45 @@ export class HeaderComponent {
             const settingItem = document.createElement('div');
             settingItem.className = 'settings-item';
 
-            // Create toggle container
-            const toggleContainer = document.createElement('div');
-            toggleContainer.className = 'toggle-container';
-
-            // Create toggle circle
-            const toggleCircle = document.createElement('div');
-            toggleCircle.className = 'toggle-circle';
-            toggleCircle.classList.toggle('is-enabled', currentFullPathState);
+            // Create left icon (folder/file icon)
+            const leftIcon = document.createElement('div');
+            leftIcon.className = 'setting-item-icon';
+            leftIcon.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 3h18v18H3z"></path>
+                    <path d="M3 9h18"></path>
+                </svg>
+            `;
 
             // Create label
             const label = document.createElement('span');
             label.textContent = 'Full path note title';
             label.className = 'setting-item-label';
 
-            toggleContainer.appendChild(toggleCircle);
-            settingItem.appendChild(toggleContainer);
+            // Create checkmark container (right side)
+            const checkmarkContainer = document.createElement('div');
+            checkmarkContainer.className = 'checkmark-container';
+
+            // Create checkmark icon
+            const checkmark = document.createElement('div');
+            checkmark.className = 'checkmark';
+            checkmark.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            `;
+            checkmark.style.display = currentFullPathState ? 'block' : 'none';
+
+            checkmarkContainer.appendChild(checkmark);
+            settingItem.appendChild(leftIcon);
             settingItem.appendChild(label);
+            settingItem.appendChild(checkmarkContainer);
             popup.appendChild(settingItem);
 
             // Make the entire setting item clickable
             settingItem.addEventListener('click', () => {
                 currentFullPathState = !currentFullPathState;
-                toggleCircle.classList.toggle('is-enabled', currentFullPathState);
+                checkmark.style.display = currentFullPathState ? 'block' : 'none';
                 onFullPathTitleChange(currentFullPathState);
             });
 

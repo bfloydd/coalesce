@@ -91,6 +91,41 @@
     background-color: var(--background-modifier-hover);
 }
 
+.setting-item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    color: var(--text-muted);
+}
+
+.setting-item-label {
+    flex: 1;
+    margin-left: 8px;
+    color: var(--text-normal);
+}
+
+.checkmark-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    margin-left: 8px;
+}
+
+.checkmark {
+    color: var(--text-accent);
+    width: 16px;
+    height: 16px;
+}
+
+.settings-item:hover .checkmark {
+    color: var(--text-accent-hover);
+}
+
 .toggle-container {
     width: 16px;
     height: 16px;
@@ -113,11 +148,6 @@
 .toggle-circle.is-enabled {
     background-color: var(--text-accent);
     border-color: var(--text-accent);
-}
-
-.setting-item-label {
-    margin-left: 8px;
-    color: var(--text-normal);
 }
 
 .settings-item:hover .toggle-circle:not(.is-enabled) {
