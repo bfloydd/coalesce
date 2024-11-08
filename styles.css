@@ -166,15 +166,11 @@
 /* ============================
    CoalesceView Styles
    ============================ */
-
-/* .backlink-item {
-    padding: 0px 0px;
-} */
-
+/* 
 .backlink-item:not(:last-child) {
     border-bottom: 1px solid var(--background-modifier-border);
     margin-bottom: 10px;
-}
+} */
 
 .content-preview {
     color: var(--text-muted);
@@ -243,6 +239,15 @@
 .theme-default .block-header {
     padding: 4px 8px;
     background: var(--background-primary);
+}
+
+.theme-default .backlink-item {
+    padding: 5px 10px;
+}
+
+.theme-default .backlink-item:not(:last-child) {
+    border-bottom: 1px solid var(--background-modifier-border);
+    margin-bottom: 10px;
 }
 
 /* Minimal Theme */
