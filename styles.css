@@ -72,19 +72,22 @@
     background-color: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
     border-radius: 4px;
-    padding: 8px;
+    padding: 4px;
     z-index: 100;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-s);
+    min-width: 180px;
 }
 
 .settings-item {
     display: flex;
     align-items: center;
-    padding: 6px 12px;
+    padding: 2px 8px;
     cursor: pointer;
     position: relative;
     user-select: none;
     color: var(--text-normal);
+    height: 28px;
+    font-size: 14px;
 }
 
 .settings-item:hover {
@@ -97,13 +100,13 @@
     justify-content: center;
     width: 16px;
     height: 16px;
-    margin-right: 8px;
     color: var(--text-muted);
+    margin-right: 4px;
 }
 
 .setting-item-label {
     flex: 1;
-    margin-left: 8px;
+    margin-left: 4px;
     color: var(--text-normal);
 }
 
@@ -113,7 +116,7 @@
     justify-content: center;
     width: 16px;
     height: 16px;
-    margin-left: 8px;
+    margin-left: 4px;
 }
 
 .checkmark {
