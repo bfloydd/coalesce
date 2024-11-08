@@ -167,10 +167,13 @@
    CoalesceView Styles
    ============================ */
 
+/* .backlink-item {
+    padding: 0px 0px;
+} */
+
 .backlink-item:not(:last-child) {
     border-bottom: 1px solid var(--background-modifier-border);
     margin-bottom: 10px;
-    padding: 5px 10px;
 }
 
 .content-preview {
@@ -263,7 +266,6 @@
     padding: 12px;
     border-radius: 8px;
     background: var(--background-secondary);
-    margin: 8px;
 }
 
 .theme-modern .header-title {
@@ -276,5 +278,4 @@
     padding: 8px 12px;
     background: var(--background-secondary-alt);
     border-radius: 6px;
-    margin: 4px 8px;
 }
