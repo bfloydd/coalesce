@@ -160,6 +160,11 @@ export class CoalesceView {
                 this.currentTheme,
                 async (theme) => {
                     await this.handleThemeChange(theme);
+                },
+                this.settingsManager.settings.showFullPathTitle,
+                async (show: boolean) => {
+                    this.settingsManager.settings.showFullPathTitle = show;
+                    await this.settingsManager.saveSettings();
                 }
             );
         };

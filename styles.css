@@ -80,12 +80,48 @@
 .settings-item {
     display: flex;
     align-items: center;
-    padding: 4px 8px;
+    padding: 6px 12px;
     cursor: pointer;
+    position: relative;
+    user-select: none;
+    color: var(--text-normal);
 }
 
 .settings-item:hover {
     background-color: var(--background-modifier-hover);
+}
+
+.toggle-container {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.toggle-circle {
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--text-muted);
+    border-radius: 50%;
+    background-color: var(--background-modifier-form-field);
+    transition: background-color 150ms ease;
+}
+
+.toggle-circle.is-enabled {
+    background-color: var(--text-accent);
+    border-color: var(--text-accent);
+}
+
+.setting-item-label {
+    margin-left: 8px;
+    color: var(--text-normal);
+}
+
+.settings-item:hover .toggle-circle:not(.is-enabled) {
+    border-color: var(--text-normal);
 }
 
 /* ============================

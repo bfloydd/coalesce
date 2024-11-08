@@ -10,7 +10,9 @@ export class HeaderComponent {
         currentStrategy: string,
         onStrategyChange: (strategy: string) => void,
         currentTheme: string,
-        onThemeChange: (theme: string) => void
+        onThemeChange: (theme: string) => void,
+        showFullPathTitle: boolean,
+        onFullPathTitleChange: (show: boolean) => void
     ): HTMLElement {
         const header = document.createElement('div');
         header.classList.add('backlinks-header');
@@ -91,7 +93,7 @@ export class HeaderComponent {
         });
         leftContainer.appendChild(themeSelect);
 
-        // Add settings button before the theme selector
+        // Add settings button after the theme selector
         const settingsButton = document.createElement('button');
         settingsButton.className = 'settings-button';
         settingsButton.innerHTML = `
@@ -102,6 +104,8 @@ export class HeaderComponent {
         `;
 
         let popup: HTMLElement | null = null;
+
+        let currentFullPathState = showFullPathTitle;
 
         settingsButton.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -117,10 +121,34 @@ export class HeaderComponent {
 
             const settingItem = document.createElement('div');
             settingItem.className = 'settings-item';
-            settingItem.textContent = 'Placeholder Setting';
+
+            // Create toggle container
+            const toggleContainer = document.createElement('div');
+            toggleContainer.className = 'toggle-container';
+
+            // Create toggle circle
+            const toggleCircle = document.createElement('div');
+            toggleCircle.className = 'toggle-circle';
+            toggleCircle.classList.toggle('is-enabled', currentFullPathState);
+
+            // Create label
+            const label = document.createElement('span');
+            label.textContent = 'Full path note title';
+            label.className = 'setting-item-label';
+
+            toggleContainer.appendChild(toggleCircle);
+            settingItem.appendChild(toggleContainer);
+            settingItem.appendChild(label);
             popup.appendChild(settingItem);
 
-            // Position the popup below the button
+            // Make the entire setting item clickable
+            settingItem.addEventListener('click', () => {
+                currentFullPathState = !currentFullPathState;
+                toggleCircle.classList.toggle('is-enabled', currentFullPathState);
+                onFullPathTitleChange(currentFullPathState);
+            });
+
+            // Position the popup
             const rect = settingsButton.getBoundingClientRect();
             popup.style.top = `${rect.bottom + 5}px`;
             popup.style.left = `${rect.left}px`;
