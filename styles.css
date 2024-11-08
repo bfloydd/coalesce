@@ -67,15 +67,22 @@
     z-index: 10;
     background-color: var(--background-primary);
     color: var(--text-normal);
-    max-width: var(--readable-line-length);
     margin-left: auto;
     margin-right: auto;
 }
 
+/* Match Obsidian's is-readable-line-width class behavior */
+.is-readable-line-width .custom-backlinks-container {
+    width: var(--file-line-width);
+}
+
 .markdown-content {
-    max-width: var(--readable-line-length, 800px) !important;
     margin-left: auto !important;
     margin-right: auto !important;
+}
+
+.is-readable-line-width .markdown-content {
+    width: var(--file-line-width);
 }
 
 /* ============================
