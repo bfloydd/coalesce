@@ -1,10 +1,10 @@
 {
 	"id": "coalesce",
 	"name": "Coalesce",
-	"version": "1.0.0",
+	"version": "0.0.1",
 	"minAppVersion": "0.15.0",
 	"description": "Coalesce your notes into a single document.",
-	"author": "Obsidian",
+	"author": "Ben Floyd",
 	"authorUrl": "https://obsidian.md",
 	"fundingUrl": "https://obsidian.md/pricing",
 	"isDesktopOnly": false
