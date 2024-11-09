@@ -1,7 +1,7 @@
 {
     "id": "coalesce",
     "name": "Coalesce",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "minAppVersion": "0.15.0",
     "description": "Coalesce your notes into a single document.",
     "author": "Ben Floyd",
