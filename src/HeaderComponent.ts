@@ -171,9 +171,8 @@ export class HeaderComponent {
                 // handles the UI toggle state.
             });
 
-            // Add separator
-            const separator = document.createElement('div');
-            separator.className = 'settings-separator';
+            // Add separator before position settings
+            popup.createEl('div', { cls: 'menu-separator' });
 
             // Position settings
             const positionHighItem = document.createElement('div');
@@ -247,7 +246,7 @@ export class HeaderComponent {
 
             // Add all items to popup
             popup.appendChild(settingItem);
-            popup.appendChild(separator);
+            popup.createEl('div', { cls: 'menu-separator' });
             popup.appendChild(positionHighItem);
             popup.appendChild(positionLowItem);
 
