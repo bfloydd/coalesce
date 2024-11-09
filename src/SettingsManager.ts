@@ -6,6 +6,7 @@ interface CoalescePluginSettings {
     blockBoundaryStrategy: string;
     theme: string;
     showFullPathTitle: boolean;
+    position: 'high' | 'low';
 }
 
 const DEFAULT_SETTINGS: CoalescePluginSettings = {
@@ -15,7 +16,8 @@ const DEFAULT_SETTINGS: CoalescePluginSettings = {
     showInDailyNotes: false,
     blockBoundaryStrategy: 'default',
     theme: 'default',
-    showFullPathTitle: false
+    showFullPathTitle: false,
+    position: 'high'
 };
 
 interface Plugin {

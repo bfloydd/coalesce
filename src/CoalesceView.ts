@@ -34,22 +34,7 @@ export class CoalesceView {
         this.currentTheme = this.settingsManager.settings.theme;
         this.applyTheme(this.currentTheme);
 
-        // Position 1
-        const markdownContent = this.view.containerEl.querySelector('.markdown-preview-section .mod-footer') as HTMLElement;
-        if (markdownContent) {
-            markdownContent.classList.add('markdown-content');
-            markdownContent.appendChild(this.container);
-        } else {
-            this.logger.warn("Markdown content area not found.");
-        }
-
-        // Position 2
-        // const markdownSection = this.view.containerEl.querySelector('.markdown-preview-section') as HTMLElement;
-        // if (markdownSection) {
-        //     markdownSection.insertAdjacentElement('afterend', this.container);
-        // } else {
-        //     this.logger.warn("Markdown preview section not found.");
-        // }
+        this.attachToDOM();
     }
 
     private createBacklinksContainer(): HTMLElement {
@@ -182,6 +167,12 @@ export class CoalesceView {
                     this.settingsManager.settings.showFullPathTitle = show;
                     await this.settingsManager.saveSettings();
                     await this.updateBlockTitles(show);
+                },
+                this.settingsManager.settings.position,
+                async (position: "high" | "low") => {
+                    this.settingsManager.settings.position = position;
+                    await this.settingsManager.saveSettings();
+                    this.updatePosition();
                 }
             );
         };
@@ -219,5 +210,32 @@ export class CoalesceView {
             this.container.parentElement.removeChild(this.container);
         }
         this.logger.info("Backlinks view cleared");
+    }
+
+    private attachToDOM() {
+        if (this.settingsManager.settings.position === 'high') {
+            // Position 1 (high)
+            const markdownContent = this.view.containerEl.querySelector('.markdown-preview-section .mod-footer') as HTMLElement;
+            if (markdownContent) {
+                markdownContent.classList.add('markdown-content');
+                markdownContent.appendChild(this.container);
+            } else {
+                this.logger.warn("Markdown content area not found.");
+            }
+        } else {
+            // Position 2 (low)
+            const markdownSection = this.view.containerEl.querySelector('.markdown-preview-section') as HTMLElement;
+            if (markdownSection) {
+                markdownSection.insertAdjacentElement('afterend', this.container);
+            } else {
+                this.logger.warn("Markdown preview section not found.");
+            }
+        }
+    }
+
+    // Add method to handle position changes
+    public async updatePosition() {
+        this.clear();
+        this.attachToDOM();
     }
 }

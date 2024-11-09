@@ -12,7 +12,9 @@ export class HeaderComponent {
         currentTheme: string,
         onThemeChange: (theme: string) => void,
         showFullPathTitle: boolean,
-        onFullPathTitleChange: (show: boolean) => void
+        onFullPathTitleChange: (show: boolean) => void,
+        currentPosition: string,
+        onPositionChange: (position: 'high' | 'low') => void
     ): HTMLElement {
         const header = document.createElement('div');
         header.classList.add('backlinks-header');
@@ -168,6 +170,84 @@ export class HeaderComponent {
                 // that receives the onFullPathTitleChange event. This component only
                 // handles the UI toggle state.
             });
+
+            // Add separator
+            const separator = document.createElement('div');
+            separator.className = 'settings-separator';
+
+            // Position settings
+            const positionHighItem = document.createElement('div');
+            positionHighItem.className = 'settings-item';
+            positionHighItem.innerHTML = `
+                <div class="setting-item-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 10h14"></path>
+                        <path d="M5 18h14"></path>
+                        <path d="M5 14h14"></path>
+                    </svg>
+                </div>
+                <span class="setting-item-label">Position High</span>
+                <div class="checkmark-container">
+                    <div class="checkmark" style="display: ${currentPosition === 'high' ? 'block' : 'none'}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                </div>
+            `;
+
+            const positionLowItem = document.createElement('div');
+            positionLowItem.className = 'settings-item';
+            positionLowItem.innerHTML = `
+                <div class="setting-item-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 10h14"></path>
+                        <path d="M5 18h14"></path>
+                        <path d="M5 14h14"></path>
+                    </svg>
+                </div>
+                <span class="setting-item-label">Position Low</span>
+                <div class="checkmark-container">
+                    <div class="checkmark" style="display: ${currentPosition === 'low' ? 'block' : 'none'}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                </div>
+            `;
+
+            // Add click handlers
+            positionHighItem.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentPosition === 'high') return;
+                
+                // Update the parent state first
+                onPositionChange('high');
+                // Then update local state
+                currentPosition = 'high';
+                // Update UI
+                (positionHighItem.querySelector('.checkmark') as HTMLElement).style.display = 'block';
+                (positionLowItem.querySelector('.checkmark') as HTMLElement).style.display = 'none';
+            });
+
+            positionLowItem.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentPosition === 'low') return;
+                
+                // Update the parent state first
+                onPositionChange('low');
+                // Then update local state
+                currentPosition = 'low';
+                // Update UI
+                (positionHighItem.querySelector('.checkmark') as HTMLElement).style.display = 'none';
+                (positionLowItem.querySelector('.checkmark') as HTMLElement).style.display = 'block';
+            });
+
+            // Add all items to popup
+            popup.appendChild(settingItem);
+            popup.appendChild(separator);
+            popup.appendChild(positionHighItem);
+            popup.appendChild(positionLowItem);
 
             // Position the popup
             const rect = settingsButton.getBoundingClientRect();
