@@ -28,19 +28,14 @@ export default class CoalescePlugin extends Plugin {
 			}
 		});
 
-		/**
-		 * Logging
-		 * Usage: In the browser console, type `enableLogging()` to enable logging.
-		 * Usage: In the browser console, type `disableLogging()` to disable logging.
-		 */
-		
-		(window as any).enableLogging = function() {
-			Logger.enable();
-			console.log("Logging enabled");
-		};
-		(window as any).disableLogging = function() {
-			Logger.disable();
-			console.log("Logging disabled");
+		(window as any).coalesceLogging = function(enable: boolean) {
+			if (enable) {
+				Logger.enable();
+				console.log("Logging enabled");
+			} else {
+				Logger.disable();
+				console.log("Logging disabled");
+			}
 		};
 	}
 
