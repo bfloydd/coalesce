@@ -38,7 +38,7 @@ export default class CoalescePlugin extends Plugin {
 			}
 		};
 
-		console.log("CoalescePlugin loaded");
+		console.log("Coalesce plugin loaded");
 	}
 
 	onunload() {
