@@ -28,12 +28,12 @@ export default class CoalescePlugin extends Plugin {
 			}
 		});
 
-		(window as any).coalesceLogging = function(enable: boolean) {
+		(window as any).coalesceLogging = (enable: boolean) => {
 			if (enable) {
-				Logger.enable();
+				this.logger.enable();
 				console.log("Logging enabled");
 			} else {
-				Logger.disable();
+				this.logger.disable();
 				console.log("Logging disabled");
 			}
 		};

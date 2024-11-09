@@ -1,29 +1,35 @@
 export class Logger {
-    private static enabled: boolean = false;
+    private enabled: boolean = false;
 
-    static enable() {
-        Logger.enabled = true;
+    enable() {
+        this.enabled = true;
     }
 
-    static disable() {
-        Logger.enabled = false;
+    disable() {
+        this.enabled = false;
+    }
+
+    debug(message?: any, ...optionalParams: any[]) {
+        if (this.enabled) {
+            console.debug(message, ...optionalParams);
+        }
     }
 
     info(message?: any, ...optionalParams: any[]) {
-        if (Logger.enabled) {
+        if (this.enabled) {
             console.log(message, ...optionalParams);
         }
     }
 
     warn(message?: any, ...optionalParams: any[]) {
-        if (Logger.enabled) {
+        if (this.enabled) {
             console.warn(message, ...optionalParams);
         }
     }
 
-    debug(message?: any, ...optionalParams: any[]) {
-        if (Logger.enabled) {
-            console.debug(message, ...optionalParams);
+    error(message?: any, ...optionalParams: any[]) {
+        if (this.enabled) {
+            console.error(message, ...optionalParams);
         }
     }
 }
