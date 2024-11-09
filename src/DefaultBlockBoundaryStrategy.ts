@@ -14,7 +14,6 @@ export class DefaultBlockBoundaryStrategy implements BlockBoundaryStrategy {
         console.log('Regex pattern:', regex.source);
         */
 
-
         let match;
         while ((match = regex.exec(content)) !== null) {
             console.log('Found match:', match[0]);

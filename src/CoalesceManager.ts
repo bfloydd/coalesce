@@ -7,7 +7,6 @@ import { SingleLineBlockBoundaryStrategy } from './SingleLineBlockBoundaryStrate
 
 export class CoalesceManager {
     private coalesceView: CoalesceView | null = null;
-    private logger: Logger = new Logger();
 
     constructor(private app: App, private settingsManager: SettingsManager) {}
 
