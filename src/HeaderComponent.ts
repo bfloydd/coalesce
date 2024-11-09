@@ -66,7 +66,7 @@ export class HeaderComponent {
         // Create and add blockBoundaryStrategySelect dropdown
         const blockBoundaryStrategySelect = document.createElement('select');
         blockBoundaryStrategySelect.classList.add('strategy-select');
-        const blockBoundaryStrategies = ['default', 'single-line'];
+        const blockBoundaryStrategies = ['default', 'single-line', 'top-line'];
         blockBoundaryStrategies.forEach(strategy => {
             const option = document.createElement('option');
             option.value = strategy;

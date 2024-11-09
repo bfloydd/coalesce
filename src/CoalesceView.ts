@@ -6,6 +6,7 @@ import { SettingsManager } from './SettingsManager';
 import { BlockBoundaryStrategy } from './BlockBoundaryStrategy';
 import { DefaultBlockBoundaryStrategy } from './DefaultBlockBoundaryStrategy';
 import { SingleLineBlockBoundaryStrategy } from './SingleLineBlockBoundaryStrategy';
+import { TopLineBlockBoundaryStrategy } from './TopLineBlockBoundaryStrategy';
 
 export class CoalesceView {
     private container: HTMLElement;
@@ -69,6 +70,9 @@ export class CoalesceView {
         switch (strategy) {
             case 'single-line':
                 this.blockBoundaryStrategy = new SingleLineBlockBoundaryStrategy();
+                break;
+            case 'top-line':
+                this.blockBoundaryStrategy = new TopLineBlockBoundaryStrategy();
                 break;
             case 'default':
             default:
