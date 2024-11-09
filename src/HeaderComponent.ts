@@ -221,26 +221,28 @@ export class HeaderComponent {
                 e.stopPropagation();
                 if (currentPosition === 'high') return;
                 
-                // Update the parent state first
                 onPositionChange('high');
-                // Then update local state
                 currentPosition = 'high';
-                // Update UI
+                
+                // Update UI and close popup
                 (positionHighItem.querySelector('.checkmark') as HTMLElement).style.display = 'block';
                 (positionLowItem.querySelector('.checkmark') as HTMLElement).style.display = 'none';
+                popup?.remove();
+                popup = null;
             });
 
             positionLowItem.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (currentPosition === 'low') return;
                 
-                // Update the parent state first
                 onPositionChange('low');
-                // Then update local state
                 currentPosition = 'low';
-                // Update UI
+                
+                // Update UI and close popup
                 (positionHighItem.querySelector('.checkmark') as HTMLElement).style.display = 'none';
                 (positionLowItem.querySelector('.checkmark') as HTMLElement).style.display = 'block';
+                popup?.remove();
+                popup = null;
             });
 
             // Add all items to popup
