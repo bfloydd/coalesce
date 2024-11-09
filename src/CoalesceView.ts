@@ -34,15 +34,22 @@ export class CoalesceView {
         this.currentTheme = this.settingsManager.settings.theme;
         this.applyTheme(this.currentTheme);
 
-        // Append the container directly to the markdown view's content area
-        const markdownContent = this.view.containerEl.querySelector('.markdown-preview-view') as HTMLElement || this.view.contentEl as HTMLElement;
+        // Position 1
+        const markdownContent = this.view.containerEl.querySelector('.markdown-preview-section .mod-footer') as HTMLElement;
         if (markdownContent) {
             markdownContent.classList.add('markdown-content');
             markdownContent.appendChild(this.container);
-
         } else {
             this.logger.warn("Markdown content area not found.");
         }
+
+        // Position 2
+        // const markdownSection = this.view.containerEl.querySelector('.markdown-preview-section') as HTMLElement;
+        // if (markdownSection) {
+        //     markdownSection.insertAdjacentElement('afterend', this.container);
+        // } else {
+        //     this.logger.warn("Markdown preview section not found.");
+        // }
     }
 
     private createBacklinksContainer(): HTMLElement {
