@@ -37,6 +37,8 @@ export default class CoalescePlugin extends Plugin {
 				console.log("Logging disabled");
 			}
 		};
+
+		console.log("CoalescePlugin loaded");
 	}
 
 	onunload() {
