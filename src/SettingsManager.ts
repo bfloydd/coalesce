@@ -17,7 +17,7 @@ const DEFAULT_SETTINGS: CoalescePluginSettings = {
     blockBoundaryStrategy: 'default',
     theme: 'default',
     showFullPathTitle: false,
-    position: 'high'
+    position: 'low'
 };
 
 interface Plugin {
