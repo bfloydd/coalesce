@@ -185,7 +185,7 @@ export class HeaderComponent {
                         <path d="M5 14h14"></path>
                     </svg>
                 </div>
-                <span class="setting-item-label">Position High</span>
+                <span class="setting-item-label">Position high</span>
                 <div class="checkmark-container">
                     <div class="checkmark" style="display: ${currentPosition === 'high' ? 'block' : 'none'}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -205,7 +205,7 @@ export class HeaderComponent {
                         <path d="M5 14h14"></path>
                     </svg>
                 </div>
-                <span class="setting-item-label">Position Low</span>
+                <span class="setting-item-label">Position low</span>
                 <div class="checkmark-container">
                     <div class="checkmark" style="display: ${currentPosition === 'low' ? 'block' : 'none'}">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
