@@ -3,6 +3,7 @@ import { SettingsManager } from './src/SettingsManager';
 import { CoalesceManager } from './src/CoalesceManager';
 import { Logger } from './src/Logger';
 import { CoalesceSettingTab } from './src/SettingsTab';
+import { MarkdownView } from 'obsidian';
 
 export default class CoalescePlugin extends Plugin {
 	private settingsManager: SettingsManager;
@@ -22,16 +23,47 @@ export default class CoalescePlugin extends Plugin {
 			this.logger
 		);
 		
-		this.app.workspace.on('file-open', (file: TFile) => {
-			if (!file) return;
-			
-			const isDaily = this.isDailyNote(file);
-			if (!isDaily || (isDaily && this.settingsManager.settings.showInDailyNotes)) {
-				this.coalesceManager.handleFileOpen(file);
-			} else {
-				this.coalesceManager.clearBacklinks();
-			}
-		});
+		this.registerEvent(
+			this.app.workspace.on('layout-change', () => {
+				this.logger.info("Layout-change event triggered!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+
+				const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+				if (activeView?.file) {
+					this.logger.debug("Active view file:", activeView.file.path);
+					const isDaily = this.isDailyNote(activeView.file);
+					if (!isDaily || (isDaily && this.settingsManager.settings.showInDailyNotes)) {
+						this.logger.info("Handling file open from layout-change:", activeView.file.path);
+						this.coalesceManager.handleFileOpen(activeView.file);
+					} else {
+						this.logger.info("Clearing backlinks (daily note)");
+						this.coalesceManager.clearBacklinks();
+					}
+				} else {
+					this.logger.info("No active view file found");
+				}
+			})
+		);
+
+		this.registerEvent(
+			this.app.workspace.on('file-open', (file: TFile) => {
+				this.logger.debug("File-open event triggered$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+				
+				if (!file) {
+					this.logger.debug("No file provided in file-open event");
+					return;
+				}
+				
+				this.logger.debug("File opened:", file.path);
+				const isDaily = this.isDailyNote(file);
+				if (!isDaily || (isDaily && this.settingsManager.settings.showInDailyNotes)) {
+					this.logger.info("Handling file open from file-open event:", file.path);
+					this.coalesceManager.handleFileOpen(file);
+				} else {
+					this.logger.info("Clearing backlinks (daily note)");
+					this.coalesceManager.clearBacklinks();
+				}
+			})
+		);
 
 		(window as any).coalesceLog = (level: string | boolean = true) => {
 			console.log('coalesceLog called with:', level);
