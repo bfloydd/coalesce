@@ -252,8 +252,25 @@ export class HeaderComponent {
 
             // Position the popup relative to the settings button
             const rect = settingsButton.getBoundingClientRect();
-            popup.style.setProperty('--popup-top', `${rect.bottom + 5}px`);
-            popup.style.setProperty('--popup-left', `${rect.left}px`);
+            const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
+            
+            // Calculate initial positions
+            let top = rect.bottom + 5;
+            let left = rect.left;
+            
+            // Check if popup would go below viewport
+            if (top + 200 > viewportHeight) { // 200 is an estimated popup height
+                top = rect.top - 205; // Position above the button
+            }
+            
+            // Check if popup would go off right edge
+            if (left + 180 > viewportWidth) { // 180 is the min-width of popup
+                left = viewportWidth - 185; // 5px margin from edge
+            }
+            
+            popup.style.setProperty('--popup-top', `${top}px`);
+            popup.style.setProperty('--popup-left', `${left}px`);
 
             document.body.appendChild(popup);
 
