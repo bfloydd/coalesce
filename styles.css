@@ -196,18 +196,17 @@
     margin-right: auto;
 }
 
-/* Match Obsidian's is-readable-line-width class behavior */
 .is-readable-line-width .custom-backlinks-container {
+    width: var(--file-line-width);
+}
+
+.is-readable-line-width .markdown-content {
     width: var(--file-line-width);
 }
 
 .markdown-content {
     margin-left: auto !important;
     margin-right: auto !important;
-}
-
-.is-readable-line-width .markdown-content {
-    width: var(--file-line-width);
 }
 
 /* ============================
@@ -287,4 +286,18 @@
 
 .theme-modern .backlink-item {
     padding: 3px 0px;
+}
+
+/* Use media queries to adjust styles for smaller screens */
+@media (max-width: 600px) {
+    .custom-backlinks-container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .backlinks-header,
+    .block-header {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
 }
