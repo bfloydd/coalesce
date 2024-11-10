@@ -23,19 +23,23 @@
     gap: 8px;
     margin-bottom: 10px;
     justify-content: space-between;
+    /* flex-wrap: wrap;
+    width: 100%; */
+    box-sizing: border-box;
 }
 
 .backlinks-header-left {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .backlinks-header-right {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-left: auto;
+    flex-wrap: wrap;
 }
 
 .sort-button {
@@ -194,14 +198,15 @@
     color: var(--text-normal);
     margin-left: auto;
     margin-right: auto;
+    /* box-sizing: border-box; */
+    /* max-width: 100%; */
 }
 
-.is-readable-line-width .custom-backlinks-container {
-    width: var(--file-line-width);
-}
-
-.is-readable-line-width .markdown-content {
-    width: var(--file-line-width);
+.is-readable-line-width .custom-backlinks-container,
+.is-readable-line-width .markdown-content,
+.is-readable-line-width .backlinks-header {
+    max-width: var(--file-line-width);
+    width: 100%;
 }
 
 .markdown-content {
@@ -286,18 +291,4 @@
 
 .theme-modern .backlink-item {
     padding: 3px 0px;
-}
-
-/* Use media queries to adjust styles for smaller screens */
-@media (max-width: 600px) {
-    .custom-backlinks-container {
-        padding-left: 10px;
-        padding-right: 10px;
-    }
-
-    .backlinks-header,
-    .block-header {
-        padding-left: 5px;
-        padding-right: 5px;
-    }
 }
