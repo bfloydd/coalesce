@@ -10,20 +10,18 @@ import { TopLineBlockBoundaryStrategy } from './TopLineBlockBoundaryStrategy';
 
 export class CoalesceView {
     private container: HTMLElement;
-    private currentNoteName: string;
-    private logger: Logger = new Logger();
     private headerComponent: HeaderComponent = new HeaderComponent();
     private sortDescending: boolean;
     private blocksCollapsed: boolean;
     private allBlocks: { block: BlockComponent; sourcePath: string }[] = [];
-    private blockBoundaryStrategy: BlockBoundaryStrategy;
     private currentTheme: string;
 
     constructor(
         private view: MarkdownView,
-        currentNoteName: string,
+        private currentNoteName: string,
         private settingsManager: SettingsManager,
-        blockBoundaryStrategy: BlockBoundaryStrategy,
+        private blockBoundaryStrategy: BlockBoundaryStrategy,
+        private logger: Logger,
     ) {
         this.currentNoteName = currentNoteName;
         this.blockBoundaryStrategy = blockBoundaryStrategy;
@@ -56,7 +54,13 @@ export class CoalesceView {
 
                 for (const { start, end } of boundaries) {
                     const blockContent = content.substring(start, end);
-                    const block = new BlockComponent(blockContent, filePath, currentNoteName, this.settingsManager.settings.showFullPathTitle);
+                    const block = new BlockComponent(
+                        blockContent, 
+                        filePath, 
+                        currentNoteName, 
+                        this.settingsManager.settings.showFullPathTitle,
+                        this.logger
+                    );
                     blocks.push(block);
                 }
             }
@@ -69,14 +73,14 @@ export class CoalesceView {
     private updateBlockBoundaryStrategy(strategy: string) {
         switch (strategy) {
             case 'single-line':
-                this.blockBoundaryStrategy = new SingleLineBlockBoundaryStrategy();
+                this.blockBoundaryStrategy = new SingleLineBlockBoundaryStrategy(this.logger);
                 break;
             case 'top-line':
-                this.blockBoundaryStrategy = new TopLineBlockBoundaryStrategy();
+                this.blockBoundaryStrategy = new TopLineBlockBoundaryStrategy(this.logger);
                 break;
             case 'default':
             default:
-                this.blockBoundaryStrategy = new DefaultBlockBoundaryStrategy();
+                this.blockBoundaryStrategy = new DefaultBlockBoundaryStrategy(this.logger);
                 break;
         }
     }
@@ -224,7 +228,7 @@ export class CoalesceView {
                 markdownContent.classList.add('markdown-content');
                 markdownContent.appendChild(this.container);
             } else {
-                this.logger.warn("Markdown content area not found.");
+                this.logger.error("Markdown content area not found.");
             }
         } else {
             // Position 2 (low)
@@ -232,7 +236,7 @@ export class CoalesceView {
             if (markdownSection) {
                 markdownSection.insertAdjacentElement('afterend', this.container);
             } else {
-                this.logger.warn("Markdown preview section not found.");
+                this.logger.error("Markdown preview section not found.");
             }
         }
     }

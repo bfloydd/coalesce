@@ -5,16 +5,14 @@ export class BlockComponent {
     private mainContainer: HTMLElement;
     private headerContainer: HTMLElement;
     private toggleButton: HTMLElement;
-    private logger: Logger;
 
     constructor(
         public contents: string,
         public filePath: string,
         public noteName: string,
-        private showFullPathTitle: boolean
-    ) {
-        this.logger = new Logger();
-    }
+        private showFullPathTitle: boolean,
+        private logger: Logger
+    ) {}
 
     async render(container: HTMLElement, view: MarkdownView, onLinkClick: (path: string) => void): Promise<void> {
         const displayText = this.filePath.replace(/\.md$/, '');

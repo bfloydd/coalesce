@@ -16,7 +16,12 @@ export default class CoalescePlugin extends Plugin {
 
 		this.addSettingTab(new CoalesceSettingTab(this.app, this, this.settingsManager));
 
-		this.coalesceManager = new CoalesceManager(this.app, this.settingsManager);
+		this.coalesceManager = new CoalesceManager(
+			this.app,
+			this.settingsManager,
+			this.logger
+		);
+		
 		this.app.workspace.on('file-open', (file: TFile) => {
 			if (!file) return;
 			
@@ -28,14 +33,9 @@ export default class CoalescePlugin extends Plugin {
 			}
 		});
 
-		(window as any).coalesceLogging = (enable: boolean) => {
-			if (enable) {
-				this.logger.enable();
-				console.log("Logging enabled");
-			} else {
-				this.logger.disable();
-				console.log("Logging disabled");
-			}
+		(window as any).coalesceLog = (level: string | boolean = true) => {
+			console.log('coalesceLog called with:', level);
+			this.logger.setLogging(level);
 		};
 
 		console.log("Coalesce plugin loaded");

@@ -1,7 +1,8 @@
 import { BlockBoundaryStrategy } from './BlockBoundaryStrategy';
+import { Logger } from './Logger';
 
 export class SingleLineBlockBoundaryStrategy implements BlockBoundaryStrategy {
-    constructor(private logger: Console = console) { }
+    constructor(private logger: Logger) { }
 
     findBlockBoundaries(content: string, currentNoteName: string): { start: number, end: number }[] {
         this.logger.debug('Finding block boundaries for:', currentNoteName);

@@ -8,7 +8,11 @@ import { SingleLineBlockBoundaryStrategy } from './SingleLineBlockBoundaryStrate
 export class CoalesceManager {
     private coalesceView: CoalesceView | null = null;
 
-    constructor(private app: App, private settingsManager: SettingsManager) {}
+    constructor(
+        private app: App, 
+        private settingsManager: SettingsManager,
+        private logger: Logger
+    ) {}
 
     handleFileOpen(file: TFile) {
         if (!file) return;
@@ -22,7 +26,13 @@ export class CoalesceManager {
 
         const currentNoteName = file.basename;
         const blockBoundaryStrategy = this.getStrategyFromSettings();
-        this.coalesceView = new CoalesceView(view, currentNoteName, this.settingsManager, blockBoundaryStrategy);
+        this.coalesceView = new CoalesceView(
+            view, 
+            currentNoteName, 
+            this.settingsManager, 
+            blockBoundaryStrategy,
+            this.logger
+        );
 
         const backlinks = this.app.metadataCache.resolvedLinks;
         const filesLinkingToThis = Object.entries(backlinks)
@@ -38,10 +48,10 @@ export class CoalesceManager {
         const blockBoundaryStrategy = this.settingsManager.settings.blockBoundaryStrategy;
         switch (blockBoundaryStrategy) {
             case 'single-line':
-                return new SingleLineBlockBoundaryStrategy();
+                return new SingleLineBlockBoundaryStrategy(this.logger);
             case 'default':
             default:
-                return new DefaultBlockBoundaryStrategy();
+                return new DefaultBlockBoundaryStrategy(this.logger);
         }
     }
 
