@@ -78,6 +78,8 @@
 
 .settings-popup {
     position: absolute;
+    top: var(--popup-top);
+    left: var(--popup-left);
     background-color: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
     border-radius: 4px;

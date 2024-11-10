@@ -250,10 +250,10 @@ export class HeaderComponent {
             popup.appendChild(positionHighItem);
             popup.appendChild(positionLowItem);
 
-            // Position the popup
+            // Position the popup relative to the settings button
             const rect = settingsButton.getBoundingClientRect();
-            popup.style.top = `${rect.bottom + 5}px`;
-            popup.style.left = `${rect.left}px`;
+            popup.style.setProperty('--popup-top', `${rect.bottom + 5}px`);
+            popup.style.setProperty('--popup-left', `${rect.left}px`);
 
             document.body.appendChild(popup);
 
