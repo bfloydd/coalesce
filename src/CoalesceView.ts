@@ -43,6 +43,10 @@ export class CoalesceView {
     }
 
     private async getBlockData(filePath: string, currentNoteName: string): Promise<BlockComponent[]> {
+        if (this.settingsManager.settings.onlyDailyNotes && !this.isDailyNote(filePath)) {
+            return [];
+        }
+
         const blocks: BlockComponent[] = [];
         
         try {
@@ -181,7 +185,13 @@ export class CoalesceView {
                     this.settingsManager.settings.position = position;
                     await this.settingsManager.saveSettings();
                     this.updatePosition();
-                }
+                },
+                this.settingsManager.settings.onlyDailyNotes,
+                async (show: boolean) => {
+                    this.settingsManager.settings.onlyDailyNotes = show;
+                    await this.settingsManager.saveSettings();
+                    await this.updateBacklinks(filesLinkingToThis, onLinkClick);
+                },
             );
         };
 
@@ -245,5 +255,20 @@ export class CoalesceView {
     public async updatePosition() {
         this.clear();
         this.attachToDOM();
+    }
+
+    private isDailyNote(filePath: string): boolean {
+        const dailyNotesPlugin = (this.view.app as any).internalPlugins.plugins['daily-notes'];
+        if (!dailyNotesPlugin || !dailyNotesPlugin.enabled) {
+            return false;
+        }
+
+        const dailyNotesFolder = dailyNotesPlugin.instance.options.folder || '';
+        const dailyNotePattern = /^\d{4}-\d{2}-\d{2}\.md$/;
+
+        const pathParts = filePath.split('/');
+        const fileName = pathParts[pathParts.length - 1];
+
+        return filePath.startsWith(dailyNotesFolder) && dailyNotePattern.test(fileName);
     }
 }

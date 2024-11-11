@@ -14,7 +14,9 @@ export class HeaderComponent {
         showFullPathTitle: boolean,
         onFullPathTitleChange: (show: boolean) => void,
         currentPosition: string,
-        onPositionChange: (position: 'high' | 'low') => void
+        onPositionChange: (position: 'high' | 'low') => void,
+        onlyDailyNotes: boolean,
+        onOnlyDailyNotesChange: (show: boolean) => void
     ): HTMLElement {
         const header = document.createElement('div');
         header.classList.add('backlinks-header');
@@ -137,7 +139,7 @@ export class HeaderComponent {
 
             // Create label
             const label = document.createElement('span');
-            label.textContent = 'Full path note title';
+            label.textContent = 'Full path title';
             label.className = 'setting-item-label';
 
             // Create checkmark container (right side)
@@ -284,6 +286,55 @@ export class HeaderComponent {
             };
             
             document.addEventListener('click', closePopup);
+
+            // After the full path title setting and before position settings
+            popup.createEl('div', { cls: 'menu-separator' });
+
+            // Create Only Daily Notes setting
+            const dailyNotesItem = document.createElement('div');
+            dailyNotesItem.className = 'settings-item';
+
+            // Create left icon (calendar icon)
+            const dailyNotesIcon = document.createElement('div');
+            dailyNotesIcon.className = 'setting-item-icon';
+            dailyNotesIcon.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+            `;
+
+            const dailyNotesLabel = document.createElement('span');
+            dailyNotesLabel.textContent = 'Only daily notes';
+            dailyNotesLabel.className = 'setting-item-label';
+
+            const dailyNotesCheckContainer = document.createElement('div');
+            dailyNotesCheckContainer.className = 'checkmark-container';
+
+            const dailyNotesCheckmark = document.createElement('div');
+            dailyNotesCheckmark.className = 'checkmark';
+            dailyNotesCheckmark.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            `;
+            dailyNotesCheckmark.style.display = onlyDailyNotes ? 'block' : 'none';
+
+            dailyNotesCheckContainer.appendChild(dailyNotesCheckmark);
+            dailyNotesItem.appendChild(dailyNotesIcon);
+            dailyNotesItem.appendChild(dailyNotesLabel);
+            dailyNotesItem.appendChild(dailyNotesCheckContainer);
+
+            dailyNotesItem.addEventListener('click', () => {
+                const newState = !onlyDailyNotes;
+                dailyNotesCheckmark.style.display = newState ? 'block' : 'none';
+                onOnlyDailyNotesChange(newState);
+            });
+
+            // Add the daily notes item after the full path setting and before the separator
+            popup.appendChild(dailyNotesItem);
         });
 
         // Add items to left container
