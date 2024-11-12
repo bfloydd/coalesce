@@ -72,7 +72,10 @@ export class HeaderComponent {
         blockBoundaryStrategies.forEach(strategy => {
             const option = document.createElement('option');
             option.value = strategy;
-            option.textContent = strategy.replace('-', ' ').toUpperCase();
+            option.textContent = strategy
+                .split('-')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
             option.selected = strategy === currentStrategy;
             blockBoundaryStrategySelect.appendChild(option);
         });
