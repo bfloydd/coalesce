@@ -66,49 +66,6 @@ export class HeaderComponent {
         leftContainer.appendChild(collapseButton);
         
         /**************************************************************************
-         * blockBoundaryStrategySelect dropdown
-         **************************************************************************/
-
-        // Create and add blockBoundaryStrategySelect dropdown
-        const blockBoundaryStrategySelect = document.createElement('select');
-        blockBoundaryStrategySelect.classList.add('strategy-select');
-        const blockBoundaryStrategies = ['default', 'single-line', 'top-line'];
-        blockBoundaryStrategies.forEach(strategy => {
-            const option = document.createElement('option');
-            option.value = strategy;
-            option.textContent = strategy
-                .split('-')
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(' ');
-            option.selected = strategy === currentStrategy;
-            blockBoundaryStrategySelect.appendChild(option);
-        });
-        blockBoundaryStrategySelect.addEventListener('change', () => {
-            onStrategyChange(blockBoundaryStrategySelect.value);
-        });
-        leftContainer.appendChild(blockBoundaryStrategySelect);
-
-        /**************************************************************************
-         * themeSelect dropbown
-         **************************************************************************/
-        
-        // Add theme selector dropdown
-        const themeSelect = document.createElement('select');
-        themeSelect.classList.add('theme-select');
-        const themes = ['default', 'minimal', 'modern'];
-        themes.forEach(theme => {
-            const option = document.createElement('option');
-            option.value = theme;
-            option.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
-            option.selected = theme === currentTheme;
-            themeSelect.appendChild(option);
-        });
-        themeSelect.addEventListener('change', () => {
-            onThemeChange(themeSelect.value);
-        });
-        leftContainer.appendChild(themeSelect);
-
-        /**************************************************************************
          * settingsButton
          **************************************************************************/
 
@@ -371,6 +328,138 @@ export class HeaderComponent {
             };
             
             document.addEventListener('click', closePopup);
+
+            /***************************************************************************
+             * Block Boundary Strategy settings
+             **************************************************************************/
+
+            // Add separator before strategy settings
+            popup.createEl('div', { cls: 'menu-separator' });
+
+            // Create strategy settings header
+            const strategyHeader = document.createElement('div');
+            strategyHeader.className = 'settings-item settings-header';
+            strategyHeader.innerHTML = `
+                <div class="setting-item-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 3H3v18h18V3z"></path>
+                        <path d="M9 3v18"></path>
+                    </svg>
+                </div>
+                <span class="setting-item-label">Block Strategy</span>
+            `;
+            popup.appendChild(strategyHeader);
+
+            // Create strategy options
+            const strategies = ['default', 'single-line', 'top-line'];
+            strategies.forEach(strategy => {
+                const strategyItem = document.createElement('div');
+                strategyItem.className = 'settings-item';
+                strategyItem.innerHTML = `
+                    <div class="setting-item-icon"></div>
+                    <span class="setting-item-label">${strategy
+                        .split('-')
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(' ')}</span>
+                    <div class="checkmark-container">
+                        <div class="checkmark" style="display: ${strategy === currentStrategy ? 'block' : 'none'}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                `;
+
+                strategyItem.addEventListener('click', () => {
+                    if (strategy === currentStrategy) return;
+                    
+                    onStrategyChange(strategy);
+                    
+                    // Update UI
+                    popup?.querySelectorAll('.settings-item .checkmark').forEach(check => {
+                        (check as HTMLElement).style.display = 'none';
+                    });
+                    (strategyItem.querySelector('.checkmark') as HTMLElement).style.display = 'block';
+                    
+                    // Close popup
+                    popup?.remove();
+                    popup = null;
+                });
+
+                if (popup) {
+                    popup.appendChild(strategyItem);
+                }
+            });
+
+            /***************************************************************************
+             * Theme Settings
+             **************************************************************************/
+
+            // Add separator before theme settings
+            popup.createEl('div', { cls: 'menu-separator' });
+
+            // Create theme settings header
+            const themeHeader = document.createElement('div');
+            themeHeader.className = 'settings-item settings-header';
+            themeHeader.innerHTML = `
+                <div class="setting-item-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <span class="setting-item-label">Theme</span>
+            `;
+            popup.appendChild(themeHeader);
+
+            // Create theme options
+            const themes = ['default', 'minimal', 'modern'];
+            themes.forEach(theme => {
+                const themeItem = document.createElement('div');
+                themeItem.className = 'settings-item';
+                themeItem.innerHTML = `
+                    <div class="setting-item-icon"></div>
+                    <span class="setting-item-label">${theme
+                        .charAt(0).toUpperCase() + theme.slice(1)}</span>
+                    <div class="checkmark-container">
+                        <div class="checkmark" style="display: ${theme === currentTheme ? 'block' : 'none'}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                `;
+
+                themeItem.addEventListener('click', () => {
+                    if (theme === currentTheme) return;
+                    
+                    // Update the current theme before updating UI
+                    currentTheme = theme;
+                    onThemeChange(theme);
+                    
+                    // Update UI
+                    if (popup) {
+                        popup.querySelectorAll('.settings-item .checkmark').forEach(check => {
+                            const checkElement = check as HTMLElement;
+                            checkElement.style.display = 'none';
+                            const parentItem = checkElement.closest('.settings-item');
+                            const itemLabel = parentItem?.querySelector('.setting-item-label')?.textContent?.toLowerCase();
+                            if (itemLabel === theme) {
+                                checkElement.style.display = 'block';
+                            }
+                        });
+                    }
+                    
+                    // Close popup
+                    popup?.remove();
+                    popup = null;
+                });
+
+                if (popup) {
+                    popup.appendChild(themeItem);
+                }
+            });
         });
 
         // Add items to left container
@@ -378,8 +467,6 @@ export class HeaderComponent {
         leftContainer.appendChild(title);
         leftContainer.appendChild(sortButton);
         leftContainer.appendChild(collapseButton);
-        leftContainer.appendChild(blockBoundaryStrategySelect);
-        leftContainer.appendChild(themeSelect);
 
         // Add items to right container
         rightContainer.appendChild(settingsButton);

@@ -294,3 +294,21 @@
 .theme-modern .backlink-item {
     padding: 3px 0px;
 }
+
+/* Add these new styles */
+.settings-header {
+    cursor: default !important;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding-top: 4px;
+}
+
+.settings-header:hover {
+    background-color: transparent !important;
+}
+
+.menu-separator {
+    height: 1px;
+    background-color: var(--background-modifier-border);
+    margin: 4px 0;
+}
