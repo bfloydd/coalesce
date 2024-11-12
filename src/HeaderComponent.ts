@@ -65,6 +65,10 @@ export class HeaderComponent {
         collapseButton.addEventListener('click', onCollapseToggle);
         leftContainer.appendChild(collapseButton);
         
+        /**************************************************************************
+         * blockBoundaryStrategySelect dropdown
+         **************************************************************************/
+
         // Create and add blockBoundaryStrategySelect dropdown
         const blockBoundaryStrategySelect = document.createElement('select');
         blockBoundaryStrategySelect.classList.add('strategy-select');
@@ -84,6 +88,10 @@ export class HeaderComponent {
         });
         leftContainer.appendChild(blockBoundaryStrategySelect);
 
+        /**************************************************************************
+         * themeSelect dropbown
+         **************************************************************************/
+        
         // Add theme selector dropdown
         const themeSelect = document.createElement('select');
         themeSelect.classList.add('theme-select');
@@ -99,6 +107,10 @@ export class HeaderComponent {
             onThemeChange(themeSelect.value);
         });
         leftContainer.appendChild(themeSelect);
+
+        /**************************************************************************
+         * settingsButton
+         **************************************************************************/
 
         // Add settings button after the theme selector
         const settingsButton = document.createElement('button');
