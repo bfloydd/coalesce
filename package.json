@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-coalesce",
+	"name": "coalesce",
 	"version": "1.0.0",
-	"description": "Bring all your linked notes into one view",
+	"description": "Coaelesce your linked notes into one view",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
