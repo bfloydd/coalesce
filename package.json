@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-coalesce",
 	"version": "1.0.0",
-	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
+	"description": "Bring all your linked notes into one view",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
