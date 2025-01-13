@@ -312,3 +312,31 @@
     background-color: var(--background-modifier-border);
     margin: 4px 0;
 }
+
+.alias-dropdown {
+    margin-left: 8px;
+    margin-right: 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--background-modifier-border);
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    font-size: var(--font-ui-smaller);
+    min-width: 120px;
+    height: 24px;
+}
+
+.alias-dropdown:hover {
+    border-color: var(--background-modifier-border-hover);
+}
+
+.alias-dropdown:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+}
+
+.alias-dropdown:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    border-color: var(--background-modifier-border);
+}

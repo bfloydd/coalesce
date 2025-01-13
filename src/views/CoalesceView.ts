@@ -15,6 +15,8 @@ export class CoalesceView {
     private blocksCollapsed: boolean;
     private allBlocks: { block: BlockComponent; sourcePath: string }[] = [];
     private currentTheme: string;
+    private currentAlias: string | null = null;
+    private aliases: string[] = [];
 
     constructor(
         private view: MarkdownView,
@@ -34,6 +36,18 @@ export class CoalesceView {
         this.applyTheme(this.currentTheme);
 
         this.attachToDOM();
+
+        // Get aliases from file frontmatter
+        if (this.view.file) {
+            const fileCache = this.view.app.metadataCache.getCache(this.view.file.path);
+            this.aliases = fileCache?.frontmatter?.aliases || [];
+            if (!Array.isArray(this.aliases)) {
+                this.aliases = [this.aliases].filter(Boolean);
+            }
+            console.log("DEBUG - File:", this.view.file.path);
+            console.log("DEBUG - FileCache:", fileCache);
+            console.log("DEBUG - Aliases:", this.aliases);
+        }
     }
 
     private createBacklinksContainer(): HTMLElement {
@@ -144,6 +158,7 @@ export class CoalesceView {
         }
 
         // Create header after blocks are rendered
+        console.log("DEBUG - Creating header with aliases:", this.aliases);
         const createHeader = () => {
             return this.headerComponent.createHeader(
                 this.container, 
@@ -192,6 +207,12 @@ export class CoalesceView {
                     await this.settingsManager.saveSettings();
                     await this.updateBacklinks(filesLinkingToThis, onLinkClick);
                 },
+                this.aliases,
+                (alias: string | null) => {
+                    this.currentAlias = alias;
+                    this.filterBlocksByAlias();
+                },
+                this.currentAlias
             );
         };
 
@@ -275,5 +296,86 @@ export class CoalesceView {
     // Add getter for view
     public getView(): MarkdownView {
         return this.view;
+    }
+
+    private filterBlocksByAlias() {
+        console.log("Filtering by alias:", this.currentAlias);
+        if (!this.currentAlias) {
+            // Show all blocks
+            this.allBlocks.forEach(({ block }) => {
+                const container = block.getContainer();
+                if (container) {
+                    container.style.display = '';
+                }
+            });
+            return;
+        }
+
+        // Filter blocks that contain the selected alias
+        this.allBlocks.forEach(({ block }) => {
+            const container = block.getContainer();
+            if (!container) return;
+
+            const content = block.contents;
+            console.log("Block content:", content);
+            const hasAlias = content.includes(`[[${this.currentNoteName}|${this.currentAlias}]]`) || 
+                            content.includes(`[[${this.currentAlias}]]`) ||
+                            content.includes(`|${this.currentAlias}]]`);
+            console.log("Has alias:", hasAlias);
+            
+            container.style.display = hasAlias ? '' : 'none';
+        });
+
+        // Update the block count in the header
+        const visibleBlocks = this.allBlocks.filter(({ block }) => {
+            const container = block.getContainer();
+            return container && container.style.display !== 'none';
+        }).length;
+
+        // Update header with new counts
+        const header = this.container.querySelector('.backlinks-header');
+        if (header) {
+            const newHeader = this.headerComponent.createHeader(
+                this.container,
+                visibleBlocks,
+                visibleBlocks,
+                this.sortDescending,
+                () => this.toggleSort(),
+                () => this.toggleAllBlocks(),
+                this.blocksCollapsed,
+                this.settingsManager.settings.blockBoundaryStrategy,
+                async (strategy) => {
+                    this.settingsManager.settings.blockBoundaryStrategy = strategy;
+                    await this.settingsManager.saveSettings();
+                    this.updateBlockBoundaryStrategy(strategy);
+                },
+                this.currentTheme,
+                async (theme) => this.handleThemeChange(theme),
+                this.settingsManager.settings.showFullPathTitle,
+                async (show) => {
+                    this.settingsManager.settings.showFullPathTitle = show;
+                    await this.settingsManager.saveSettings();
+                    await this.updateBlockTitles(show);
+                },
+                this.settingsManager.settings.position,
+                async (position) => {
+                    this.settingsManager.settings.position = position;
+                    await this.settingsManager.saveSettings();
+                    this.updatePosition();
+                },
+                this.settingsManager.settings.onlyDailyNotes,
+                async (show) => {
+                    this.settingsManager.settings.onlyDailyNotes = show;
+                    await this.settingsManager.saveSettings();
+                },
+                this.aliases,
+                (alias) => {
+                    this.currentAlias = alias;
+                    this.filterBlocksByAlias();
+                },
+                this.currentAlias
+            );
+            header.replaceWith(newHeader);
+        }
     }
 }
