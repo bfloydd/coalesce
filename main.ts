@@ -23,6 +23,15 @@ export default class CoalescePlugin extends Plugin {
 			this.logger
 		);
 		
+		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (activeView?.file) {
+			const isDaily = this.isDailyNote(activeView.file);
+			if (!isDaily || (isDaily && this.settingsManager.settings.showInDailyNotes)) {
+				this.logger.info("Handling initial file load:", activeView.file.path);
+				this.coalesceManager.handleFileOpen(activeView.file);
+			}
+		}
+
 		this.registerEvent(
 			this.app.workspace.on('layout-change', () => {
 				this.logger.info("Layout-change event triggered!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");

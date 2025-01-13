@@ -18,8 +18,22 @@ export class CoalesceManager {
         if (!file) return;
 
         const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (!view) return;
+        if (!view) {
+            this.logger.debug("No active view found, retrying in 100ms");
+            // Add retry mechanism for initial load
+            setTimeout(() => {
+                const retryView = this.app.workspace.getActiveViewOfType(MarkdownView);
+                if (retryView) {
+                    this.initializeView(file, retryView);
+                }
+            }, 100);
+            return;
+        }
 
+        this.initializeView(file, view);
+    }
+
+    private initializeView(file: TFile, view: MarkdownView) {
         if (this.coalesceView) {
             this.coalesceView.clear();
         }
