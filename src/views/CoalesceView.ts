@@ -7,6 +7,7 @@ import { BlockBoundaryStrategy } from '../components/block-strategies/BlockBound
 import { DefaultBlockBoundaryStrategy } from '../components/block-strategies/DefaultBlockBoundaryStrategy';
 import { SingleLineBlockBoundaryStrategy } from '../components/block-strategies/SingleLineBlockBoundaryStrategy';
 import { TopLineBlockBoundaryStrategy } from '../components/block-strategies/TopLineBlockBoundaryStrategy';
+import { isDailyNote } from '../utils/Notes';
 
 export class CoalesceView {
     private container: HTMLElement;
@@ -59,10 +60,6 @@ export class CoalesceView {
     }
 
     private async getBlockData(filePath: string, currentNoteName: string): Promise<BlockComponent[]> {
-        if (this.settingsManager.settings.onlyDailyNotes && !this.isDailyNote(filePath)) {
-            return [];
-        }
-
         const blocks: BlockComponent[] = [];
         
         try {
@@ -209,7 +206,6 @@ export class CoalesceView {
                 async (show: boolean) => {
                     this.settingsManager.settings.onlyDailyNotes = show;
                     await this.settingsManager.saveSettings();
-                    await this.updateBacklinks(filesLinkingToThis, onLinkClick);
                 },
                 this.aliases,
                 (alias: string | null) => {
@@ -282,21 +278,6 @@ export class CoalesceView {
         this.attachToDOM();
     }
 
-    private isDailyNote(filePath: string): boolean {
-        const dailyNotesPlugin = (this.view.app as any).internalPlugins.plugins['daily-notes'];
-        if (!dailyNotesPlugin || !dailyNotesPlugin.enabled) {
-            return false;
-        }
-
-        const dailyNotesFolder = dailyNotesPlugin.instance.options.folder || '';
-        const dailyNotePattern = /^\d{4}-\d{2}-\d{2}\.md$/;
-
-        const pathParts = filePath.split('/');
-        const fileName = pathParts[pathParts.length - 1];
-
-        return filePath.startsWith(dailyNotesFolder) && dailyNotePattern.test(fileName);
-    }
-
     // Add getter for view
     public getView(): MarkdownView {
         return this.view;
@@ -349,10 +330,9 @@ export class CoalesceView {
                     async (show: boolean) => {
                         this.settingsManager.settings.onlyDailyNotes = show;
                         await this.settingsManager.saveSettings();
-                        await this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick!);
                     },
                     this.aliases,
-                    (alias) => {
+                    (alias: string | null) => {
                         this.currentAlias = alias;
                         this.filterBlocksByAlias();
                     },
@@ -419,10 +399,9 @@ export class CoalesceView {
                 async (show: boolean) => {
                     this.settingsManager.settings.onlyDailyNotes = show;
                     await this.settingsManager.saveSettings();
-                    await this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick!);
                 },
                 this.aliases,
-                (alias) => {
+                (alias: string | null) => {
                     this.currentAlias = alias;
                     this.filterBlocksByAlias();
                 },

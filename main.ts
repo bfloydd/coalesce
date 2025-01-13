@@ -33,7 +33,7 @@ export default class CoalescePlugin extends Plugin {
 			this.app.workspace.on('layout-change', () => {
 				this.logger.info("Layout-change event triggered");
 				
-				// Get all markdown views
+				// Get all markdown views without daily note filtering
 				const markdownViews = this.app.workspace.getLeavesOfType('markdown')
 					.map(leaf => leaf.view as MarkdownView)
 					.filter(view => view?.file);
@@ -41,11 +41,8 @@ export default class CoalescePlugin extends Plugin {
 				markdownViews.forEach(view => {
 					if (!view.file) return;
 					
-					const isDaily = this.isDailyNote(view.file);
-					if (!isDaily || (isDaily && this.settingsManager.settings.showInDailyNotes)) {
-						this.logger.info("Handling file open from layout-change:", view.file.path);
-						this.coalesceManager.handleFileOpen(view.file);
-					}
+					this.logger.info("Handling file open from layout-change:", view.file.path);
+					this.coalesceManager.handleFileOpen(view.file);
 				});
 			})
 		);
@@ -56,22 +53,18 @@ export default class CoalescePlugin extends Plugin {
 				
 				if (!file) {
 					this.logger.debug("No file provided in file-open event");
-					// Clear all views when no file is opened
 					this.coalesceManager.clearBacklinks();
 					return;
 				}
 				
 				this.logger.debug("File opened:", file.path);
-				const isDaily = this.isDailyNote(file);
 				
 				// Always clear existing views first
 				this.coalesceManager.clearBacklinks();
 
-				// Then create new views if appropriate
-				if (!isDaily || (isDaily && this.settingsManager.settings.onlyDailyNotes)) {
-					this.logger.info("Handling file open from file-open event:", file.path);
-					this.coalesceManager.handleFileOpen(file);
-				}
+				// Create new views without daily note check
+				this.logger.info("Handling file open from file-open event:", file.path);
+				this.coalesceManager.handleFileOpen(file);
 			})
 		);
 
@@ -85,30 +78,5 @@ export default class CoalescePlugin extends Plugin {
 
 	onunload() {
 		this.coalesceManager.clearBacklinks();
-	}
-
-	private isDailyNote(file: TFile): boolean {
-		// Access the Daily Notes core plugin
-		const dailyNotesPlugin = (this.app as any).internalPlugins.plugins['daily-notes'];
-		if (!dailyNotesPlugin || !dailyNotesPlugin.enabled) {
-			this.logger.debug('Daily Notes plugin is not enabled.');
-			return false;
-		}
-
-		// Retrieve the daily notes folder from the plugin's settings
-		const dailyNotesFolder = dailyNotesPlugin.instance.options.folder || '';
-		if (!dailyNotesFolder) {
-			this.logger.debug("Daily Notes folder not set, using vault root.");
-		}
-
-		const dailyNotePattern = /^\d{4}-\d{2}-\d{2}\.md$/; // Adjust this pattern if needed
-
-		// Check if the file is in the daily notes folder
-		if (!file.path.startsWith(dailyNotesFolder)) {
-			return false;
-		}
-
-		// Check if the file name matches the daily note pattern
-		return dailyNotePattern.test(file.name);
 	}
 }
