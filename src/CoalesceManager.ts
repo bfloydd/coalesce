@@ -17,13 +17,13 @@ export class CoalesceManager {
     handleFileOpen(file: TFile) {
         if (!file) return;
 
-        // Don't clear existing views anymore, as we want to keep other panes' views
-        // this.clearBacklinks();
-
         // Get all markdown views
         const allMarkdownViews = this.app.workspace.getLeavesOfType('markdown')
             .map(leaf => leaf.view as MarkdownView)
             .filter(view => view?.file); // Only get views with files
+
+        // Keep track of current views that should remain
+        const viewsToKeep = new Set<string>();
 
         // For each markdown view, initialize or update its coalesce view
         allMarkdownViews.forEach(view => {
@@ -32,24 +32,24 @@ export class CoalesceManager {
             
             if (!viewFile) return;
 
-            // If this view already has a coalesce view and it's for a different file,
-            // clear it before creating a new one
-            const existingView = this.activeViews.get(leafId);
-            if (existingView && existingView.getView().file?.path !== viewFile.path) {
-                existingView.clear();
-                this.activeViews.delete(leafId);
-            }
+            viewsToKeep.add(leafId);
 
-            // Only create a new view if one doesn't exist for this leaf
+            // If this view doesn't exist yet, create it
             if (!this.activeViews.has(leafId)) {
                 this.initializeView(viewFile, view);
+            } else {
+                // If the view exists but is showing a different file, update it
+                const existingView = this.activeViews.get(leafId);
+                if (existingView && existingView.getView().file?.path !== viewFile.path) {
+                    existingView.clear();
+                    this.initializeView(viewFile, view);
+                }
             }
         });
 
-        // Clean up any views that are no longer visible
-        const currentLeafIds = new Set(allMarkdownViews.map(view => (view.leaf as any).id));
+        // Only remove views that are no longer in any visible pane
         for (const [leafId, view] of this.activeViews.entries()) {
-            if (!currentLeafIds.has(leafId)) {
+            if (!viewsToKeep.has(leafId)) {
                 view.clear();
                 this.activeViews.delete(leafId);
             }
@@ -58,6 +58,7 @@ export class CoalesceManager {
 
     // Initialize all existing markdown views
     initializeAllViews() {
+        // Get all markdown views
         const allMarkdownViews = this.app.workspace.getLeavesOfType('markdown')
             .map(leaf => leaf.view as MarkdownView)
             .filter(view => view?.file);
