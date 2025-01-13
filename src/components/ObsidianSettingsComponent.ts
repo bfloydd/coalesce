@@ -15,12 +15,12 @@ export class ObsidianSettingsComponent extends PluginSettingTab {
         containerEl.empty();
 
         new Setting(containerEl)
-            .setName('Show in Daily Notes')
-            .setDesc('Enable Coalesce view in daily notes')
+            .setName('Only Daily Notes')
+            .setDesc('Show Coalesce view only in daily notes')
             .addToggle(toggle => toggle
-                .setValue(this.settingsManager.settings.showInDailyNotes)
+                .setValue(this.settingsManager.settings.onlyDailyNotes)
                 .onChange(async (value) => {
-                    this.settingsManager.settings.showInDailyNotes = value;
+                    this.settingsManager.settings.onlyDailyNotes = value;
                     await this.settingsManager.saveSettings();
                 }));
     }
