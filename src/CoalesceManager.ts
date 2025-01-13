@@ -22,16 +22,22 @@ export class CoalesceManager {
             .map(leaf => leaf.view as MarkdownView)
             .filter(view => view?.file?.path === file.path);
 
-        // Initialize view for each matching leaf
+        // Initialize view for each matching leaf that doesn't already have a view
         markdownViews.forEach(view => {
-            this.initializeView(file, view);
+            const leafId = (view.leaf as any).id;
+            if (!this.activeViews.has(leafId)) {
+                this.initializeView(file, view);
+            }
         });
 
         // If no views were found and this is the active file, try to get the active view
         if (markdownViews.length === 0) {
             const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
             if (activeView?.file?.path === file.path) {
-                this.initializeView(file, activeView);
+                const leafId = (activeView.leaf as any).id;
+                if (!this.activeViews.has(leafId)) {
+                    this.initializeView(file, activeView);
+                }
             }
         }
     }

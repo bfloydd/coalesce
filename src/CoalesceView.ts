@@ -21,8 +21,7 @@ export class CoalesceView {
         private currentNoteName: string,
         private settingsManager: SettingsManager,
         private blockBoundaryStrategy: BlockBoundaryStrategy,
-        private logger: Logger,
-        private onThemeChange?: (theme: string) => void
+        private logger: Logger
     ) {
         this.currentNoteName = currentNoteName;
         this.blockBoundaryStrategy = blockBoundaryStrategy;
@@ -276,11 +275,5 @@ export class CoalesceView {
     // Add getter for view
     public getView(): MarkdownView {
         return this.view;
-    }
-
-    // Add method to update theme
-    public updateTheme(theme: string) {
-        this.currentTheme = theme;
-        this.applyTheme(theme);
     }
 }
