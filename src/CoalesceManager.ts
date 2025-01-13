@@ -17,19 +17,36 @@ export class CoalesceManager {
     handleFileOpen(file: TFile) {
         if (!file) return;
 
-        const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (!view) {
-            this.logger.debug("No active view found, retrying in 100ms");
-            setTimeout(() => {
-                const retryView = this.app.workspace.getActiveViewOfType(MarkdownView);
-                if (retryView) {
-                    this.initializeView(file, retryView);
-                }
-            }, 100);
-            return;
-        }
+        // Get all markdown views that have this file open
+        const markdownViews = this.app.workspace.getLeavesOfType('markdown')
+            .map(leaf => leaf.view as MarkdownView)
+            .filter(view => view?.file?.path === file.path);
 
-        this.initializeView(file, view);
+        // Initialize view for each matching leaf
+        markdownViews.forEach(view => {
+            this.initializeView(file, view);
+        });
+
+        // If no views were found and this is the active file, try to get the active view
+        if (markdownViews.length === 0) {
+            const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+            if (activeView?.file?.path === file.path) {
+                this.initializeView(file, activeView);
+            }
+        }
+    }
+
+    // Initialize all existing markdown views
+    initializeAllViews() {
+        const markdownViews = this.app.workspace.getLeavesOfType('markdown')
+            .map(leaf => leaf.view as MarkdownView)
+            .filter(view => view?.file);
+
+        markdownViews.forEach(view => {
+            if (view.file) {
+                this.initializeView(view.file, view);
+            }
+        });
     }
 
     private initializeView(file: TFile, view: MarkdownView) {

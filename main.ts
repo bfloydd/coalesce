@@ -23,33 +23,30 @@ export default class CoalescePlugin extends Plugin {
 			this.logger
 		);
 		
-		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (activeView?.file) {
-			const isDaily = this.isDailyNote(activeView.file);
-			if (!isDaily || (isDaily && this.settingsManager.settings.showInDailyNotes)) {
-				this.logger.info("Handling initial file load:", activeView.file.path);
-				this.coalesceManager.handleFileOpen(activeView.file);
-			}
-		}
+		// Handle initial load with a slight delay to ensure everything is ready
+		setTimeout(() => {
+			// Initialize all markdown views
+			this.coalesceManager.initializeAllViews();
+		}, 300);
 
 		this.registerEvent(
 			this.app.workspace.on('layout-change', () => {
-				this.logger.info("Layout-change event triggered!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+				this.logger.info("Layout-change event triggered");
+				
+				// Get all markdown views
+				const markdownViews = this.app.workspace.getLeavesOfType('markdown')
+					.map(leaf => leaf.view as MarkdownView)
+					.filter(view => view?.file);
 
-				const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (activeView?.file) {
-					this.logger.debug("Active view file:", activeView.file.path);
-					const isDaily = this.isDailyNote(activeView.file);
+				markdownViews.forEach(view => {
+					if (!view.file) return;
+					
+					const isDaily = this.isDailyNote(view.file);
 					if (!isDaily || (isDaily && this.settingsManager.settings.showInDailyNotes)) {
-						this.logger.info("Handling file open from layout-change:", activeView.file.path);
-						this.coalesceManager.handleFileOpen(activeView.file);
-					} else {
-						this.logger.info("Clearing backlinks (daily note)");
-						this.coalesceManager.clearBacklinks();
+						this.logger.info("Handling file open from layout-change:", view.file.path);
+						this.coalesceManager.handleFileOpen(view.file);
 					}
-				} else {
-					this.logger.info("No active view file found");
-				}
+				});
 			})
 		);
 
