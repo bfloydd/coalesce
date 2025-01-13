@@ -52,21 +52,25 @@ export default class CoalescePlugin extends Plugin {
 
 		this.registerEvent(
 			this.app.workspace.on('file-open', (file: TFile) => {
-				this.logger.debug("File-open event triggered$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
+				this.logger.debug("File-open event triggered");
 				
 				if (!file) {
 					this.logger.debug("No file provided in file-open event");
+					// Clear all views when no file is opened
+					this.coalesceManager.clearBacklinks();
 					return;
 				}
 				
 				this.logger.debug("File opened:", file.path);
 				const isDaily = this.isDailyNote(file);
-				if (!isDaily || (isDaily && this.settingsManager.settings.showInDailyNotes)) {
+				
+				// Always clear existing views first
+				this.coalesceManager.clearBacklinks();
+
+				// Then create new views if appropriate
+				if (!isDaily || (isDaily && this.settingsManager.settings.onlyDailyNotes)) {
 					this.logger.info("Handling file open from file-open event:", file.path);
 					this.coalesceManager.handleFileOpen(file);
-				} else {
-					this.logger.info("Clearing backlinks (daily note)");
-					this.coalesceManager.clearBacklinks();
 				}
 			})
 		);
