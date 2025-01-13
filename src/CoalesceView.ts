@@ -1,7 +1,7 @@
 import { MarkdownView, TFile, MarkdownRenderer } from 'obsidian';
-import { BlockComponent } from './BlockComponent';
+import { BlockComponent } from './components/BlockComponent';
 import { Logger } from './Logger';
-import { HeaderComponent } from './HeaderComponent';
+import { HeaderComponent } from './components/HeaderComponent';
 import { SettingsManager } from './SettingsManager';
 import { BlockBoundaryStrategy } from './BlockBoundaryStrategy';
 import { DefaultBlockBoundaryStrategy } from './DefaultBlockBoundaryStrategy';

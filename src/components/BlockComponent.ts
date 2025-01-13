@@ -1,5 +1,5 @@
 import { MarkdownRenderer, MarkdownView } from 'obsidian';
-import { Logger } from './Logger';
+import { Logger } from '../Logger';
 
 export class BlockComponent {
     private mainContainer: HTMLElement;

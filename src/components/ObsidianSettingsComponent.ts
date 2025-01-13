@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
-import { SettingsManager } from './SettingsManager';
+import { SettingsManager } from '../SettingsManager';
 
-export class CoalesceSettingTab extends PluginSettingTab {
+export class ObsidianSettingsComponent extends PluginSettingTab {
     constructor(
         app: App,
         private plugin: any,

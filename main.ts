@@ -2,7 +2,7 @@ import { App, Plugin, TFile } from 'obsidian';
 import { SettingsManager } from './src/SettingsManager';
 import { CoalesceManager } from './src/CoalesceManager';
 import { Logger } from './src/Logger';
-import { CoalesceSettingTab } from './src/SettingsTab';
+import { ObsidianSettingsComponent } from './src/components/ObsidianSettingsComponent';
 import { MarkdownView } from 'obsidian';
 
 export default class CoalescePlugin extends Plugin {
@@ -15,7 +15,7 @@ export default class CoalescePlugin extends Plugin {
 		this.settingsManager = new SettingsManager(this);
 		await this.settingsManager.loadSettings();
 
-		this.addSettingTab(new CoalesceSettingTab(this.app, this, this.settingsManager));
+		this.addSettingTab(new ObsidianSettingsComponent(this.app, this, this.settingsManager));
 
 		this.coalesceManager = new CoalesceManager(
 			this.app,
