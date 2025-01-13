@@ -300,14 +300,62 @@ export class CoalesceView {
 
     private filterBlocksByAlias() {
         console.log("Filtering by alias:", this.currentAlias);
+        
+        // Show all blocks and get total counts when no alias is selected
         if (!this.currentAlias) {
-            // Show all blocks
             this.allBlocks.forEach(({ block }) => {
                 const container = block.getContainer();
                 if (container) {
                     container.style.display = '';
                 }
             });
+
+            // Update header with total counts
+            const header = this.container.querySelector('.backlinks-header');
+            if (header) {
+                const totalFiles = new Set(this.allBlocks.map(({ sourcePath }) => sourcePath)).size;
+                const newHeader = this.headerComponent.createHeader(
+                    this.container,
+                    totalFiles,  // Use total unique files count
+                    this.allBlocks.length,  // Use total blocks count
+                    this.sortDescending,
+                    () => this.toggleSort(),
+                    () => this.toggleAllBlocks(),
+                    this.blocksCollapsed,
+                    this.settingsManager.settings.blockBoundaryStrategy,
+                    async (strategy) => {
+                        this.settingsManager.settings.blockBoundaryStrategy = strategy;
+                        await this.settingsManager.saveSettings();
+                        this.updateBlockBoundaryStrategy(strategy);
+                    },
+                    this.currentTheme,
+                    async (theme) => this.handleThemeChange(theme),
+                    this.settingsManager.settings.showFullPathTitle,
+                    async (show) => {
+                        this.settingsManager.settings.showFullPathTitle = show;
+                        await this.settingsManager.saveSettings();
+                        await this.updateBlockTitles(show);
+                    },
+                    this.settingsManager.settings.position,
+                    async (position) => {
+                        this.settingsManager.settings.position = position;
+                        await this.settingsManager.saveSettings();
+                        this.updatePosition();
+                    },
+                    this.settingsManager.settings.onlyDailyNotes,
+                    async (show) => {
+                        this.settingsManager.settings.onlyDailyNotes = show;
+                        await this.settingsManager.saveSettings();
+                    },
+                    this.aliases,
+                    (alias) => {
+                        this.currentAlias = alias;
+                        this.filterBlocksByAlias();
+                    },
+                    this.currentAlias
+                );
+                header.replaceWith(newHeader);
+            }
             return;
         }
 
