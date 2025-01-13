@@ -22,6 +22,7 @@ export class CoalesceView {
         private settingsManager: SettingsManager,
         private blockBoundaryStrategy: BlockBoundaryStrategy,
         private logger: Logger,
+        private onThemeChange?: (theme: string) => void
     ) {
         this.currentNoteName = currentNoteName;
         this.blockBoundaryStrategy = blockBoundaryStrategy;
@@ -99,9 +100,10 @@ export class CoalesceView {
 
     private async handleThemeChange(theme: string) {
         this.currentTheme = theme;
-        this.settingsManager.settings.theme = theme;
-        await this.settingsManager.saveSettings();
-        this.applyTheme(theme);
+        // Notify manager to update all views and save settings
+        if (this.onThemeChange) {
+            await this.onThemeChange(theme);
+        }
     }
 
     private async updateBlockTitles(show: boolean): Promise<void> {
@@ -270,5 +272,16 @@ export class CoalesceView {
         const fileName = pathParts[pathParts.length - 1];
 
         return filePath.startsWith(dailyNotesFolder) && dailyNotePattern.test(fileName);
+    }
+
+    // Add getter for view
+    public getView(): MarkdownView {
+        return this.view;
+    }
+
+    // Add method to update theme
+    public updateTheme(theme: string) {
+        this.currentTheme = theme;
+        this.applyTheme(theme);
     }
 }
