@@ -1,12 +1,12 @@
 import { MarkdownView, TFile, MarkdownRenderer } from 'obsidian';
-import { BlockComponent } from './components/BlockComponent';
-import { Logger } from './Logger';
-import { HeaderComponent } from './components/HeaderComponent';
-import { SettingsManager } from './SettingsManager';
-import { BlockBoundaryStrategy } from './BlockBoundaryStrategy';
-import { DefaultBlockBoundaryStrategy } from './DefaultBlockBoundaryStrategy';
-import { SingleLineBlockBoundaryStrategy } from './SingleLineBlockBoundaryStrategy';
-import { TopLineBlockBoundaryStrategy } from './TopLineBlockBoundaryStrategy';
+import { BlockComponent } from '../components/BlockComponent';
+import { Logger } from '../utils/Logger';
+import { HeaderComponent } from '../components/HeaderComponent';
+import { SettingsManager } from '../SettingsManager';
+import { BlockBoundaryStrategy } from '../components/block-strategies/BlockBoundaryStrategy';
+import { DefaultBlockBoundaryStrategy } from '../components/block-strategies/DefaultBlockBoundaryStrategy';
+import { SingleLineBlockBoundaryStrategy } from '../components/block-strategies/SingleLineBlockBoundaryStrategy';
+import { TopLineBlockBoundaryStrategy } from '../components/block-strategies/TopLineBlockBoundaryStrategy';
 
 export class CoalesceView {
     private container: HTMLElement;

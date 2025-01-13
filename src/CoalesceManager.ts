@@ -1,9 +1,9 @@
 import { App, MarkdownView, TFile } from 'obsidian';
-import { CoalesceView } from './CoalesceView';
-import { Logger } from './Logger';
+import { CoalesceView } from './views/CoalesceView';
+import { Logger } from './utils/Logger';
 import { SettingsManager } from './SettingsManager';
-import { DefaultBlockBoundaryStrategy } from './DefaultBlockBoundaryStrategy';
-import { SingleLineBlockBoundaryStrategy } from './SingleLineBlockBoundaryStrategy';
+import { DefaultBlockBoundaryStrategy } from './components/block-strategies/DefaultBlockBoundaryStrategy';
+import { SingleLineBlockBoundaryStrategy } from './components/block-strategies/SingleLineBlockBoundaryStrategy';
 
 export class CoalesceManager {
     private activeViews: Map<string, CoalesceView> = new Map();

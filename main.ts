@@ -1,7 +1,7 @@
 import { App, Plugin, TFile } from 'obsidian';
 import { SettingsManager } from './src/SettingsManager';
 import { CoalesceManager } from './src/CoalesceManager';
-import { Logger } from './src/Logger';
+import { Logger } from './src/utils/Logger';
 import { ObsidianSettingsComponent } from './src/components/ObsidianSettingsComponent';
 import { MarkdownView } from 'obsidian';
 
