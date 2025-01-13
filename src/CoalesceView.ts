@@ -100,10 +100,9 @@ export class CoalesceView {
 
     private async handleThemeChange(theme: string) {
         this.currentTheme = theme;
-        // Notify manager to update all views and save settings
-        if (this.onThemeChange) {
-            await this.onThemeChange(theme);
-        }
+        this.settingsManager.settings.theme = theme;
+        await this.settingsManager.saveSettings();
+        this.applyTheme(theme);
     }
 
     private async updateBlockTitles(show: boolean): Promise<void> {

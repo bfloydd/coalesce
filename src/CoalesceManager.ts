@@ -65,15 +65,7 @@ export class CoalesceManager {
             currentNoteName, 
             this.settingsManager, 
             blockBoundaryStrategy,
-            this.logger,
-            async (theme: string) => {
-                // Update theme in settings
-                this.settingsManager.settings.theme = theme;
-                await this.settingsManager.saveSettings();
-                
-                // Update all views
-                this.updateAllViewsTheme(theme);
-            }
+            this.logger
         );
 
         this.activeViews.set(leafId, coalesceView);
@@ -86,12 +78,6 @@ export class CoalesceManager {
         coalesceView.updateBacklinks(filesLinkingToThis, (path) => {
             this.app.workspace.openLinkText(path, '', false);
         });
-    }
-
-    private updateAllViewsTheme(theme: string) {
-        for (const view of this.activeViews.values()) {
-            view.updateTheme(theme);
-        }
     }
 
     private getStrategyFromSettings() {
