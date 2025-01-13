@@ -233,13 +233,17 @@ export class HeaderComponent {
             dailyNotesItem.appendChild(dailyNotesLabel);
             dailyNotesItem.appendChild(dailyNotesCheckContainer);
 
-            dailyNotesItem.addEventListener('click', () => {
+            dailyNotesItem.addEventListener('click', (e) => {
+                e.stopPropagation();
                 const newState = !onlyDailyNotes;
                 dailyNotesCheckmark.style.display = newState ? 'block' : 'none';
                 onOnlyDailyNotesChange(newState);
-                // Close popup after changing state
-                popup?.remove();
-                popup = null;
+                
+                // Close popup after a short delay to ensure the click is processed
+                setTimeout(() => {
+                    popup?.remove();
+                    popup = null;
+                }, 100);
             });
             popup.appendChild(dailyNotesItem);
 

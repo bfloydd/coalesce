@@ -17,6 +17,8 @@ export class CoalesceView {
     private currentTheme: string;
     private currentAlias: string | null = null;
     private aliases: string[] = [];
+    private currentFilesLinkingToThis: string[] = [];
+    private currentOnLinkClick: ((path: string) => void) | null = null;
 
     constructor(
         private view: MarkdownView,
@@ -125,6 +127,8 @@ export class CoalesceView {
     }
 
     public async updateBacklinks(filesLinkingToThis: string[], onLinkClick: (path: string) => void): Promise<void> {
+        this.currentFilesLinkingToThis = filesLinkingToThis;
+        this.currentOnLinkClick = onLinkClick;
         this.logger.info("Updating backlinks:", filesLinkingToThis);
         this.container.empty();
 
@@ -342,9 +346,10 @@ export class CoalesceView {
                         this.updatePosition();
                     },
                     this.settingsManager.settings.onlyDailyNotes,
-                    async (show) => {
+                    async (show: boolean) => {
                         this.settingsManager.settings.onlyDailyNotes = show;
                         await this.settingsManager.saveSettings();
+                        await this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick!);
                     },
                     this.aliases,
                     (alias) => {
@@ -411,9 +416,10 @@ export class CoalesceView {
                     this.updatePosition();
                 },
                 this.settingsManager.settings.onlyDailyNotes,
-                async (show) => {
+                async (show: boolean) => {
                     this.settingsManager.settings.onlyDailyNotes = show;
                     await this.settingsManager.saveSettings();
+                    await this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick!);
                 },
                 this.aliases,
                 (alias) => {
