@@ -162,8 +162,8 @@ export class CoalesceView {
         const createHeader = () => {
             return this.headerComponent.createHeader(
                 this.container, 
-                filesLinkingToThis.length,
-                this.allBlocks.length,
+                0,  // fileCount is no longer needed
+                this.allBlocks.length,  // Simply use array length
                 this.sortDescending,
                 () => {
                     this.toggleSort();
@@ -313,11 +313,10 @@ export class CoalesceView {
             // Update header with total counts
             const header = this.container.querySelector('.backlinks-header');
             if (header) {
-                const totalFiles = new Set(this.allBlocks.map(({ sourcePath }) => sourcePath)).size;
                 const newHeader = this.headerComponent.createHeader(
                     this.container,
-                    totalFiles,  // Use total unique files count
-                    this.allBlocks.length,  // Use total blocks count
+                    0,
+                    this.allBlocks.length,  // Simply use array length
                     this.sortDescending,
                     () => this.toggleSort(),
                     () => this.toggleAllBlocks(),
@@ -385,8 +384,8 @@ export class CoalesceView {
         if (header) {
             const newHeader = this.headerComponent.createHeader(
                 this.container,
-                visibleBlocks,
-                visibleBlocks,
+                0,
+                visibleBlocks,  // Use count of visible blocks
                 this.sortDescending,
                 () => this.toggleSort(),
                 () => this.toggleAllBlocks(),

@@ -46,7 +46,7 @@ export class HeaderComponent {
         // Create title
         const title = document.createElement('span');
         title.classList.add('header-title');
-        title.textContent = `${fileCount} ${fileCount === 1 ? 'Backlink' : 'Backlinks'}, ${blockCount} ${blockCount === 1 ? 'Block' : 'Blocks'}`;
+        title.textContent = `${blockCount} ${blockCount === 1 ? 'Block' : 'Blocks'}`;
 
         // Create sort button
         const sortButton = document.createElement('button');
