@@ -17,37 +17,56 @@ export class CoalesceManager {
     handleFileOpen(file: TFile) {
         if (!file) return;
 
-        // Clear existing views first
-        this.clearBacklinks();
+        // Don't clear existing views anymore, as we want to keep other panes' views
+        // this.clearBacklinks();
 
-        // Get all markdown views that have this file open
-        const markdownViews = this.app.workspace.getLeavesOfType('markdown')
+        // Get all markdown views
+        const allMarkdownViews = this.app.workspace.getLeavesOfType('markdown')
             .map(leaf => leaf.view as MarkdownView)
-            .filter(view => view?.file?.path === file.path);
+            .filter(view => view?.file); // Only get views with files
 
-        // Initialize view for each matching leaf
-        markdownViews.forEach(view => {
+        // For each markdown view, initialize or update its coalesce view
+        allMarkdownViews.forEach(view => {
             const leafId = (view.leaf as any).id;
-            this.initializeView(file, view);
+            const viewFile = view.file;
+            
+            if (!viewFile) return;
+
+            // If this view already has a coalesce view and it's for a different file,
+            // clear it before creating a new one
+            const existingView = this.activeViews.get(leafId);
+            if (existingView && existingView.getView().file?.path !== viewFile.path) {
+                existingView.clear();
+                this.activeViews.delete(leafId);
+            }
+
+            // Only create a new view if one doesn't exist for this leaf
+            if (!this.activeViews.has(leafId)) {
+                this.initializeView(viewFile, view);
+            }
         });
 
-        // If no views were found and this is the active file, try to get the active view
-        if (markdownViews.length === 0) {
-            const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-            if (activeView?.file?.path === file.path) {
-                const leafId = (activeView.leaf as any).id;
-                this.initializeView(file, activeView);
+        // Clean up any views that are no longer visible
+        const currentLeafIds = new Set(allMarkdownViews.map(view => (view.leaf as any).id));
+        for (const [leafId, view] of this.activeViews.entries()) {
+            if (!currentLeafIds.has(leafId)) {
+                view.clear();
+                this.activeViews.delete(leafId);
             }
         }
     }
 
     // Initialize all existing markdown views
     initializeAllViews() {
-        const markdownViews = this.app.workspace.getLeavesOfType('markdown')
+        const allMarkdownViews = this.app.workspace.getLeavesOfType('markdown')
             .map(leaf => leaf.view as MarkdownView)
             .filter(view => view?.file);
 
-        markdownViews.forEach(view => {
+        // Clear all existing views first
+        this.clearBacklinks();
+
+        // Initialize views for all visible markdown files
+        allMarkdownViews.forEach(view => {
             if (view.file) {
                 this.initializeView(view.file, view);
             }
