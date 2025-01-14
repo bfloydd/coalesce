@@ -38,11 +38,10 @@ export class CoalesceManager {
             if (!this.activeViews.has(leafId)) {
                 this.initializeView(viewFile, view);
             } else {
-                // If the view exists but is showing a different file, update it
+                // Just ensure it's properly attached to DOM
                 const existingView = this.activeViews.get(leafId);
-                if (existingView && existingView.getView().file?.path !== viewFile.path) {
-                    existingView.clear();
-                    this.initializeView(viewFile, view);
+                if (existingView) {
+                    existingView.ensureAttached();
                 }
             }
         });
@@ -54,24 +53,6 @@ export class CoalesceManager {
                 this.activeViews.delete(leafId);
             }
         }
-    }
-
-    // Initialize all existing markdown views
-    initializeAllViews() {
-        // Get all markdown views
-        const allMarkdownViews = this.app.workspace.getLeavesOfType('markdown')
-            .map(leaf => leaf.view as MarkdownView)
-            .filter(view => view?.file);
-
-        // Clear all existing views first
-        this.clearBacklinks();
-
-        // Initialize views for all visible markdown files
-        allMarkdownViews.forEach(view => {
-            if (view.file) {
-                this.initializeView(view.file, view);
-            }
-        });
     }
 
     private initializeView(file: TFile, view: MarkdownView) {
@@ -105,6 +86,24 @@ export class CoalesceManager {
         });
     }
 
+    // Initialize all existing markdown views
+    initializeAllViews() {
+        // Get all markdown views
+        const allMarkdownViews = this.app.workspace.getLeavesOfType('markdown')
+            .map(leaf => leaf.view as MarkdownView)
+            .filter(view => view?.file);
+
+        // Clear all existing views first
+        this.clearBacklinks();
+
+        // Initialize views for all visible markdown files
+        allMarkdownViews.forEach(view => {
+            if (view.file) {
+                this.initializeView(view.file, view);
+            }
+        });
+    }
+
     private getStrategyFromSettings() {
         const blockBoundaryStrategy = this.settingsManager.settings.blockBoundaryStrategy;
         switch (blockBoundaryStrategy) {
@@ -122,5 +121,13 @@ export class CoalesceManager {
             view.clear();
         }
         this.activeViews.clear();
+    }
+
+    // Add method to handle edit/view mode switches
+    handleModeSwitch(file: TFile, view: MarkdownView) {
+        const leafId = (view.leaf as any).id;
+        if (this.activeViews.has(leafId)) {
+            this.initializeView(file, view);
+        }
     }
 }

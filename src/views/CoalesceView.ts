@@ -12,14 +12,17 @@ import { isDailyNote } from '../utils/Notes';
 export class CoalesceView {
     private container: HTMLElement;
     private headerComponent: HeaderComponent = new HeaderComponent();
-    private sortDescending: boolean;
-    private blocksCollapsed: boolean;
     private allBlocks: { block: BlockComponent; sourcePath: string }[] = [];
     private currentTheme: string;
     private currentAlias: string | null = null;
     private aliases: string[] = [];
     private currentFilesLinkingToThis: string[] = [];
     private currentOnLinkClick: ((path: string) => void) | null = null;
+
+    // Static properties to share state across instances
+    private static sortDescending: boolean;
+    private static blocksCollapsed: boolean;
+    private static initialized: boolean = false;
 
     constructor(
         private view: MarkdownView,
@@ -30,8 +33,14 @@ export class CoalesceView {
     ) {
         this.currentNoteName = currentNoteName;
         this.blockBoundaryStrategy = blockBoundaryStrategy;
-        this.sortDescending = this.settingsManager.settings.sortDescending;
-        this.blocksCollapsed = this.settingsManager.settings.blocksCollapsed;
+        
+        // Initialize static properties only once
+        if (!CoalesceView.initialized) {
+            CoalesceView.sortDescending = this.settingsManager.settings.sortDescending;
+            CoalesceView.blocksCollapsed = this.settingsManager.settings.blocksCollapsed;
+            CoalesceView.initialized = true;
+        }
+
         this.container = this.createBacklinksContainer();
         this.logger.info("Appending backlinks container to the view");
 
@@ -143,7 +152,7 @@ export class CoalesceView {
         }
 
         // Sort blocks
-        this.allBlocks.sort((a, b) => this.sortDescending 
+        this.allBlocks.sort((a, b) => CoalesceView.sortDescending 
             ? b.sourcePath.localeCompare(a.sourcePath)
             : a.sourcePath.localeCompare(b.sourcePath));
 
@@ -153,83 +162,70 @@ export class CoalesceView {
             const blockContainer = block.getContainer();
             const contentPreview = blockContainer.querySelector('.content-preview') as HTMLElement;
             if (contentPreview) {
-                contentPreview.style.display = this.blocksCollapsed ? 'none' : 'block';
+                contentPreview.style.display = CoalesceView.blocksCollapsed ? 'none' : 'block';
             }
-            block.setArrowState(!this.blocksCollapsed);
+            block.setArrowState(!CoalesceView.blocksCollapsed);
         }
 
         // Create header after blocks are rendered
         console.log("DEBUG - Creating header with aliases:", this.aliases);
-        const createHeader = () => {
-            return this.headerComponent.createHeader(
-                this.container, 
-                0,  // fileCount is no longer needed
-                this.allBlocks.length,  // Simply use array length
-                this.sortDescending,
-                () => {
-                    this.toggleSort();
-                    this.updateBacklinks(filesLinkingToThis, onLinkClick);
-                },
-                () => {
-                    this.toggleAllBlocks();
-                    const oldHeader = this.container.querySelector('.backlinks-header');
-                    if (oldHeader && this.container.contains(oldHeader)) {
-                        const newHeader = createHeader();
-                        this.container.replaceChild(newHeader, oldHeader);
-                    }
-                },
-                this.blocksCollapsed,
-                this.settingsManager.settings.blockBoundaryStrategy,
-                async (strategy) => {
-                    this.settingsManager.settings.blockBoundaryStrategy = strategy;
-                    await this.settingsManager.saveSettings();
-                    this.updateBlockBoundaryStrategy(strategy);
-                    await this.updateBacklinks(filesLinkingToThis, onLinkClick);
-                },
-                this.currentTheme,
-                async (theme) => {
-                    await this.handleThemeChange(theme);
-                },
-                this.settingsManager.settings.showFullPathTitle,
-                async (show: boolean) => {
-                    this.settingsManager.settings.showFullPathTitle = show;
-                    await this.settingsManager.saveSettings();
-                    await this.updateBlockTitles(show);
-                },
-                this.settingsManager.settings.position,
-                async (position: "high" | "low") => {
-                    this.settingsManager.settings.position = position;
-                    await this.settingsManager.saveSettings();
-                    this.updatePosition();
-                },
-                this.settingsManager.settings.onlyDailyNotes,
-                async (show: boolean) => {
-                    this.settingsManager.settings.onlyDailyNotes = show;
-                    await this.settingsManager.saveSettings();
-                },
-                this.aliases,
-                (alias: string | null) => {
-                    this.currentAlias = alias;
-                    this.filterBlocksByAlias();
-                },
-                this.currentAlias
-            );
-        };
-
-        const header = createHeader();
+        const header = this.headerComponent.createHeader(
+            this.container, 
+            0,
+            this.allBlocks.length,
+            CoalesceView.sortDescending,
+            () => {
+                this.toggleSort();
+                this.updateBacklinks(filesLinkingToThis, onLinkClick);
+            },
+            () => this.toggleAllBlocks(),
+            CoalesceView.blocksCollapsed,
+            this.settingsManager.settings.blockBoundaryStrategy,
+            async (strategy) => {
+                this.settingsManager.settings.blockBoundaryStrategy = strategy;
+                await this.settingsManager.saveSettings();
+                this.updateBlockBoundaryStrategy(strategy);
+                await this.updateBacklinks(filesLinkingToThis, onLinkClick);
+            },
+            this.currentTheme,
+            async (theme) => this.handleThemeChange(theme),
+            this.settingsManager.settings.showFullPathTitle,
+            async (show) => {
+                this.settingsManager.settings.showFullPathTitle = show;
+                await this.settingsManager.saveSettings();
+                await this.updateBlockTitles(show);
+            },
+            this.settingsManager.settings.position,
+            async (position) => {
+                this.settingsManager.settings.position = position;
+                await this.settingsManager.saveSettings();
+                this.updatePosition();
+            },
+            this.settingsManager.settings.onlyDailyNotes,
+            async (show: boolean) => {
+                this.settingsManager.settings.onlyDailyNotes = show;
+                await this.settingsManager.saveSettings();
+            },
+            this.aliases,
+            (alias: string | null) => {
+                this.currentAlias = alias;
+                this.filterBlocksByAlias();
+            },
+            this.currentAlias
+        );
         this.container.appendChild(header);
         this.container.appendChild(linksContainer);
     }
 
     public toggleSort(): void {
-        this.sortDescending = !this.sortDescending;
-        this.settingsManager.settings.sortDescending = this.sortDescending;
+        CoalesceView.sortDescending = !CoalesceView.sortDescending;
+        this.settingsManager.settings.sortDescending = CoalesceView.sortDescending;
         this.settingsManager.saveSettings();
     }
 
     private toggleAllBlocks(): void {
-        this.blocksCollapsed = !this.blocksCollapsed;
-        this.settingsManager.settings.blocksCollapsed = this.blocksCollapsed;
+        CoalesceView.blocksCollapsed = !CoalesceView.blocksCollapsed;
+        this.settingsManager.settings.blocksCollapsed = CoalesceView.blocksCollapsed;
         this.settingsManager.saveSettings();
 
         // Update all blocks based on the new state
@@ -238,9 +234,9 @@ export class CoalesceView {
             if (blockContainer) {
                 const contentPreview = blockContainer.querySelector('.content-preview') as HTMLElement;
                 if (contentPreview) {
-                    contentPreview.style.display = this.blocksCollapsed ? 'none' : 'block';
+                    contentPreview.style.display = CoalesceView.blocksCollapsed ? 'none' : 'block';
                 }
-                block.setArrowState(!this.blocksCollapsed);
+                block.setArrowState(!CoalesceView.blocksCollapsed);
             }
         });
 
@@ -256,13 +252,13 @@ export class CoalesceView {
                 this.container,
                 0,
                 visibleBlocks,
-                this.sortDescending,
+                CoalesceView.sortDescending,
                 () => {
                     this.toggleSort();
                     this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick!);
                 },
                 () => this.toggleAllBlocks(),
-                this.blocksCollapsed,
+                CoalesceView.blocksCollapsed,
                 this.settingsManager.settings.blockBoundaryStrategy,
                 async (strategy) => {
                     this.settingsManager.settings.blockBoundaryStrategy = strategy;
@@ -381,13 +377,13 @@ export class CoalesceView {
                 this.container,
                 0,
                 visibleBlocks,
-                this.sortDescending,
+                CoalesceView.sortDescending,
                 () => {
                     this.toggleSort();
                     this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick!);
                 },
                 () => this.toggleAllBlocks(),
-                this.blocksCollapsed,
+                CoalesceView.blocksCollapsed,
                 this.settingsManager.settings.blockBoundaryStrategy,
                 async (strategy) => {
                     this.settingsManager.settings.blockBoundaryStrategy = strategy;
@@ -422,6 +418,32 @@ export class CoalesceView {
                 this.currentAlias
             );
             header.replaceWith(newHeader);
+        }
+    }
+
+    // Add method to ensure view is attached to DOM without re-rendering
+    public ensureAttached(): void {
+        // Check if container is already in the DOM
+        if (!this.container.parentElement) {
+            // If we have blocks already rendered, just reattach
+            if (this.allBlocks.length > 0) {
+                this.attachToDOM();
+                
+                // Ensure blocks maintain their current collapsed state
+                this.allBlocks.forEach(({ block }) => {
+                    const blockContainer = block.getContainer();
+                    if (blockContainer) {
+                        const contentPreview = blockContainer.querySelector('.content-preview') as HTMLElement;
+                        if (contentPreview) {
+                            contentPreview.style.display = CoalesceView.blocksCollapsed ? 'none' : 'block';
+                        }
+                        block.setArrowState(!CoalesceView.blocksCollapsed);
+                    }
+                });
+            } else {
+                // Only if we don't have blocks rendered, do a full update
+                this.attachToDOM();
+            }
         }
     }
 }
