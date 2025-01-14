@@ -20,7 +20,7 @@
 .backlinks-header {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 2px;
     margin-bottom: 10px;
     justify-content: space-between;
     /* flex-wrap: wrap;
@@ -31,14 +31,14 @@
 .backlinks-header-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 2px;
     flex-wrap: wrap;
 }
 
 .backlinks-header-right {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 2px;
     flex-wrap: wrap;
 }
 
@@ -280,7 +280,7 @@
 }
 
 .theme-modern .header-title {
-    margin-left: 12px;
+    margin-left: 5px;
     font-weight: bold;
     text-transform: uppercase;
 }
