@@ -19,7 +19,8 @@ export class HeaderComponent {
         onOnlyDailyNotesChange: (show: boolean) => void,
         aliases: string[] = [],
         onAliasSelect: (alias: string | null) => void,
-        currentAlias: string | null = null
+        currentAlias: string | null = null,
+        unsavedAliases: string[] = []
     ): HTMLElement {
         console.log("DEBUG - HeaderComponent received aliases:", aliases);
         console.log("DEBUG - Aliases length:", aliases.length);
@@ -68,29 +69,51 @@ export class HeaderComponent {
         `;
         collapseButton.addEventListener('click', onCollapseToggle);
 
-        // Move dropdown creation outside of if block
+        // Create dropdown
         const aliasDropdown = document.createElement('select');
         aliasDropdown.classList.add('alias-dropdown');
 
-        // Add default option with appropriate text
+        // Add default option
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
-        defaultOption.textContent = aliases.length > 0 ? 'All aliases' : 'No aliases';
+        defaultOption.textContent = aliases.length > 0 || unsavedAliases.length > 0 ? 'All aliases' : 'No aliases';
         aliasDropdown.appendChild(defaultOption);
 
-        // Add alias options if they exist
-        aliases.forEach(alias => {
-            const option = document.createElement('option');
-            option.value = alias;
-            option.textContent = alias;
-            if (currentAlias === alias) {  // Set selected option
-                option.selected = true;
-            }
-            aliasDropdown.appendChild(option);
-        });
+        // Add saved aliases if they exist
+        if (aliases.length > 0) {
+            aliases.forEach(alias => {
+                const option = document.createElement('option');
+                option.value = alias;
+                option.textContent = alias;
+                if (currentAlias === alias) {
+                    option.selected = true;
+                }
+                aliasDropdown.appendChild(option);
+            });
+        }
 
-        // Disable dropdown if no aliases
-        aliasDropdown.disabled = aliases.length === 0;
+        // Add unsaved aliases if they exist
+        if (unsavedAliases.length > 0) {
+            // Add separator
+            const separator = document.createElement('option');
+            separator.disabled = true;
+            separator.textContent = '-- Unsaved Aliases --';
+            aliasDropdown.appendChild(separator);
+
+            // Add unsaved aliases
+            unsavedAliases.forEach(alias => {
+                const option = document.createElement('option');
+                option.value = alias;
+                option.textContent = alias;
+                if (currentAlias === alias) {
+                    option.selected = true;
+                }
+                aliasDropdown.appendChild(option);
+            });
+        }
+
+        // Disable dropdown if no aliases at all
+        aliasDropdown.disabled = aliases.length === 0 && unsavedAliases.length === 0;
 
         aliasDropdown.addEventListener('change', (e) => {
             const selectedAlias = (e.target as HTMLSelectElement).value;
@@ -100,7 +123,7 @@ export class HeaderComponent {
         // Add elements in order
         leftContainer.appendChild(svg);
         leftContainer.appendChild(title);
-        leftContainer.appendChild(aliasDropdown);  // Always add it
+        leftContainer.appendChild(aliasDropdown);
         leftContainer.appendChild(sortButton);
         leftContainer.appendChild(collapseButton);
 

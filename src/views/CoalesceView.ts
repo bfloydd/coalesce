@@ -132,6 +132,36 @@ export class CoalesceView {
         });
     }
 
+    private extractUnsavedAliases(filesLinkingToThis: string[]): string[] {
+        const unsavedAliases = new Set<string>();
+        
+        // Process each block to find unsaved aliases
+        this.allBlocks.forEach(({ block }) => {
+            const content = block.contents;
+            
+            // Match [[path/notename|alias1|alias2]] pattern, escaping the note name for regex
+            const escapedNoteName = this.currentNoteName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`\\[\\[(?:[^\\]|]*?/)?${escapedNoteName}\\|([^\\]]+)\\]\\]`, 'g');
+            const matches = content.matchAll(regex);
+            
+            for (const match of matches) {
+                const aliasString = match[1];
+                if (!aliasString) continue;
+                
+                // Split by | to get all aliases after the note name
+                const aliases = aliasString.split('|');
+                aliases.forEach(alias => {
+                    // Only add if it's not already in the saved aliases and not the current note name
+                    if (alias && !this.aliases.includes(alias) && alias !== this.currentNoteName) {
+                        unsavedAliases.add(alias);
+                    }
+                });
+            }
+        });
+
+        return Array.from(unsavedAliases).sort();
+    }
+
     public async updateBacklinks(filesLinkingToThis: string[], onLinkClick: (path: string) => void): Promise<void> {
         this.currentFilesLinkingToThis = filesLinkingToThis;
         this.currentOnLinkClick = onLinkClick;
@@ -150,6 +180,9 @@ export class CoalesceView {
                 this.allBlocks.push({ block, sourcePath });
             });
         }
+
+        // Extract unsaved aliases after collecting blocks
+        const unsavedAliases = this.extractUnsavedAliases(filesLinkingToThis);
 
         // Sort blocks
         this.allBlocks.sort((a, b) => CoalesceView.sortDescending 
@@ -211,7 +244,8 @@ export class CoalesceView {
                 this.currentAlias = alias;
                 this.filterBlocksByAlias();
             },
-            this.currentAlias
+            this.currentAlias,
+            unsavedAliases
         );
         this.container.appendChild(header);
         this.container.appendChild(linksContainer);
@@ -355,11 +389,35 @@ export class CoalesceView {
 
                 const content = block.contents;
                 console.log("Block content:", content);
-                const hasAlias = content.includes(`[[${this.currentNoteName}|${this.currentAlias}]]`) || 
-                                content.includes(`[[${this.currentAlias}]]`) ||
-                                content.includes(`|${this.currentAlias}]]`);
-                console.log("Has alias:", hasAlias);
                 
+                let hasAlias = false;
+                
+                // First check if it's a saved alias (from file properties)
+                if (this.currentAlias && this.aliases.includes(this.currentAlias)) {
+                    hasAlias = content.includes(`[[${this.currentAlias}]]`);
+                }
+                
+                // If not found and we have an alias selected, check for unsaved alias pattern
+                if (!hasAlias && this.currentAlias) {
+                    // Match [[path/notename|alias1|alias2]] pattern
+                    const escapedNoteName = this.currentNoteName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(`\\[\\[(?:[^\\]|]*?/)?${escapedNoteName}\\|([^\\]]+)\\]\\]`, 'g');
+                    const matches = Array.from(content.matchAll(regex));
+                    
+                    for (const match of matches) {
+                        const aliasString = match[1];
+                        if (!aliasString) continue;
+                        
+                        // Split by | to get all aliases after the note name
+                        const aliases = aliasString.split('|');
+                        if (aliases.includes(this.currentAlias)) {
+                            hasAlias = true;
+                            break;
+                        }
+                    }
+                }
+                
+                console.log("Has alias:", hasAlias);
                 container.style.display = hasAlias ? '' : 'none';
             });
         }
@@ -369,6 +427,9 @@ export class CoalesceView {
             const container = block.getContainer();
             return container && container.style.display !== 'none';
         }).length;
+
+        // Get current unsaved aliases
+        const unsavedAliases = this.extractUnsavedAliases(this.currentFilesLinkingToThis);
 
         // Update header with new counts
         const header = this.container.querySelector('.backlinks-header');
@@ -415,7 +476,8 @@ export class CoalesceView {
                     this.currentAlias = alias;
                     this.filterBlocksByAlias();
                 },
-                this.currentAlias
+                this.currentAlias,
+                unsavedAliases
             );
             header.replaceWith(newHeader);
         }
