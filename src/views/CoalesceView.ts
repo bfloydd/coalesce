@@ -8,6 +8,7 @@ import { DefaultBlockBoundaryStrategy } from '../components/block-strategies/Def
 import { SingleLineBlockBoundaryStrategy } from '../components/block-strategies/SingleLineBlockBoundaryStrategy';
 import { TopLineBlockBoundaryStrategy } from '../components/block-strategies/TopLineBlockBoundaryStrategy';
 import { isDailyNote } from '../utils/Notes';
+import { ThemeManager } from '../ThemeManager';
 
 export class CoalesceView {
     private container: HTMLElement;
@@ -112,8 +113,7 @@ export class CoalesceView {
     }
 
     private applyTheme(theme: string) {
-        const themes = ['default', 'minimal', 'modern'];
-        themes.forEach(t => {
+        ThemeManager.themes.forEach(t => {
             this.container.classList.remove(`theme-${t}`);
         });
         this.container.classList.add(`theme-${theme}`);

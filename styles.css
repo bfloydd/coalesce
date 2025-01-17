@@ -172,11 +172,6 @@
 /* ============================
    CoalesceView Styles
    ============================ */
-/* 
-.backlink-item:not(:last-child) {
-    border-bottom: 1px solid var(--background-modifier-border);
-    margin-bottom: 10px;
-} */
 
 .content-preview {
     color: var(--text-muted);
@@ -200,8 +195,6 @@
     color: var(--text-normal);
     margin-left: auto;
     margin-right: auto;
-    /* box-sizing: border-box; */
-    /* max-width: 100%; */
 }
 
 .is-readable-line-width .custom-backlinks-container,
@@ -228,10 +221,8 @@
 }
 
 /* ============================
-   Themes
+   Default theme
    ============================ */
-
-/* Default Theme */
 .theme-default .backlinks-header {
     padding: 8px;
     border-bottom: 1px solid var(--background-modifier-border);
@@ -256,7 +247,9 @@
     margin-bottom: 10px;
 }
 
-/* Minimal Theme */
+/* ============================
+   Minimal theme
+   ============================ */
 .theme-minimal .backlinks-header {
     padding: 4px;
     border: none;
@@ -272,7 +265,9 @@
     background: transparent;
 }
 
-/* Modern Theme */
+/* ============================
+   Modern theme
+   ============================ */
 .theme-modern .backlinks-header {
     padding: 12px;
     border-radius: 8px;
@@ -295,7 +290,6 @@
     padding: 3px 0px;
 }
 
-/* Add these new styles */
 .settings-header {
     cursor: default !important;
     color: var(--text-muted);
@@ -339,4 +333,35 @@
     opacity: 0.7;
     cursor: not-allowed;
     border-color: var(--background-modifier-border);
+}
+
+/* ============================
+   Naked theme
+   ============================ */
+
+.theme-naked .backlinks-header {
+    margin-bottom: 1em;
+}
+
+.theme-naked .block-container {
+    border: none;
+    padding: 0;
+    margin: 0;
+    background: none;
+}
+
+.theme-naked .block-header {
+    display: none;
+}
+
+.theme-naked .content-preview {
+    display: block !important;
+    padding: 0;
+    margin: 0;
+}
+
+.theme-naked .block-container:not(:last-child) {
+    border-bottom: 1px solid var(--background-modifier-border);
+    margin-bottom: 1em;
+    padding-bottom: 1em;
 }

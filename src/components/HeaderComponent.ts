@@ -1,3 +1,5 @@
+import { ThemeManager } from '../ThemeManager';
+
 export class HeaderComponent {
     createHeader(
         container: HTMLElement, 
@@ -476,8 +478,7 @@ export class HeaderComponent {
             popup.appendChild(themeHeader);
 
             // Create theme options
-            const themes = ['default', 'minimal', 'modern'];
-            themes.forEach(theme => {
+            ThemeManager.themes.forEach(theme => {
                 const themeItem = document.createElement('div');
                 themeItem.className = 'settings-item';
                 themeItem.innerHTML = `
