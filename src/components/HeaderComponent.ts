@@ -97,7 +97,7 @@ export class HeaderComponent {
             // Add separator
             const separator = document.createElement('option');
             separator.disabled = true;
-            separator.textContent = '-- Unsaved Aliases --';
+            separator.textContent = '-- unsaved aliases --';
             aliasDropdown.appendChild(separator);
 
             // Add unsaved aliases
