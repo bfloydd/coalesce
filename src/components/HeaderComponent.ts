@@ -76,7 +76,7 @@ export class HeaderComponent {
         // Add default option
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
-        defaultOption.textContent = aliases.length > 0 || unsavedAliases.length > 0 ? 'All aliases' : 'No aliases';
+        defaultOption.textContent = 'All content';
         aliasDropdown.appendChild(defaultOption);
 
         // Add saved aliases if they exist
