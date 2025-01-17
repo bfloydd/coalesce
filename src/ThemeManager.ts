@@ -1,5 +1,5 @@
 export class ThemeManager {
-    private static readonly THEMES = ['default', 'minimal', 'modern', 'naked'] as const;
+    private static readonly THEMES = ['default', 'modern', 'minimal', 'naked'] as const;
     
     public static get themes(): readonly string[] {
         return this.THEMES;
