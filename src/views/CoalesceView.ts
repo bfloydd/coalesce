@@ -87,7 +87,8 @@ export class CoalesceView {
                         filePath, 
                         currentNoteName, 
                         this.settingsManager.settings.showFullPathTitle,
-                        this.logger
+                        this.logger,
+                        this.settingsManager.settings.blockBoundaryStrategy
                     );
                     blocks.push(block);
                 }

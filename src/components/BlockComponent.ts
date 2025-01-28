@@ -11,7 +11,8 @@ export class BlockComponent {
         public filePath: string,
         public noteName: string,
         private showFullPathTitle: boolean,
-        private logger: Logger
+        private logger: Logger,
+        private strategy: string = 'default'
     ) {}
 
     async render(container: HTMLElement, view: MarkdownView, onLinkClick: (path: string) => void): Promise<void> {
@@ -43,9 +44,18 @@ export class BlockComponent {
         // Create content container
         const contentPreview = this.mainContainer.createDiv('content-preview');
 
+        // Filter content if using Headers Only strategy
+        let contentToRender = this.contents;
+        if (this.strategy === 'headers-only') {
+            contentToRender = this.contents
+                .split('\n')
+                .filter(line => /^#{1,5}\s/.test(line))
+                .join('\n');
+        }
+
         await MarkdownRenderer.render(
             view.app,
-            this.contents,
+            contentToRender,
             contentPreview,
             this.filePath,
             view,
