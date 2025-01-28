@@ -11,7 +11,9 @@ export default class CoalescePlugin extends Plugin {
 	private logger: Logger;
 
 	async onload() {
+		// Initialize logger first to ensure global exposure
 		this.logger = new Logger();
+		
 		this.settingsManager = new SettingsManager(this);
 		await this.settingsManager.loadSettings();
 

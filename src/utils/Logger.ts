@@ -1,3 +1,13 @@
+// Add global type declarations
+declare global {
+    interface Window {
+        log: {
+            on: (level?: LogLevel | keyof typeof LogLevel | number) => void;
+            off: () => void;
+        }
+    }
+}
+
 export enum LogLevel {
     DEBUG = 0,
     INFO = 1,
@@ -9,6 +19,34 @@ export enum LogLevel {
 export class Logger {
     private enabled: boolean = false;
     private level: LogLevel = LogLevel.INFO;
+    private static instance: Logger;
+
+    constructor() {
+        if (!Logger.instance) {
+            Logger.instance = this;
+            // @ts-ignore
+            window.log = {
+                on: this.on.bind(this),
+                off: this.off.bind(this)
+            };
+        }
+        return Logger.instance;
+    }
+
+    on(level: LogLevel | keyof typeof LogLevel | number = LogLevel.INFO) {
+        this.enabled = true;
+        if (typeof level === 'string') {
+            this.level = LogLevel[level] as number;
+        } else {
+            this.level = level;
+        }
+        console.log(`Logging enabled at level: ${LogLevel[this.level]}`);
+    }
+
+    off() {
+        this.enabled = false;
+        console.log('Logging disabled');
+    }
 
     static parseLogLevel(level: string | boolean): LogLevel | boolean {
         if (typeof level === 'boolean') {
