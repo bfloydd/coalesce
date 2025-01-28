@@ -1,12 +1,12 @@
-import { MarkdownView, TFile, MarkdownRenderer } from 'obsidian';
+import { App, ItemView, MarkdownView, WorkspaceLeaf, TFile, MarkdownRenderer } from 'obsidian';
 import { BlockComponent } from '../components/BlockComponent';
 import { Logger } from '../utils/Logger';
 import { HeaderComponent } from '../components/HeaderComponent';
 import { SettingsManager } from '../SettingsManager';
 import { BlockBoundaryStrategy } from '../components/block-strategies/BlockBoundaryStrategy';
 import { DefaultBlockBoundaryStrategy } from '../components/block-strategies/DefaultBlockBoundaryStrategy';
-import { SingleLineBlockBoundaryStrategy } from '../components/block-strategies/SingleLineBlockBoundaryStrategy';
 import { TopLineBlockBoundaryStrategy } from '../components/block-strategies/TopLineBlockBoundaryStrategy';
+import { HeadersOnlyBlockBoundaryStrategy } from '../components/block-strategies/HeadersOnlyBlockBoundaryStrategy';
 import { isDailyNote } from '../utils/Notes';
 import { ThemeManager } from '../ThemeManager';
 
@@ -99,9 +99,6 @@ export class CoalesceView {
 
     private updateBlockBoundaryStrategy(strategy: string) {
         switch (strategy) {
-            case 'single-line':
-                this.blockBoundaryStrategy = new SingleLineBlockBoundaryStrategy(this.logger);
-                break;
             case 'top-line':
                 this.blockBoundaryStrategy = new TopLineBlockBoundaryStrategy(this.logger);
                 break;

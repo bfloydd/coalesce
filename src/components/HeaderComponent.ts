@@ -415,7 +415,7 @@ export class HeaderComponent {
             popup.appendChild(strategyHeader);
 
             // Create strategy options
-            const strategies = ['default', 'single-line', 'top-line'];
+            const strategies = ['default', 'headers-only', 'top-line'];
             strategies.forEach(strategy => {
                 const strategyItem = document.createElement('div');
                 strategyItem.className = 'settings-item';

@@ -2,8 +2,10 @@ import { App, MarkdownView, TFile } from 'obsidian';
 import { CoalesceView } from './views/CoalesceView';
 import { Logger } from './utils/Logger';
 import { SettingsManager } from './SettingsManager';
+import { BlockBoundaryStrategy } from './components/block-strategies/BlockBoundaryStrategy';
 import { DefaultBlockBoundaryStrategy } from './components/block-strategies/DefaultBlockBoundaryStrategy';
-import { SingleLineBlockBoundaryStrategy } from './components/block-strategies/SingleLineBlockBoundaryStrategy';
+import { TopLineBlockBoundaryStrategy } from './components/block-strategies/TopLineBlockBoundaryStrategy';
+import { HeadersOnlyBlockBoundaryStrategy } from './components/block-strategies/HeadersOnlyBlockBoundaryStrategy';
 
 export class CoalesceManager {
     private activeViews: Map<string, CoalesceView> = new Map();
@@ -65,7 +67,7 @@ export class CoalesceManager {
         }
         
         const currentNoteName = file.basename;
-        const blockBoundaryStrategy = this.getStrategyFromSettings();
+        const blockBoundaryStrategy = this.getBlockBoundaryStrategy(this.settingsManager.settings.blockBoundaryStrategy);
         const coalesceView = new CoalesceView(
             view, 
             currentNoteName, 
@@ -104,11 +106,12 @@ export class CoalesceManager {
         });
     }
 
-    private getStrategyFromSettings() {
-        const blockBoundaryStrategy = this.settingsManager.settings.blockBoundaryStrategy;
-        switch (blockBoundaryStrategy) {
-            case 'single-line':
-                return new SingleLineBlockBoundaryStrategy(this.logger);
+    private getBlockBoundaryStrategy(strategy: string): BlockBoundaryStrategy {
+        switch (strategy) {
+            case 'headers-only':
+                return new HeadersOnlyBlockBoundaryStrategy(this.logger);
+            case 'top-line':
+                return new TopLineBlockBoundaryStrategy(this.logger);
             case 'default':
             default:
                 return new DefaultBlockBoundaryStrategy(this.logger);
