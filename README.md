@@ -1,4 +1,4 @@
-# Obsidian Coalesce Community Plugin
+# Coalesce Plugin for Obsidian
 
 ## Description:
 
