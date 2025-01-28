@@ -71,8 +71,7 @@ export class CoalesceManager {
         const coalesceView = new CoalesceView(
             view, 
             currentNoteName, 
-            this.settingsManager, 
-            blockBoundaryStrategy,
+            this.settingsManager,
             this.logger
         );
 

@@ -40,12 +40,13 @@ export class Logger {
         } else {
             this.level = level;
         }
-        console.log(`Logging enabled at level: ${LogLevel[this.level]}`);
+        this.info(`Logging enabled at level: ${LogLevel[this.level]}`);
     }
 
     off() {
         this.enabled = false;
-        console.log('Logging disabled');
+        this.level = LogLevel.NONE;
+        this.info('Logging disabled');
     }
 
     static parseLogLevel(level: string | boolean): LogLevel | boolean {
@@ -65,20 +66,20 @@ export class Logger {
     }
 
     setLogging(level: string | boolean) {
-        console.log('setLogging called with:', level);
+        this.debug('setLogging called with:', level);
         const parsedLevel = Logger.parseLogLevel(level);
-        console.log('parsed level:', parsedLevel);
+        this.debug('parsed level:', parsedLevel);
         
         if (typeof parsedLevel === 'boolean') {
             this.enabled = parsedLevel;
             this.level = LogLevel.INFO;
-            console.log(`Logging ${parsedLevel ? 'enabled' : 'disabled'} (level: ${LogLevel[this.level]})`);
-            console.log('Current state:', { enabled: this.enabled, level: this.level });
+            this.debug(`Logging ${parsedLevel ? 'enabled' : 'disabled'} (level: ${LogLevel[this.level]})`);
+            this.debug('Current state:', { enabled: this.enabled, level: this.level });
         } else {
             this.enabled = true;
             this.level = parsedLevel;
-            console.log(`Logging level set to ${LogLevel[this.level]}`);
-            console.log('Current state:', { enabled: this.enabled, level: this.level });
+            this.debug(`Logging level set to ${LogLevel[this.level]}`);
+            this.debug('Current state:', { enabled: this.enabled, level: this.level });
         }
     }
 
@@ -87,27 +88,31 @@ export class Logger {
      *********************************************************/
 
     debug(message?: any, ...optionalParams: any[]) {
-        if (this.enabled && this.level <= LogLevel.DEBUG) {
-            console.debug(message, ...optionalParams);
+        if (!this.enabled || this.level > LogLevel.DEBUG) {
+            return;
         }
+        console.debug(message, ...optionalParams);
     }
 
     info(message?: any, ...optionalParams: any[]) {
-        if (this.enabled && this.level <= LogLevel.INFO) {
-            console.log(message, ...optionalParams);
+        if (!this.enabled || this.level > LogLevel.INFO) {
+            return;
         }
+        console.log(message, ...optionalParams);
     }
 
     warn(message?: any, ...optionalParams: any[]) {
-        if (this.enabled && this.level <= LogLevel.WARN) {
-            console.warn(message, ...optionalParams);
+        if (!this.enabled || this.level > LogLevel.WARN) {
+            return;
         }
+        console.warn(message, ...optionalParams);
     }
 
     error(message?: any, ...optionalParams: any[]) {
-        if (this.enabled && this.level <= LogLevel.ERROR) {
-            console.error(message, ...optionalParams);
+        if (!this.enabled || this.level > LogLevel.ERROR) {
+            return;
         }
+        console.error(message, ...optionalParams);
     }
 
     /**********************************************************

@@ -12,13 +12,14 @@ import { ThemeManager } from '../ThemeManager';
 
 export class CoalesceView {
     private container: HTMLElement;
-    private headerComponent: HeaderComponent = new HeaderComponent();
+    private headerComponent: HeaderComponent;
     private allBlocks: { block: BlockComponent; sourcePath: string }[] = [];
     private currentTheme: string;
     private currentAlias: string | null = null;
     private aliases: string[] = [];
     private currentFilesLinkingToThis: string[] = [];
     private currentOnLinkClick: ((path: string) => void) | null = null;
+    private blockBoundaryStrategy: BlockBoundaryStrategy;
 
     // Static properties to share state across instances
     private static sortDescending: boolean;
@@ -29,11 +30,13 @@ export class CoalesceView {
         private view: MarkdownView,
         private currentNoteName: string,
         private settingsManager: SettingsManager,
-        private blockBoundaryStrategy: BlockBoundaryStrategy,
         private logger: Logger
     ) {
         this.currentNoteName = currentNoteName;
-        this.blockBoundaryStrategy = blockBoundaryStrategy;
+        this.container = this.createBacklinksContainer();
+        this.currentTheme = this.settingsManager.settings.theme;
+        this.headerComponent = new HeaderComponent(this.logger);
+        this.blockBoundaryStrategy = this.getBlockBoundaryStrategy(this.settingsManager.settings.blockBoundaryStrategy);
         
         // Initialize static properties only once
         if (!CoalesceView.initialized) {
@@ -42,10 +45,8 @@ export class CoalesceView {
             CoalesceView.initialized = true;
         }
 
-        this.container = this.createBacklinksContainer();
         this.logger.info("Appending backlinks container to the view");
 
-        this.currentTheme = this.settingsManager.settings.theme;
         this.applyTheme(this.currentTheme);
 
         this.attachToDOM();
@@ -57,9 +58,9 @@ export class CoalesceView {
             if (!Array.isArray(this.aliases)) {
                 this.aliases = [this.aliases].filter(Boolean);
             }
-            console.log("DEBUG - File:", this.view.file.path);
-            console.log("DEBUG - FileCache:", fileCache);
-            console.log("DEBUG - Aliases:", this.aliases);
+            this.logger.debug("DEBUG - File:", this.view.file.path);
+            this.logger.debug("DEBUG - FileCache:", fileCache);
+            this.logger.debug("DEBUG - Aliases:", this.aliases);
         }
     }
 
@@ -97,16 +98,20 @@ export class CoalesceView {
         return blocks;
     }
 
-    private updateBlockBoundaryStrategy(strategy: string) {
+    private getBlockBoundaryStrategy(strategy: string): BlockBoundaryStrategy {
         switch (strategy) {
+            case 'headers-only':
+                return new HeadersOnlyBlockBoundaryStrategy(this.logger);
             case 'top-line':
-                this.blockBoundaryStrategy = new TopLineBlockBoundaryStrategy(this.logger);
-                break;
+                return new TopLineBlockBoundaryStrategy(this.logger);
             case 'default':
             default:
-                this.blockBoundaryStrategy = new DefaultBlockBoundaryStrategy(this.logger);
-                break;
+                return new DefaultBlockBoundaryStrategy(this.logger);
         }
+    }
+
+    private updateBlockBoundaryStrategy(strategy: string) {
+        this.blockBoundaryStrategy = this.getBlockBoundaryStrategy(strategy);
     }
 
     private applyTheme(theme: string) {
@@ -198,7 +203,7 @@ export class CoalesceView {
         }
 
         // Create header after blocks are rendered
-        console.log("DEBUG - Creating header with aliases:", this.aliases);
+        this.logger.debug("DEBUG - Creating header with aliases:", this.aliases);
         const header = this.headerComponent.createHeader(
             this.container, 
             0,
@@ -368,7 +373,7 @@ export class CoalesceView {
     }
 
     private filterBlocksByAlias() {
-        console.log("Filtering by alias:", this.currentAlias);
+        this.logger.debug("Filtering by alias:", this.currentAlias);
         
         // Show all blocks and get total counts when no alias is selected
         if (!this.currentAlias) {
@@ -385,7 +390,7 @@ export class CoalesceView {
                 if (!container) return;
 
                 const content = block.contents;
-                console.log("Block content:", content);
+                this.logger.debug("Block content:", content);
                 
                 let hasAlias = false;
                 
@@ -414,7 +419,7 @@ export class CoalesceView {
                     }
                 }
                 
-                console.log("Has alias:", hasAlias);
+                this.logger.debug("Has alias:", hasAlias);
                 container.style.display = hasAlias ? '' : 'none';
             });
         }

@@ -1,6 +1,9 @@
 import { ThemeManager } from '../ThemeManager';
+import { Logger } from '../utils/Logger';
 
 export class HeaderComponent {
+    constructor(private logger: Logger) {}
+
     createHeader(
         container: HTMLElement, 
         fileCount: number, 
@@ -24,8 +27,8 @@ export class HeaderComponent {
         currentAlias: string | null = null,
         unsavedAliases: string[] = []
     ): HTMLElement {
-        console.log("DEBUG - HeaderComponent received aliases:", aliases);
-        console.log("DEBUG - Aliases length:", aliases.length);
+        this.logger.debug("HeaderComponent received aliases:", aliases);
+        this.logger.debug("Aliases length:", aliases.length);
 
         const header = document.createElement('div');
         header.classList.add('backlinks-header');
