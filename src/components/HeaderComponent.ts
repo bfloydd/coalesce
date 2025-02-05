@@ -250,10 +250,17 @@ export class HeaderComponent {
             HeaderStyleManager.styles.forEach(style => {
                 const styleItem = document.createElement('div');
                 styleItem.className = 'settings-item';
+                
+                // Map style IDs to display names
+                const styleDisplayNames: Record<string, string> = {
+                    'full': 'Full',
+                    'short': 'Short',
+                    'first-heading-short': 'First Heading Short'
+                };
+
                 styleItem.innerHTML = `
                     <div class="setting-item-icon"></div>
-                    <span class="setting-item-label">${style
-                        .charAt(0).toUpperCase() + style.slice(1)}</span>
+                    <span class="setting-item-label">${styleDisplayNames[style as keyof typeof styleDisplayNames]}</span>
                     <div class="checkmark-container">
                         <div class="checkmark" style="display: ${style === HeaderComponent.currentHeaderStyle ? 'block' : 'none'}">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

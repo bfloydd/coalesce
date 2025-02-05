@@ -2,12 +2,15 @@ import { MarkdownRenderer, MarkdownView } from 'obsidian';
 import { Logger } from '../utils/Logger';
 import { BlockFinderFactory } from '../block-finders/BlockFinderFactory';
 import { AbstractBlockFinder } from '../block-finders/base/AbstractBlockFinder';
+import { HeaderStyleFactory } from '../header-styles/HeaderStyleFactory';
+import { AbstractHeaderStyle } from '../header-styles/base/AbstractHeaderStyle';
 
 export class BlockComponent {
     private mainContainer: HTMLElement;
     private headerContainer: HTMLElement;
     private toggleButton: HTMLElement;
     private blockFinder: AbstractBlockFinder;
+    private headerStyleInstance: AbstractHeaderStyle;
 
     constructor(
         public contents: string,
@@ -18,6 +21,7 @@ export class BlockComponent {
         private strategy: string = 'default'
     ) {
         this.blockFinder = BlockFinderFactory.createBlockFinder(strategy, logger);
+        this.headerStyleInstance = HeaderStyleFactory.createHeaderStyle(headerStyle, contents);
     }
 
     async render(container: HTMLElement, view: MarkdownView, onLinkClick: (path: string) => void): Promise<void> {
@@ -108,12 +112,8 @@ export class BlockComponent {
     }
 
     private getDisplayTitle(filePath: string, headerStyle: string): string {
-        if (headerStyle === 'full') {
-            return filePath.replace(/\.md$/, '');
-        } else {
-            const parts = filePath.split('/');
-            return parts[parts.length - 1].replace(/\.md$/, '');
-        }
+        this.headerStyleInstance = HeaderStyleFactory.createHeaderStyle(headerStyle, this.contents);
+        return this.headerStyleInstance.getDisplayTitle(filePath);
     }
 
     public updateTitleDisplay(headerStyle: string): void {

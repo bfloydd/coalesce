@@ -1,4 +1,6 @@
 export abstract class AbstractHeaderStyle {
+    constructor(protected blockContent: string = '') {}
+
     getDisplayTitle(filePath: string): string {
         const sanitizedPath = this.sanitizePath(filePath);
         return this.formatTitle(sanitizedPath);
