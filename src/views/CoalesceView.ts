@@ -6,6 +6,7 @@ import { SettingsManager } from '../SettingsManager';
 import { ThemeManager } from '../ThemeManager';
 import { AbstractBlockFinder } from '../block-finders/base/AbstractBlockFinder';
 import { BlockFinderFactory } from '../block-finders/BlockFinderFactory';
+import { DailyNote } from '../utils/DailyNote';
 
 /**
  * Handles the UI representation of backlinks
