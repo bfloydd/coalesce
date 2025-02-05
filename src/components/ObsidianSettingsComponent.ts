@@ -14,7 +14,11 @@ export class ObsidianSettingsComponent extends PluginSettingTab {
         const { containerEl } = this;
         containerEl.empty();
 
-        new Setting(containerEl)
+        containerEl.createEl('h2', { text: 'Coalesce Settings' });
+        
+        const settingsContainer = containerEl.createDiv('coalesce-settings');
+
+        new Setting(settingsContainer)
             .setName('Only Daily Notes')
             .setDesc('Show Coalesce view only in daily notes')
             .addToggle(toggle => toggle
