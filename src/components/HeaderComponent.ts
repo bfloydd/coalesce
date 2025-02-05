@@ -3,6 +3,8 @@ import { Logger } from '../utils/Logger';
 import { HeaderStyleManager } from '../header-styles/HeaderStyleManager';
 
 export class HeaderComponent {
+    private static currentHeaderStyle: string = 'full';
+
     constructor(private logger: Logger) {}
 
     createHeader(
@@ -30,6 +32,8 @@ export class HeaderComponent {
         currentHeaderStyle: string,
         onHeaderStyleChange: (style: string) => void
     ): HTMLElement {
+        HeaderComponent.currentHeaderStyle = currentHeaderStyle;
+
         this.logger.debug("HeaderComponent received aliases:", aliases);
         this.logger.debug("Aliases length:", aliases.length);
 
@@ -251,7 +255,7 @@ export class HeaderComponent {
                     <span class="setting-item-label">${style
                         .charAt(0).toUpperCase() + style.slice(1)}</span>
                     <div class="checkmark-container">
-                        <div class="checkmark" style="display: ${style === currentHeaderStyle ? 'block' : 'none'}">
+                        <div class="checkmark" style="display: ${style === HeaderComponent.currentHeaderStyle ? 'block' : 'none'}">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
@@ -261,7 +265,9 @@ export class HeaderComponent {
 
                 styleItem.addEventListener('click', () => {
                     if (!popup) return;
-                    if (style === currentHeaderStyle) return;
+                    if (style === HeaderComponent.currentHeaderStyle) return;
+                    
+                    HeaderComponent.currentHeaderStyle = style;
                     
                     // Update all header style checkmarks first
                     popup.querySelectorAll('.settings-item .checkmark').forEach(check => {
