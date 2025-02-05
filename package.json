@@ -1,7 +1,7 @@
 {
 	"name": "coalesce",
 	"version": "1.0.0",
-	"description": "Coaelesce your linked notes into one view",
+	"description": "Coalesce your (backlinked) notes into a single document stream (with style)",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
