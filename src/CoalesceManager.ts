@@ -2,10 +2,15 @@ import { App, MarkdownView, TFile } from 'obsidian';
 import { CoalesceView } from './views/CoalesceView';
 import { Logger } from './utils/Logger';
 import { SettingsManager } from './SettingsManager';
-import { BlockBoundaryStrategy } from './components/block-strategies/BlockBoundaryStrategy';
-import { DefaultBlockBoundaryStrategy } from './components/block-strategies/DefaultBlockBoundaryStrategy';
-import { TopLineBlockBoundaryStrategy } from './components/block-strategies/TopLineBlockBoundaryStrategy';
-import { HeadersOnlyBlockBoundaryStrategy } from './components/block-strategies/HeadersOnlyBlockBoundaryStrategy';
+import { AbstractBlockFinder } from './block-finders/base/AbstractBlockFinder';
+import { BlockFinderFactory } from './block-finders/BlockFinderFactory';
+
+/**
+ * Manages the lifecycle of views
+ * Handles file open/close events
+ * Coordinates multiple views for different markdown files
+ * Maintains the active views map
+ */
 
 export class CoalesceManager {
     private activeViews: Map<string, CoalesceView> = new Map();
@@ -67,7 +72,7 @@ export class CoalesceManager {
         }
         
         const currentNoteName = file.basename;
-        const blockBoundaryStrategy = this.getBlockBoundaryStrategy(this.settingsManager.settings.blockBoundaryStrategy);
+        const blockFinder = this.getBlockFinder(this.settingsManager.settings.blockBoundaryStrategy);
         const coalesceView = new CoalesceView(
             view, 
             currentNoteName, 
@@ -105,16 +110,8 @@ export class CoalesceManager {
         });
     }
 
-    private getBlockBoundaryStrategy(strategy: string): BlockBoundaryStrategy {
-        switch (strategy) {
-            case 'headers-only':
-                return new HeadersOnlyBlockBoundaryStrategy(this.logger);
-            case 'top-line':
-                return new TopLineBlockBoundaryStrategy(this.logger);
-            case 'default':
-            default:
-                return new DefaultBlockBoundaryStrategy(this.logger);
-        }
+    private getBlockFinder(strategy: string): AbstractBlockFinder {
+        return BlockFinderFactory.createBlockFinder(strategy, this.logger);
     }
 
     clearBacklinks() {

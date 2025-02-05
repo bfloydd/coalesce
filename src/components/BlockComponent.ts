@@ -1,10 +1,13 @@
 import { MarkdownRenderer, MarkdownView } from 'obsidian';
 import { Logger } from '../utils/Logger';
+import { BlockFinderFactory } from '../block-finders/BlockFinderFactory';
+import { AbstractBlockFinder } from '../block-finders/base/AbstractBlockFinder';
 
 export class BlockComponent {
     private mainContainer: HTMLElement;
     private headerContainer: HTMLElement;
     private toggleButton: HTMLElement;
+    private blockFinder: AbstractBlockFinder;
 
     constructor(
         public contents: string,
@@ -13,7 +16,9 @@ export class BlockComponent {
         private showFullPathTitle: boolean,
         private logger: Logger,
         private strategy: string = 'default'
-    ) {}
+    ) {
+        this.blockFinder = BlockFinderFactory.createBlockFinder(strategy, logger);
+    }
 
     async render(container: HTMLElement, view: MarkdownView, onLinkClick: (path: string) => void): Promise<void> {
         const displayText = this.filePath.replace(/\.md$/, '');

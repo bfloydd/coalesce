@@ -1,14 +1,18 @@
-import { App, ItemView, MarkdownView, WorkspaceLeaf, TFile, MarkdownRenderer } from 'obsidian';
+import { MarkdownView,TFile } from 'obsidian';
 import { BlockComponent } from '../components/BlockComponent';
 import { Logger } from '../utils/Logger';
 import { HeaderComponent } from '../components/HeaderComponent';
 import { SettingsManager } from '../SettingsManager';
-import { BlockBoundaryStrategy } from '../components/block-strategies/BlockBoundaryStrategy';
-import { DefaultBlockBoundaryStrategy } from '../components/block-strategies/DefaultBlockBoundaryStrategy';
-import { TopLineBlockBoundaryStrategy } from '../components/block-strategies/TopLineBlockBoundaryStrategy';
-import { HeadersOnlyBlockBoundaryStrategy } from '../components/block-strategies/HeadersOnlyBlockBoundaryStrategy';
-import { isDailyNote } from '../utils/Notes';
 import { ThemeManager } from '../ThemeManager';
+import { AbstractBlockFinder } from '../block-finders/base/AbstractBlockFinder';
+import { BlockFinderFactory } from '../block-finders/BlockFinderFactory';
+
+/**
+ * Handles the UI representation of backlinks
+ * Manages the DOM elements and rendering
+ * Handles user interactions (clicking, toggling, etc.)
+ * Coordinates between the block finders and the UI
+ */
 
 export class CoalesceView {
     private container: HTMLElement;
@@ -19,7 +23,7 @@ export class CoalesceView {
     private aliases: string[] = [];
     private currentFilesLinkingToThis: string[] = [];
     private currentOnLinkClick: ((path: string) => void) | null = null;
-    private blockBoundaryStrategy: BlockBoundaryStrategy;
+    private blockFinder: AbstractBlockFinder;
 
     // Static properties to share state across instances
     private static sortDescending: boolean;
@@ -36,7 +40,10 @@ export class CoalesceView {
         this.container = this.createBacklinksContainer();
         this.currentTheme = this.settingsManager.settings.theme;
         this.headerComponent = new HeaderComponent(this.logger);
-        this.blockBoundaryStrategy = this.getBlockBoundaryStrategy(this.settingsManager.settings.blockBoundaryStrategy);
+        this.blockFinder = BlockFinderFactory.createBlockFinder(
+            this.settingsManager.settings.blockBoundaryStrategy,
+            this.logger
+        );
         
         // Initialize static properties only once
         if (!CoalesceView.initialized) {
@@ -78,7 +85,7 @@ export class CoalesceView {
             
             if (file && file instanceof TFile) {
                 const content = await this.view.app.vault.read(file);
-                const boundaries = this.blockBoundaryStrategy.findBlockBoundaries(content, currentNoteName);
+                const boundaries = this.blockFinder.findBlockBoundaries(content, currentNoteName);
 
                 for (const { start, end } of boundaries) {
                     const blockContent = content.substring(start, end);
@@ -99,20 +106,8 @@ export class CoalesceView {
         return blocks;
     }
 
-    private getBlockBoundaryStrategy(strategy: string): BlockBoundaryStrategy {
-        switch (strategy) {
-            case 'headers-only':
-                return new HeadersOnlyBlockBoundaryStrategy(this.logger);
-            case 'top-line':
-                return new TopLineBlockBoundaryStrategy(this.logger);
-            case 'default':
-            default:
-                return new DefaultBlockBoundaryStrategy(this.logger);
-        }
-    }
-
     private updateBlockBoundaryStrategy(strategy: string) {
-        this.blockBoundaryStrategy = this.getBlockBoundaryStrategy(strategy);
+        this.blockFinder = BlockFinderFactory.createBlockFinder(strategy, this.logger);
     }
 
     private applyTheme(theme: string) {
