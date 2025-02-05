@@ -13,7 +13,7 @@ export class BlockComponent {
         public contents: string,
         public filePath: string,
         public noteName: string,
-        private showFullPathTitle: boolean,
+        private headerStyle: string,
         private logger: Logger,
         private strategy: string = 'default'
     ) {
@@ -37,7 +37,7 @@ export class BlockComponent {
 
         // Block header
         const blockTitle = this.headerContainer.createEl('a', {
-            text: this.getDisplayTitle(this.filePath, this.showFullPathTitle),
+            text: this.getDisplayTitle(this.filePath, this.headerStyle),
             cls: 'block-title',
             href: '#',
         });
@@ -107,8 +107,8 @@ export class BlockComponent {
         }
     }
 
-    private getDisplayTitle(filePath: string, showFullPath: boolean): string {
-        if (showFullPath) {
+    private getDisplayTitle(filePath: string, headerStyle: string): string {
+        if (headerStyle === 'full') {
             return filePath.replace(/\.md$/, '');
         } else {
             const parts = filePath.split('/');
@@ -116,10 +116,10 @@ export class BlockComponent {
         }
     }
 
-    public updateTitleDisplay(showFullPath: boolean): void {
+    public updateTitleDisplay(headerStyle: string): void {
         const titleElement = this.headerContainer?.querySelector('.block-title') as HTMLAnchorElement;
         if (titleElement) {
-            titleElement.textContent = this.getDisplayTitle(this.filePath, showFullPath);
+            titleElement.textContent = this.getDisplayTitle(this.filePath, headerStyle);
         }
     }
 

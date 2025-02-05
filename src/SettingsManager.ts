@@ -8,6 +8,7 @@ interface CoalescePluginSettings {
     showFullPathTitle: boolean;
     position: 'high' | 'low';
     onlyDailyNotes: boolean;
+    headerStyle: string;
 }
 
 const DEFAULT_SETTINGS: CoalescePluginSettings = {
@@ -19,7 +20,8 @@ const DEFAULT_SETTINGS: CoalescePluginSettings = {
     theme: 'default',
     showFullPathTitle: false,
     position: 'low',
-    onlyDailyNotes: false
+    onlyDailyNotes: false,
+    headerStyle: 'full'
 };
 
 interface Plugin {

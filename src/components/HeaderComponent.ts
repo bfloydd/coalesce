@@ -1,5 +1,6 @@
 import { ThemeManager } from '../ThemeManager';
 import { Logger } from '../utils/Logger';
+import { HeaderStyleManager } from '../header-styles/HeaderStyleManager';
 
 export class HeaderComponent {
     constructor(private logger: Logger) {}
@@ -25,7 +26,9 @@ export class HeaderComponent {
         aliases: string[] = [],
         onAliasSelect: (alias: string | null) => void,
         currentAlias: string | null = null,
-        unsavedAliases: string[] = []
+        unsavedAliases: string[] = [],
+        currentHeaderStyle: string,
+        onHeaderStyleChange: (style: string) => void
     ): HTMLElement {
         this.logger.debug("HeaderComponent received aliases:", aliases);
         this.logger.debug("Aliases length:", aliases.length);
@@ -159,69 +162,8 @@ export class HeaderComponent {
             popup = document.createElement('div');
             popup.className = 'settings-popup';
 
-            const settingItem = document.createElement('div');
-            settingItem.className = 'settings-item';
-
-            // Create left icon (folder/file icon)
-            const leftIcon = document.createElement('div');
-            leftIcon.className = 'setting-item-icon';
-            leftIcon.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 3h18v18H3z"></path>
-                    <path d="M3 9h18"></path>
-                </svg>
-            `;
-
-            /**************************************************************************
-             * Full path title settings
-             **************************************************************************/
-
-            // Create label
-            const label = document.createElement('span');
-            label.textContent = 'Full path title';
-            label.className = 'setting-item-label';
-
-            // Create checkmark container (right side)
-            const checkmarkContainer = document.createElement('div');
-            checkmarkContainer.className = 'checkmark-container';
-
-            // Create checkmark icon
-            const checkmark = document.createElement('div');
-            checkmark.className = 'checkmark';
-            checkmark.innerHTML = `
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-            `;
-            checkmark.style.display = currentFullPathState ? 'block' : 'none';
-
-            checkmarkContainer.appendChild(checkmark);
-            settingItem.appendChild(leftIcon);
-            settingItem.appendChild(label);
-            settingItem.appendChild(checkmarkContainer);
-            popup.appendChild(settingItem);
-
-            // Make the entire setting item clickable
-            settingItem.addEventListener('click', () => {
-                currentFullPathState = !currentFullPathState;
-                checkmark.style.display = currentFullPathState ? 'block' : 'none';
-                onFullPathTitleChange(currentFullPathState);
-
-                // Note: The actual title transformation should happen in the parent component
-                // that receives the onFullPathTitleChange event. This component only
-                // handles the UI toggle state.
-
-                // Close popup after changing state
-                popup?.remove();
-                popup = null;
-            });
-            popup.appendChild(settingItem);
-
-            // After the full path title setting and before position settings
-            popup.createEl('div', { cls: 'menu-separator' });
-
             /***************************************************************************
-             * Only daily notes settings
+             * Only daily notes settings (Moved to top)
              **************************************************************************/
 
             // Create Only Daily Notes setting
@@ -275,6 +217,67 @@ export class HeaderComponent {
             });
             popup.appendChild(dailyNotesItem);
 
+            // Add separator after daily notes
+            popup.createEl('div', { cls: 'menu-separator' });
+
+            /***************************************************************************
+             * Header Style Settings (and rest of settings follow)
+             **************************************************************************/
+
+            // Add separator before header style settings
+            popup.createEl('div', { cls: 'menu-separator' });
+
+            // Create header style settings header
+            const headerStyleHeader = document.createElement('div');
+            headerStyleHeader.className = 'settings-item settings-header';
+            headerStyleHeader.innerHTML = `
+                <div class="setting-item-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 7V4h16v3"/>
+                        <path d="M9 20h6"/>
+                        <path d="M12 4v16"/>
+                    </svg>
+                </div>
+                <span class="setting-item-label">Header Style</span>
+            `;
+            popup.appendChild(headerStyleHeader);
+
+            // Create header style options
+            HeaderStyleManager.styles.forEach(style => {
+                const styleItem = document.createElement('div');
+                styleItem.className = 'settings-item';
+                styleItem.innerHTML = `
+                    <div class="setting-item-icon"></div>
+                    <span class="setting-item-label">${style
+                        .charAt(0).toUpperCase() + style.slice(1)}</span>
+                    <div class="checkmark-container">
+                        <div class="checkmark" style="display: ${style === currentHeaderStyle ? 'block' : 'none'}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                `;
+
+                styleItem.addEventListener('click', () => {
+                    if (!popup) return;
+                    if (style === currentHeaderStyle) return;
+                    
+                    // Update all header style checkmarks first
+                    popup.querySelectorAll('.settings-item .checkmark').forEach(check => {
+                        const checkElement = check as HTMLElement;
+                        const parentItem = checkElement.closest('.settings-item');
+                        const itemLabel = parentItem?.querySelector('.setting-item-label')?.textContent?.toLowerCase();
+                        checkElement.style.display = itemLabel === style ? 'block' : 'none';
+                    });
+                    
+                    onHeaderStyleChange(style);
+                    popup.remove();
+                    popup = null;
+                });
+
+                popup?.appendChild(styleItem);
+            });
 
             /***************************************************************************
              * Position settings

@@ -94,7 +94,7 @@ export class CoalesceView {
                         blockContent, 
                         filePath, 
                         currentNoteName, 
-                        this.settingsManager.settings.showFullPathTitle,
+                        this.settingsManager.settings.headerStyle,
                         this.logger,
                         this.settingsManager.settings.blockBoundaryStrategy
                     );
@@ -125,9 +125,9 @@ export class CoalesceView {
         this.applyTheme(theme);
     }
 
-    private async updateBlockTitles(show: boolean): Promise<void> {
+    private async updateBlockTitles(style: string): Promise<void> {
         this.allBlocks.forEach(({ block }) => {
-            block.updateTitleDisplay(show);
+            block.updateTitleDisplay(style);
         });
     }
 
@@ -225,7 +225,7 @@ export class CoalesceView {
             async (show) => {
                 this.settingsManager.settings.showFullPathTitle = show;
                 await this.settingsManager.saveSettings();
-                await this.updateBlockTitles(show);
+                await this.updateBlockTitles(show ? 'full' : 'short');
             },
             this.settingsManager.settings.position,
             async (position) => {
@@ -244,7 +244,13 @@ export class CoalesceView {
                 this.filterBlocksByAlias();
             },
             this.currentAlias,
-            unsavedAliases
+            unsavedAliases,
+            this.settingsManager.settings.headerStyle,
+            async (style: string) => {
+                this.settingsManager.settings.headerStyle = style;
+                await this.settingsManager.saveSettings();
+                await this.updateBlockTitles(style);
+            }
         );
         this.container.appendChild(header);
         this.container.appendChild(linksContainer);
@@ -305,7 +311,7 @@ export class CoalesceView {
                 async (show) => {
                     this.settingsManager.settings.showFullPathTitle = show;
                     await this.settingsManager.saveSettings();
-                    await this.updateBlockTitles(show);
+                    await this.updateBlockTitles(show ? 'full' : 'short');
                 },
                 this.settingsManager.settings.position,
                 async (position) => {
@@ -323,7 +329,14 @@ export class CoalesceView {
                     this.currentAlias = alias;
                     this.filterBlocksByAlias();
                 },
-                this.currentAlias
+                this.currentAlias,
+                this.extractUnsavedAliases(this.currentFilesLinkingToThis),
+                this.settingsManager.settings.headerStyle,
+                async (style: string) => {
+                    this.settingsManager.settings.headerStyle = style;
+                    await this.settingsManager.saveSettings();
+                    await this.updateBlockTitles(style);
+                }
             );
             this.container.replaceChild(newHeader, oldHeader);
         }
@@ -457,7 +470,7 @@ export class CoalesceView {
                 async (show) => {
                     this.settingsManager.settings.showFullPathTitle = show;
                     await this.settingsManager.saveSettings();
-                    await this.updateBlockTitles(show);
+                    await this.updateBlockTitles(show ? 'full' : 'short');
                 },
                 this.settingsManager.settings.position,
                 async (position) => {
@@ -476,7 +489,13 @@ export class CoalesceView {
                     this.filterBlocksByAlias();
                 },
                 this.currentAlias,
-                unsavedAliases
+                unsavedAliases,
+                this.settingsManager.settings.headerStyle,
+                async (style: string) => {
+                    this.settingsManager.settings.headerStyle = style;
+                    await this.settingsManager.saveSettings();
+                    await this.updateBlockTitles(style);
+                }
             );
             header.replaceWith(newHeader);
         }
