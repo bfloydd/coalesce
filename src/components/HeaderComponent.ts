@@ -255,7 +255,8 @@ export class HeaderComponent {
                 const styleDisplayNames: Record<string, string> = {
                     'full': 'Full',
                     'short': 'Short',
-                    'first-heading-short': 'First Heading Short'
+                    'first-heading-short': '1st Hdr Short',
+                    'first-heading-tidy': '1st Hdr Tidy'
                 };
 
                 styleItem.innerHTML = `

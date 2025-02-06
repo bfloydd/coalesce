@@ -1,5 +1,10 @@
 export class HeaderStyleManager {
-    private static readonly STYLES = ['full', 'short', 'first-heading-short'] as const;
+    private static readonly STYLES = [
+        'full', 
+        'short', 
+        'first-heading-short',
+        'first-heading-tidy'
+    ] as const;
     
     public static get styles(): readonly string[] {
         return this.STYLES;
