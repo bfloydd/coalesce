@@ -253,10 +253,10 @@ export class HeaderComponent {
                 
                 // Map style IDs to display names
                 const styleDisplayNames: Record<string, string> = {
-                    'full': 'Full',
-                    'short': 'Short',
-                    'first-heading-short': '1st Hdr Short',
-                    'first-heading-tidy': '1st Hdr Tidy'
+                    'full': 'Full path',
+                    'short': 'Filename',
+                    'first-heading-short': 'Header full',
+                    'first-heading-tidy': 'Header tidy'
                 };
 
                 styleItem.innerHTML = `
