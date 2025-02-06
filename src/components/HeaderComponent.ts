@@ -256,7 +256,8 @@ export class HeaderComponent {
                     'full': 'Full path',
                     'short': 'Filename',
                     'first-heading-short': 'Header full',
-                    'first-heading-tidy': 'Header tidy'
+                    'first-heading-tidy': 'Header tidy',
+                    'first-heading-tidy-bold': 'Header tidy bold caps'
                 };
 
                 styleItem.innerHTML = `
