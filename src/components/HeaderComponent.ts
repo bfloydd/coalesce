@@ -430,7 +430,7 @@ export class HeaderComponent {
                         <path d="M9 3v18"></path>
                     </svg>
                 </div>
-                <span class="setting-item-label">Block Strategy</span>
+                <span class="setting-item-label">Block Style</span>
             `;
             popup.appendChild(strategyHeader);
 
