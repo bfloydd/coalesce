@@ -351,6 +351,15 @@ export class CoalesceView {
     }
 
     private attachToDOM() {
+        // Check if we should hide in daily notes 
+        if (this.settingsManager.settings.onlyDailyNotes && 
+            this.view.file && 
+            DailyNote.isDaily(this.view.app, this.view.file.path)) {
+            // Do not attach if we're in a daily note and setting is enabled
+            this.logger.info("Hiding Coalesce in daily note due to 'Hide in Daily Notes' setting");
+            return;
+        }
+
         if (this.settingsManager.settings.position === 'high') {
             // Position 1 (high)
             const markdownContent = this.view.containerEl.querySelector('.markdown-preview-section .mod-footer') as HTMLElement;

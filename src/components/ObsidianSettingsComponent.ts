@@ -19,8 +19,8 @@ export class ObsidianSettingsComponent extends PluginSettingTab {
         const settingsContainer = containerEl.createDiv('coalesce-settings');
 
         new Setting(settingsContainer)
-            .setName('Only Daily Notes')
-            .setDesc('Show Coalesce view only in daily notes')
+            .setName('Hide in Daily Notes')
+            .setDesc('Hide Coalesce view in daily notes')
             .addToggle(toggle => toggle
                 .setValue(this.settingsManager.settings.onlyDailyNotes)
                 .onChange(async (value) => {

@@ -187,7 +187,7 @@ export class HeaderComponent {
             `;
 
             const dailyNotesLabel = document.createElement('span');
-            dailyNotesLabel.textContent = 'Only Daily Notes';
+            dailyNotesLabel.textContent = 'Hide in Daily Notes';
             dailyNotesLabel.className = 'setting-item-label';
 
             const dailyNotesCheckContainer = document.createElement('div');

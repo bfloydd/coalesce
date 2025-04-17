@@ -4,6 +4,7 @@ import { Logger } from './utils/Logger';
 import { SettingsManager } from './SettingsManager';
 import { AbstractBlockFinder } from './block-finders/base/AbstractBlockFinder';
 import { BlockFinderFactory } from './block-finders/BlockFinderFactory';
+import { DailyNote } from './utils/DailyNote';
 
 /**
  * Manages the lifecycle of views
@@ -71,6 +72,13 @@ export class CoalesceManager {
             existingView.clear();
         }
         
+        // Check if we should skip creating a view for daily notes
+        if (this.settingsManager.settings.onlyDailyNotes && 
+            DailyNote.isDaily(this.app, file.path)) {
+            this.logger.info("Skipping Coalesce view for daily note due to 'Hide in Daily Notes' setting");
+            return;
+        }
+        
         const currentNoteName = file.basename;
         const blockFinder = this.getBlockFinder(this.settingsManager.settings.blockBoundaryStrategy);
         const coalesceView = new CoalesceView(
@@ -125,6 +133,18 @@ export class CoalesceManager {
     // Add method to handle edit/view mode switches
     handleModeSwitch(file: TFile, view: MarkdownView) {
         const leafId = (view.leaf as any).id;
+        
+        // Skip mode switching for daily notes if the Hide in Daily Notes setting is enabled
+        if (this.settingsManager.settings.onlyDailyNotes && 
+            DailyNote.isDaily(this.app, file.path)) {
+            // If there's an existing view for this daily note, clear it
+            if (this.activeViews.has(leafId)) {
+                this.activeViews.get(leafId)?.clear();
+                this.activeViews.delete(leafId);
+            }
+            return;
+        }
+        
         if (this.activeViews.has(leafId)) {
             this.initializeView(file, view);
         }

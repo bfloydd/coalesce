@@ -7,7 +7,7 @@ interface CoalescePluginSettings {
     theme: string;
     showFullPathTitle: boolean;
     position: 'high' | 'low';
-    onlyDailyNotes: boolean;
+    onlyDailyNotes: boolean; // When true, hide Coalesce in daily notes
     headerStyle: string;
 }
 
