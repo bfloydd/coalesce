@@ -1,7 +1,8 @@
 .vscode 
 node_modules
 package-lock.json
+main.js
 *.map
 data.json
 .DS_Store
-main.js
+.cursor
