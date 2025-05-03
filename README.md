@@ -1,4 +1,4 @@
-# Coalesce Plugin for Obsidian
+# Coalesce
 
 ## Description:
 
