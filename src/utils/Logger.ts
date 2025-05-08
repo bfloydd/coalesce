@@ -8,9 +8,9 @@ export enum LogLevel {
 
 /**
  * Usage:
- *    app.plugins.plugins.streams.log.on();
- *    app.plugins.plugins.streams.log.on(0|1|2|3|4);
- *    app.plugins.plugins.streams.log.off();
+ *    app.plugins.plugins.coalesce.log.on();
+ *    app.plugins.plugins.coalesce.log.on(0|1|2|3|4);
+ *    app.plugins.plugins.coalesce.log.off();
  */
 export class Logger {
     private enabled: boolean = false;

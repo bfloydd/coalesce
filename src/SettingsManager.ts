@@ -1,3 +1,5 @@
+import { Logger } from './utils/Logger';
+
 interface CoalescePluginSettings {
     mySetting: string;
     sortDescending: boolean;
@@ -41,16 +43,36 @@ class Plugin {
 export class SettingsManager {
     private plugin: Plugin;
     settings: CoalescePluginSettings;
+    private logger: Logger;
 
     constructor(plugin: Plugin) {
         this.plugin = plugin;
+        this.logger = new Logger('SettingsManager');
     }
 
     async loadSettings() {
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.plugin.loadData());
+        this.logger.debug('Loading settings');
+        const savedData = await this.plugin.loadData();
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
+        
+        this.logger.debug('Settings loaded', {
+            defaults: DEFAULT_SETTINGS,
+            saved: savedData,
+            merged: this.settings
+        });
     }
 
     async saveSettings() {
-        await this.plugin.saveData(this.settings);
+        this.logger.debug('Saving settings', {
+            settings: this.settings
+        });
+        
+        try {
+            await this.plugin.saveData(this.settings);
+            this.logger.debug('Settings saved successfully');
+        } catch (error) {
+            this.logger.error('Failed to save settings:', error);
+            throw error; // Re-throw to allow caller to handle
+        }
     }
 }

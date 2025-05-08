@@ -25,6 +25,8 @@ export class CoalesceManager {
     handleFileOpen(file: TFile) {
         if (!file) return;
 
+        this.logger.debug("Processing file open", { path: file.path });
+
         // Get all markdown views
         const allMarkdownViews = this.app.workspace.getLeavesOfType('markdown')
             .map(leaf => leaf.view as MarkdownView)
@@ -44,11 +46,13 @@ export class CoalesceManager {
 
             // If this view doesn't exist yet, create it
             if (!this.activeViews.has(leafId)) {
+                this.logger.debug("Initializing new view", { leafId, path: viewFile.path });
                 this.initializeView(viewFile, view);
             } else {
                 // Just ensure it's properly attached to DOM
                 const existingView = this.activeViews.get(leafId);
                 if (existingView) {
+                    this.logger.debug("Re-attaching existing view", { leafId, path: viewFile.path });
                     existingView.ensureAttached();
                 }
             }
@@ -57,6 +61,7 @@ export class CoalesceManager {
         // Only remove views that are no longer in any visible pane
         for (const [leafId, view] of this.activeViews.entries()) {
             if (!viewsToKeep.has(leafId)) {
+                this.logger.debug("Cleaning up unused view", { leafId });
                 view.cleanup(); // First cleanup resources
                 view.clear();   // Then clear DOM elements
                 this.activeViews.delete(leafId);
@@ -70,13 +75,17 @@ export class CoalesceManager {
         // Clear existing view for this leaf if it exists
         const existingView = this.activeViews.get(leafId);
         if (existingView) {
+            this.logger.debug("Clearing existing view", { leafId, path: file.path });
             existingView.clear();
         }
         
         // Check if we should skip creating a view for daily notes
         if (this.settingsManager.settings.onlyDailyNotes && 
             DailyNote.isDaily(this.app, file.path)) {
-            this.logger.info("Skipping Coalesce view for daily note due to 'Hide in Daily Notes' setting");
+            this.logger.debug("Skipping Coalesce view creation", {
+                reason: "Hide in Daily Notes enabled",
+                path: file.path
+            });
             return;
         }
         
@@ -95,6 +104,12 @@ export class CoalesceManager {
             .filter(([_, links]) => file.path in (links as Record<string, unknown>))
             .map(([sourcePath]) => sourcePath);
 
+        this.logger.debug("Updating backlinks for view", {
+            leafId,
+            path: file.path,
+            backlinksCount: filesLinkingToThis.length
+        });
+
         coalesceView.updateBacklinks(filesLinkingToThis, (path) => {
             this.app.workspace.openLinkText(path, '', false);
         });
@@ -105,6 +120,10 @@ export class CoalesceManager {
     }
 
     clearBacklinks() {
+        this.logger.debug("Clearing all backlinks", { 
+            activeViewCount: this.activeViews.size 
+        });
+
         // Ensure proper cleanup of each view
         for (const view of this.activeViews.values()) {
             view.cleanup(); // First call cleanup to release resources
@@ -117,11 +136,18 @@ export class CoalesceManager {
     handleModeSwitch(file: TFile, view: MarkdownView) {
         const leafId = (view.leaf as any).id;
         
+        this.logger.debug("Handling mode switch", {
+            leafId,
+            path: file.path,
+            hasExistingView: this.activeViews.has(leafId)
+        });
+        
         // Skip mode switching for daily notes if the Hide in Daily Notes setting is enabled
         if (this.settingsManager.settings.onlyDailyNotes && 
             DailyNote.isDaily(this.app, file.path)) {
             // If there's an existing view for this daily note, clear it
             if (this.activeViews.has(leafId)) {
+                this.logger.debug("Clearing daily note view on mode switch", { leafId, path: file.path });
                 this.activeViews.get(leafId)?.clear();
                 this.activeViews.delete(leafId);
             }

@@ -81,8 +81,7 @@ export class HeaderComponent {
     ): HTMLElement {
         HeaderComponent.currentHeaderStyle = currentHeaderStyle;
 
-        this.logger.debug("HeaderComponent received aliases:", aliases);
-        this.logger.debug("Aliases length:", aliases.length);
+        this.logger.debug("HeaderComponent aliases:", { count: aliases.length, aliases });
 
         const header = document.createElement('div');
         header.classList.add('backlinks-header');

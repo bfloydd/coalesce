@@ -53,7 +53,7 @@ export class CoalesceView {
             CoalesceView.initialized = true;
         }
 
-        this.logger.info("Appending backlinks container to the view");
+        this.logger.debug("Appending backlinks container to view");
 
         this.applyTheme(this.currentTheme);
 
@@ -66,9 +66,11 @@ export class CoalesceView {
             if (!Array.isArray(this.aliases)) {
                 this.aliases = [this.aliases].filter(Boolean);
             }
-            this.logger.debug("DEBUG - File:", this.view.file.path);
-            this.logger.debug("DEBUG - FileCache:", fileCache);
-            this.logger.debug("DEBUG - Aliases:", this.aliases);
+            this.logger.debug("File metadata:", {
+                path: this.view.file.path,
+                cache: fileCache,
+                aliases: this.aliases
+            });
         }
     }
 
@@ -102,7 +104,7 @@ export class CoalesceView {
                 }
             }
         } catch (error) {
-            console.error(`Error reading file content for ${filePath}:`, error);
+            this.logger.error(`Failed to read file content for ${filePath}:`, error);
         }
         return blocks;
     }
@@ -164,12 +166,10 @@ export class CoalesceView {
     public async updateBacklinks(filesLinkingToThis: string[], onLinkClick: (path: string) => void): Promise<void> {
         this.currentFilesLinkingToThis = filesLinkingToThis;
         this.currentOnLinkClick = onLinkClick;
-        this.logger.info("Updating backlinks:", filesLinkingToThis);
+        this.logger.debug("Updating backlinks", { count: filesLinkingToThis.length, files: filesLinkingToThis });
         this.container.empty();
 
         const linksContainer = this.container.createDiv('backlinks-list');
-        this.logger.info("Links container:", linksContainer);
-
         this.allBlocks = [];
         
         // Collect all blocks first
@@ -192,15 +192,16 @@ export class CoalesceView {
         for (const { block } of this.allBlocks) {
             await block.render(linksContainer, this.view, onLinkClick);
             const blockContainer = block.getContainer();
-            const contentPreview = blockContainer.querySelector('.content-preview') as HTMLElement;
-            if (contentPreview) {
-                contentPreview.style.display = CoalesceView.blocksCollapsed ? 'none' : 'block';
+            if (blockContainer) {
+                const contentPreview = blockContainer.querySelector('.content-preview') as HTMLElement;
+                if (contentPreview) {
+                    contentPreview.style.display = CoalesceView.blocksCollapsed ? 'none' : 'block';
+                }
+                block.setCollapsed(!CoalesceView.blocksCollapsed);
             }
-            block.setArrowState(!CoalesceView.blocksCollapsed);
         }
 
         // Create header after blocks are rendered
-        this.logger.debug("DEBUG - Creating header with aliases:", this.aliases);
         const header = this.headerComponent.createHeader(
             this.container, 
             0,
@@ -275,7 +276,7 @@ export class CoalesceView {
                 if (contentPreview) {
                     contentPreview.style.display = CoalesceView.blocksCollapsed ? 'none' : 'block';
                 }
-                block.setArrowState(!CoalesceView.blocksCollapsed);
+                block.setCollapsed(!CoalesceView.blocksCollapsed);
             }
         });
 
@@ -366,7 +367,7 @@ export class CoalesceView {
             }
             this.container.empty();
         }
-        this.logger.info("Backlinks view cleared");
+        this.logger.debug("Cleared backlinks view");
     }
 
     private attachToDOM() {
@@ -375,7 +376,7 @@ export class CoalesceView {
             this.view.file && 
             DailyNote.isDaily(this.view.app, this.view.file.path)) {
             // Do not attach if we're in a daily note and setting is enabled
-            this.logger.info("Hiding Coalesce in daily note due to 'Hide in Daily Notes' setting");
+            this.logger.debug("Skipping Coalesce attachment in daily note (Hide in Daily Notes enabled)");
             return;
         }
 
@@ -386,7 +387,7 @@ export class CoalesceView {
                 markdownContent.classList.add('markdown-content');
                 markdownContent.appendChild(this.container);
             } else {
-                this.logger.error("Markdown content area not found.");
+                this.logger.error("Failed to attach Coalesce: markdown content area not found");
             }
         } else {
             // Position 2 (low)
@@ -394,7 +395,7 @@ export class CoalesceView {
             if (markdownSection) {
                 markdownSection.insertAdjacentElement('afterend', this.container);
             } else {
-                this.logger.error("Markdown preview section not found.");
+                this.logger.error("Failed to attach Coalesce: markdown preview section not found");
             }
         }
     }
@@ -411,7 +412,11 @@ export class CoalesceView {
     }
 
     private filterBlocksByAlias() {
-        this.logger.debug("Filtering by alias:", this.currentAlias);
+        this.logger.debug("Filtering blocks by alias", { 
+            currentAlias: this.currentAlias,
+            totalBlocks: this.allBlocks.length,
+            savedAliases: this.aliases
+        });
         
         // Show all blocks and get total counts when no alias is selected
         if (!this.currentAlias) {
@@ -428,8 +433,6 @@ export class CoalesceView {
                 if (!container) return;
 
                 const content = block.contents;
-                this.logger.debug("Block content:", content);
-                
                 let hasAlias = false;
                 
                 // First check if it's a saved alias (from file properties)
@@ -457,7 +460,6 @@ export class CoalesceView {
                     }
                 }
                 
-                this.logger.debug("Has alias:", hasAlias);
                 container.style.display = hasAlias ? '' : 'none';
             });
         }
@@ -545,7 +547,7 @@ export class CoalesceView {
                         if (contentPreview) {
                             contentPreview.style.display = CoalesceView.blocksCollapsed ? 'none' : 'block';
                         }
-                        block.setArrowState(!CoalesceView.blocksCollapsed);
+                        block.setCollapsed(!CoalesceView.blocksCollapsed);
                     }
                 });
             } else {

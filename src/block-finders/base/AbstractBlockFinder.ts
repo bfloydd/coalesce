@@ -6,8 +6,7 @@ export abstract class AbstractBlockFinder {
 
     // Template method that defines the algorithm structure
     findBlockBoundaries(content: string, noteName: string): BlockBoundary[] {
-        this.logger.debug('Finding block boundaries for:', noteName);
-        this.logger.debug('Content:', content);
+        this.logger.debug('Finding block boundaries:', { noteName, contentLength: content.length });
         
         const boundaries: BlockBoundary[] = [];
         const escapedNoteName = this.escapeRegExp(noteName);

@@ -1,15 +1,27 @@
+import { Logger } from './utils/Logger';
+
 export class ThemeManager {
     private static readonly THEMES = ['default', 'modern', 'minimal', 'naked'] as const;
+    private static logger: Logger = new Logger('ThemeManager');
     
     public static get themes(): readonly string[] {
+        this.logger.debug('Getting available themes');
         return this.THEMES;
     }
 
     public static isValidTheme(theme: string): boolean {
-        return this.THEMES.includes(theme as any);
+        const isValid = this.THEMES.includes(theme as any);
+        this.logger.debug('Validating theme', {
+            theme,
+            isValid,
+            availableThemes: this.THEMES
+        });
+        return isValid;
     }
 
     public static getDefaultTheme(): string {
-        return this.THEMES[0];
+        const defaultTheme = this.THEMES[0];
+        this.logger.debug('Getting default theme', { defaultTheme });
+        return defaultTheme;
     }
 } 
