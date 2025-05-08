@@ -197,7 +197,6 @@
 .custom-backlinks-container {
     border-top: 1px solid var(--background-modifier-border);
     margin-top: 20px;
-    padding-top: 10px;
     position: relative;
     z-index: 10;
     background-color: var(--background-primary);
