@@ -4,8 +4,55 @@ import { HeaderStyleManager } from '../header-styles/HeaderStyleManager';
 
 export class HeaderComponent {
     private static currentHeaderStyle: string = 'full';
+    private resizeObserver: ResizeObserver | null = null;
+    private observedContainer: HTMLElement | null = null;
 
     constructor(private logger: Logger) {}
+
+    /**
+     * Cleans up resources used by this component
+     */
+    public cleanup(): void {
+        if (this.resizeObserver && this.observedContainer) {
+            this.resizeObserver.unobserve(this.observedContainer);
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
+            this.observedContainer = null;
+        }
+    }
+
+    /**
+     * Checks if the container width is small and applies compact styling if needed
+     * @param header The header element to check and update
+     * @param container The container element that holds the header
+     */
+    private applyResponsiveLayout(header: HTMLElement, container: HTMLElement): void {
+        // Clean up previous observer if it exists
+        this.cleanup();
+        
+        this.observedContainer = container;
+        
+        // Set up resize observer to dynamically adjust layout
+        this.resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const width = entry.contentRect.width;
+                if (width < 450) {
+                    header.classList.add('compact');
+                } else {
+                    header.classList.remove('compact');
+                }
+            }
+        });
+        
+        // Initially check the container width
+        const initialWidth = container.getBoundingClientRect().width;
+        if (initialWidth < 450) {
+            header.classList.add('compact');
+        }
+        
+        // Start observing the container
+        this.resizeObserver.observe(container);
+    }
 
     createHeader(
         container: HTMLElement, 
@@ -81,6 +128,12 @@ export class HeaderComponent {
         `;
         collapseButton.addEventListener('click', onCollapseToggle);
 
+        // Create a button group container to keep the buttons together
+        const buttonGroup = document.createElement('div');
+        buttonGroup.classList.add('button-group');
+        buttonGroup.appendChild(sortButton);
+        buttonGroup.appendChild(collapseButton);
+
         // Create dropdown
         const aliasDropdown = document.createElement('select');
         aliasDropdown.classList.add('alias-dropdown');
@@ -136,8 +189,7 @@ export class HeaderComponent {
         leftContainer.appendChild(svg);
         leftContainer.appendChild(title);
         leftContainer.appendChild(aliasDropdown);
-        leftContainer.appendChild(sortButton);
-        leftContainer.appendChild(collapseButton);
+        leftContainer.appendChild(buttonGroup);
 
         // Add settings button to right container
         const settingsButton = document.createElement('button');
@@ -552,6 +604,9 @@ export class HeaderComponent {
         // Add containers to header
         header.appendChild(leftContainer);
         header.appendChild(rightContainer);
+
+        // Apply responsive layout
+        this.applyResponsiveLayout(header, container);
 
         return header;
     }

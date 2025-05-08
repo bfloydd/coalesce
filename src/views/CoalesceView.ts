@@ -342,10 +342,29 @@ export class CoalesceView {
         }
     }
 
-    clear() {
-        // Remove the container from the DOM totally
-        if (this.container.parentElement) {
-            this.container.parentElement.removeChild(this.container);
+    public cleanup(): void {
+        // Clean up the header component to prevent memory leaks
+        if (this.headerComponent) {
+            this.headerComponent.cleanup();
+        }
+        
+        // Clear any stored blocks and references
+        this.allBlocks = [];
+        this.currentFilesLinkingToThis = [];
+        this.currentOnLinkClick = null;
+    }
+
+    public clear(): void {
+        // Clean up resources first
+        this.cleanup();
+        
+        // Then clear the container
+        if (this.container) {
+            // Remove the container from the DOM
+            if (this.container.parentElement) {
+                this.container.parentElement.removeChild(this.container);
+            }
+            this.container.empty();
         }
         this.logger.info("Backlinks view cleared");
     }

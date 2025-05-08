@@ -23,23 +23,25 @@
     gap: 2px;
     margin-bottom: 10px;
     justify-content: space-between;
-    /* flex-wrap: wrap;
-    width: 100%; */
+    flex-wrap: wrap;
+    width: 100%;
     box-sizing: border-box;
 }
 
 .backlinks-header-left {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 5px;
     flex-wrap: wrap;
+    min-width: 0;
+    flex: 1;
 }
 
 .backlinks-header-right {
     display: flex;
     align-items: center;
     gap: 2px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .sort-button {
@@ -55,7 +57,13 @@
     transition: transform 0.2s ease;
 }
 
-/* Add these new styles before the themes section */
+.button-group {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    margin-left: 2px;
+}
+
 .settings-button {
     background: none;
     border: none;
@@ -318,6 +326,16 @@
     font-size: var(--font-ui-smaller);
     min-width: 120px;
     height: 24px;
+    flex-shrink: 1;
+    text-overflow: ellipsis;
+}
+
+.is-mobile .alias-dropdown,
+.is-phone .alias-dropdown {
+    min-width: 100px;
+    font-size: var(--font-ui-smallest);
+    padding: 2px 4px;
+    height: 20px;
 }
 
 .alias-dropdown:hover {
@@ -364,4 +382,124 @@
     border-bottom: 1px solid var(--background-modifier-border);
     margin-bottom: 1em;
     padding-bottom: 1em;
+}
+
+.is-phone .backlinks-header,
+.is-mobile .backlinks-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.is-phone .backlinks-header-left,
+.is-mobile .backlinks-header-left {
+    width: 100%;
+    justify-content: flex-start;
+}
+
+.is-phone .backlinks-header-right,
+.is-mobile .backlinks-header-right {
+    width: 100%;
+    justify-content: flex-end;
+}
+
+.is-phone .button-group,
+.is-mobile .button-group {
+    margin-left: auto;
+}
+
+@media (max-width: 400px) {
+    .backlinks-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .backlinks-header-left {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .backlinks-header-right {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    
+    .alias-dropdown {
+        width: 100%;
+        max-width: 100%;
+        margin: 4px 0;
+        order: 3;
+    }
+    
+    .header-title {
+        flex-shrink: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 120px;
+    }
+    
+    .button-group {
+        margin-left: auto;
+    }
+}
+
+.is-mobile .sort-button,
+.is-phone .sort-button,
+.is-mobile .collapse-button,
+.is-phone .collapse-button,
+.is-mobile .settings-button,
+.is-phone .settings-button {
+    padding: 2px;
+}
+
+.is-mobile .sort-button svg,
+.is-phone .sort-button svg,
+.is-mobile .collapse-button svg,
+.is-phone .collapse-button svg,
+.is-mobile .settings-button svg,
+.is-phone .settings-button svg {
+    width: 14px;
+    height: 14px;
+}
+
+@media (max-width: 400px) {
+    .sort-button,
+    .collapse-button,
+    .settings-button {
+        padding: 2px;
+    }
+    
+    .sort-button svg,
+    .collapse-button svg,
+    .settings-button svg {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .backlinks-header.compact .header-title {
+        font-size: 0.85em;
+        max-width: 80px;
+    }
+    
+    .backlinks-header.compact svg {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+@media (max-width: 600px) and (min-width: 401px) {
+    .backlinks-header-left {
+        flex-wrap: wrap;
+        row-gap: 8px;
+    }
+    
+    .button-group {
+        margin-right: auto;
+    }
+}
+
+.backlinks-header.compact .button-group {
+    margin-left: 0;
 }

@@ -57,7 +57,8 @@ export class CoalesceManager {
         // Only remove views that are no longer in any visible pane
         for (const [leafId, view] of this.activeViews.entries()) {
             if (!viewsToKeep.has(leafId)) {
-                view.clear();
+                view.cleanup(); // First cleanup resources
+                view.clear();   // Then clear DOM elements
                 this.activeViews.delete(leafId);
             }
         }
@@ -125,7 +126,8 @@ export class CoalesceManager {
     clearBacklinks() {
         // Ensure proper cleanup of each view
         for (const view of this.activeViews.values()) {
-            view.clear();
+            view.cleanup(); // First call cleanup to release resources
+            view.clear();   // Then clear the DOM elements
         }
         this.activeViews.clear();
     }
