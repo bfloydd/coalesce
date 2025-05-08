@@ -1,7 +1,7 @@
 import { App, Plugin, TFile } from 'obsidian';
 import { SettingsManager } from './src/SettingsManager';
 import { CoalesceManager } from './src/CoalesceManager';
-import { Logger } from './src/utils/Logger';
+import { Logger, LogLevel } from './src/utils/Logger';
 import { ObsidianSettingsComponent } from './src/components/ObsidianSettingsComponent';
 import { MarkdownView } from 'obsidian';
 
@@ -11,8 +11,15 @@ export default class CoalescePlugin extends Plugin {
 	private logger: Logger;
 
 	async onload() {
-		// Initialize logger first to ensure global exposure
-		this.logger = new Logger();
+		// Initialize logger with plugin name prefix
+		this.logger = new Logger('Coalesce');
+		
+		// Expose logging methods through plugin instance
+		(this.app as any).plugins.plugins.coalesce.log = {
+			on: (level?: LogLevel | keyof typeof LogLevel | number) => this.logger.on(level),
+			off: () => this.logger.off(),
+			isEnabled: () => this.logger.isEnabled()
+		};
 		
 		this.settingsManager = new SettingsManager(this);
 		await this.settingsManager.loadSettings();
@@ -47,6 +54,10 @@ export default class CoalescePlugin extends Plugin {
 	}
 
 	onunload() {
+		// Clean up logging methods
+		if ((this.app as any).plugins.plugins.coalesce) {
+			delete (this.app as any).plugins.plugins.coalesce.log;
+		}
 		this.coalesceManager.clearBacklinks();
 	}
 }
