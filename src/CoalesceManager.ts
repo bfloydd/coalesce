@@ -81,7 +81,6 @@ export class CoalesceManager {
         }
         
         const currentNoteName = file.basename;
-        const blockFinder = this.getBlockFinder(this.settingsManager.settings.blockBoundaryStrategy);
         const coalesceView = new CoalesceView(
             view, 
             currentNoteName, 
@@ -98,24 +97,6 @@ export class CoalesceManager {
 
         coalesceView.updateBacklinks(filesLinkingToThis, (path) => {
             this.app.workspace.openLinkText(path, '', false);
-        });
-    }
-
-    // Initialize all existing markdown views
-    initializeAllViews() {
-        // Get all markdown views
-        const allMarkdownViews = this.app.workspace.getLeavesOfType('markdown')
-            .map(leaf => leaf.view as MarkdownView)
-            .filter(view => view?.file);
-
-        // Clear all existing views first
-        this.clearBacklinks();
-
-        // Initialize views for all visible markdown files
-        allMarkdownViews.forEach(view => {
-            if (view.file) {
-                this.initializeView(view.file, view);
-            }
         });
     }
 
