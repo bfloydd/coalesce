@@ -57,6 +57,7 @@
     transition: transform 0.2s ease;
 }
 
+/* Button group for arrow controls */
 .button-group {
     display: flex;
     align-items: center;
@@ -384,6 +385,10 @@
     padding-bottom: 1em;
 }
 
+/* ============================
+   Responsive Layout Styles
+   ============================ */
+
 .is-phone .backlinks-header,
 .is-mobile .backlinks-header {
     flex-direction: column;
@@ -445,6 +450,7 @@
     }
 }
 
+/* Compact mobile button styles */
 .is-mobile .sort-button,
 .is-phone .sort-button,
 .is-mobile .collapse-button,
@@ -489,6 +495,7 @@
     }
 }
 
+/* Medium-width screen styles */
 @media (max-width: 600px) and (min-width: 401px) {
     .backlinks-header-left {
         flex-wrap: wrap;
@@ -498,6 +505,32 @@
     .button-group {
         margin-right: auto;
     }
+}
+
+/* Programmatic compact mode styles */
+@media (max-width: 400px) {
+    .sort-button,
+    .collapse-button,
+    .settings-button {
+        padding: 2px;
+    }
+    
+    .sort-button svg,
+    .collapse-button svg,
+    .settings-button svg {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+.backlinks-header.compact .header-title {
+    font-size: 0.85em;
+    max-width: 80px;
+}
+
+.backlinks-header.compact svg {
+    width: 14px;
+    height: 14px;
 }
 
 .backlinks-header.compact .button-group {
