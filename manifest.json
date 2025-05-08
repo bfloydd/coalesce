@@ -1,11 +1,11 @@
 {
 	"id": "coalesce",
 	"name": "Coalesce",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"minAppVersion": "0.15.0",
-	"description": "Coalesce your notes into a single document.",
-	"author": "Ben Floyd",
-	"authorUrl": "https://b.floy.dev",
-	"fundingUrl": "https://paypal.me/bfloydd",
+	"description": "Coalesce your backlinked notes into a single view",
+	"author": "Floyd",
+	"authorUrl": "http://floyd.pro",
+	"fundingUrl": "http://ty.floyd.pro",
 	"isDesktopOnly": false
 }
