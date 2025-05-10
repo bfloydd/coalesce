@@ -25,11 +25,8 @@ export class CoalesceView {
     private currentFilesLinkingToThis: string[] = [];
     private currentOnLinkClick: ((path: string) => void) | null = null;
     private blockFinder: AbstractBlockFinder;
-
-    // Static properties to share state across instances
-    private static sortDescending: boolean;
-    private static blocksCollapsed: boolean;
-    private static initialized: boolean = false;
+    private sortDescending: boolean;
+    private blocksCollapsed: boolean;
 
     constructor(
         private view: MarkdownView,
@@ -46,12 +43,9 @@ export class CoalesceView {
             this.logger
         );
         
-        // Initialize static properties only once
-        if (!CoalesceView.initialized) {
-            CoalesceView.sortDescending = this.settingsManager.settings.sortDescending;
-            CoalesceView.blocksCollapsed = this.settingsManager.settings.blocksCollapsed;
-            CoalesceView.initialized = true;
-        }
+        // Initialize instance properties from settings
+        this.sortDescending = this.settingsManager.settings.sortDescending;
+        this.blocksCollapsed = this.settingsManager.settings.blocksCollapsed;
 
         this.logger.debug("Appending backlinks container to view");
 
@@ -163,6 +157,54 @@ export class CoalesceView {
         return Array.from(unsavedAliases).sort();
     }
 
+    private sortBlocks(): void {
+        // Sort blocks in place
+        this.allBlocks.sort((a, b) => {
+            // First sort by source path
+            const pathCompare = this.sortDescending 
+                ? b.sourcePath.localeCompare(a.sourcePath)
+                : a.sourcePath.localeCompare(b.sourcePath);
+            
+            if (pathCompare !== 0) return pathCompare;
+
+            // If paths are equal, sort by block position in file
+            const aContent = a.block.contents;
+            const bContent = b.block.contents;
+            return this.sortDescending 
+                ? bContent.localeCompare(aContent)
+                : aContent.localeCompare(bContent);
+        });
+
+        // Update DOM order to match sorted order
+        const linksContainer = this.container.querySelector('.backlinks-list');
+        if (linksContainer) {
+            this.allBlocks.forEach(({ block }) => {
+                const blockContainer = block.getContainer();
+                if (blockContainer && blockContainer.parentElement === linksContainer) {
+                    linksContainer.appendChild(blockContainer);
+                }
+            });
+        }
+    }
+
+    public toggleSort(): void {
+        this.sortDescending = !this.sortDescending;
+        this.settingsManager.settings.sortDescending = this.sortDescending;
+        this.settingsManager.saveSettings();
+        
+        // Sort blocks and update UI
+        this.sortBlocks();
+        
+        // Update sort button state
+        const header = this.container.querySelector('.backlinks-header');
+        if (header) {
+            const sortButton = header.querySelector('.sort-button svg') as SVGElement;
+            if (sortButton) {
+                sortButton.style.transform = this.sortDescending ? 'none' : 'rotate(180deg)';
+            }
+        }
+    }
+
     public async updateBacklinks(filesLinkingToThis: string[], onLinkClick: (path: string) => void): Promise<void> {
         this.currentFilesLinkingToThis = filesLinkingToThis;
         this.currentOnLinkClick = onLinkClick;
@@ -184,9 +226,7 @@ export class CoalesceView {
         const unsavedAliases = this.extractUnsavedAliases(filesLinkingToThis);
 
         // Sort blocks
-        this.allBlocks.sort((a, b) => CoalesceView.sortDescending 
-            ? b.sourcePath.localeCompare(a.sourcePath)
-            : a.sourcePath.localeCompare(b.sourcePath));
+        this.sortBlocks();
 
         // Render blocks with correct initial state
         for (const { block } of this.allBlocks) {
@@ -195,9 +235,9 @@ export class CoalesceView {
             if (blockContainer) {
                 const contentPreview = blockContainer.querySelector('.content-preview') as HTMLElement;
                 if (contentPreview) {
-                    contentPreview.style.display = CoalesceView.blocksCollapsed ? 'none' : 'block';
+                    contentPreview.style.display = this.blocksCollapsed ? 'none' : 'block';
                 }
-                block.setCollapsed(!CoalesceView.blocksCollapsed);
+                block.setCollapsed(!this.blocksCollapsed);
             }
         }
 
@@ -206,13 +246,10 @@ export class CoalesceView {
             this.container, 
             0,
             this.allBlocks.length,
-            CoalesceView.sortDescending,
-            () => {
-                this.toggleSort();
-                this.updateBacklinks(filesLinkingToThis, onLinkClick);
-            },
+            this.sortDescending,
+            () => this.toggleSort(),
             () => this.toggleAllBlocks(),
-            CoalesceView.blocksCollapsed,
+            this.blocksCollapsed,
             this.settingsManager.settings.blockBoundaryStrategy,
             async (strategy) => {
                 this.settingsManager.settings.blockBoundaryStrategy = strategy;
@@ -257,15 +294,9 @@ export class CoalesceView {
         this.container.appendChild(linksContainer);
     }
 
-    public toggleSort(): void {
-        CoalesceView.sortDescending = !CoalesceView.sortDescending;
-        this.settingsManager.settings.sortDescending = CoalesceView.sortDescending;
-        this.settingsManager.saveSettings();
-    }
-
     private toggleAllBlocks(): void {
-        CoalesceView.blocksCollapsed = !CoalesceView.blocksCollapsed;
-        this.settingsManager.settings.blocksCollapsed = CoalesceView.blocksCollapsed;
+        this.blocksCollapsed = !this.blocksCollapsed;
+        this.settingsManager.settings.blocksCollapsed = this.blocksCollapsed;
         this.settingsManager.saveSettings();
 
         // Update all blocks based on the new state
@@ -274,9 +305,9 @@ export class CoalesceView {
             if (blockContainer) {
                 const contentPreview = blockContainer.querySelector('.content-preview') as HTMLElement;
                 if (contentPreview) {
-                    contentPreview.style.display = CoalesceView.blocksCollapsed ? 'none' : 'block';
+                    contentPreview.style.display = this.blocksCollapsed ? 'none' : 'block';
                 }
-                block.setCollapsed(!CoalesceView.blocksCollapsed);
+                block.setCollapsed(!this.blocksCollapsed);
             }
         });
 
@@ -292,13 +323,10 @@ export class CoalesceView {
                 this.container,
                 0,
                 visibleBlocks,
-                CoalesceView.sortDescending,
-                () => {
-                    this.toggleSort();
-                    this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick!);
-                },
+                this.sortDescending,
+                () => this.toggleSort(),
                 () => this.toggleAllBlocks(),
-                CoalesceView.blocksCollapsed,
+                this.blocksCollapsed,
                 this.settingsManager.settings.blockBoundaryStrategy,
                 async (strategy) => {
                     this.settingsManager.settings.blockBoundaryStrategy = strategy;
@@ -480,13 +508,10 @@ export class CoalesceView {
                 this.container,
                 0,
                 visibleBlocks,
-                CoalesceView.sortDescending,
-                () => {
-                    this.toggleSort();
-                    this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick!);
-                },
+                this.sortDescending,
+                () => this.toggleSort(),
                 () => this.toggleAllBlocks(),
-                CoalesceView.blocksCollapsed,
+                this.blocksCollapsed,
                 this.settingsManager.settings.blockBoundaryStrategy,
                 async (strategy) => {
                     this.settingsManager.settings.blockBoundaryStrategy = strategy;
@@ -545,9 +570,9 @@ export class CoalesceView {
                     if (blockContainer) {
                         const contentPreview = blockContainer.querySelector('.content-preview') as HTMLElement;
                         if (contentPreview) {
-                            contentPreview.style.display = CoalesceView.blocksCollapsed ? 'none' : 'block';
+                            contentPreview.style.display = this.blocksCollapsed ? 'none' : 'block';
                         }
-                        block.setCollapsed(!CoalesceView.blocksCollapsed);
+                        block.setCollapsed(!this.blocksCollapsed);
                     }
                 });
             } else {
