@@ -390,63 +390,40 @@
 
 .is-phone .backlinks-header,
 .is-mobile .backlinks-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
 }
 
 .is-phone .backlinks-header-left,
 .is-mobile .backlinks-header-left {
-    width: 100%;
+    width: auto;
     justify-content: flex-start;
+    flex: 1;
+    gap: 4px;
 }
 
 .is-phone .backlinks-header-right,
 .is-mobile .backlinks-header-right {
-    width: 100%;
+    width: auto;
     justify-content: flex-end;
 }
 
 .is-phone .button-group,
 .is-mobile .button-group {
-    margin-left: auto;
+    margin-left: 4px;
+    display: flex;
+    gap: 2px;
 }
 
-@media (max-width: 400px) {
-    .backlinks-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
-    
-    .backlinks-header-left {
-        width: 100%;
-        justify-content: space-between;
-    }
-    
-    .backlinks-header-right {
-        width: 100%;
-        justify-content: flex-end;
-    }
-    
-    .alias-dropdown {
-        width: 100%;
-        max-width: 100%;
-        margin: 4px 0;
-        order: 3;
-    }
-    
-    .header-title {
-        flex-shrink: 1;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 120px;
-    }
-    
-    .button-group {
-        margin-left: auto;
-    }
+.is-phone .alias-dropdown,
+.is-mobile .alias-dropdown {
+    min-width: 80px;
+    max-width: 120px;
+    font-size: var(--font-ui-smaller);
+    padding: 2px 4px;
+    height: 24px;
 }
 
 /* Compact mobile button styles */
@@ -456,7 +433,7 @@
 .is-phone .collapse-button,
 .is-mobile .settings-button,
 .is-phone .settings-button {
-    padding: 2px;
+    padding: 4px;
 }
 
 .is-mobile .sort-button svg,
@@ -465,60 +442,60 @@
 .is-phone .collapse-button svg,
 .is-mobile .settings-button svg,
 .is-phone .settings-button svg {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
 }
 
 @media (max-width: 400px) {
-    .sort-button,
-    .collapse-button,
-    .settings-button {
-        padding: 2px;
+    .backlinks-header {
+        flex-direction: row;
+        align-items: center;
+        gap: 4px;
+        padding: 8px;
     }
     
-    .sort-button svg,
-    .collapse-button svg,
-    .settings-button svg {
-        width: 14px;
-        height: 14px;
+    .backlinks-header-left {
+        width: auto;
+        justify-content: flex-start;
+        flex: 1;
+        gap: 4px;
     }
     
-    .backlinks-header.compact .header-title {
-        font-size: 0.85em;
-        max-width: 80px;
+    .backlinks-header-right {
+        width: auto;
+        justify-content: flex-end;
     }
     
-    .backlinks-header.compact svg {
-        width: 14px;
-        height: 14px;
+    .alias-dropdown {
+        min-width: 80px;
+        max-width: 120px;
+        margin: 0 4px;
+    }
+    
+    .header-title {
+        flex-shrink: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+    }
+    
+    .button-group {
+        margin-left: 4px;
+        display: flex;
+        gap: 2px;
     }
 }
 
 /* Medium-width screen styles */
 @media (max-width: 600px) and (min-width: 401px) {
     .backlinks-header-left {
-        flex-wrap: wrap;
-        row-gap: 8px;
+        flex-wrap: nowrap;
+        gap: 4px;
     }
     
     .button-group {
-        margin-right: auto;
-    }
-}
-
-/* Programmatic compact mode styles */
-@media (max-width: 400px) {
-    .sort-button,
-    .collapse-button,
-    .settings-button {
-        padding: 2px;
-    }
-    
-    .sort-button svg,
-    .collapse-button svg,
-    .settings-button svg {
-        width: 14px;
-        height: 14px;
+        margin-left: 4px;
     }
 }
 
