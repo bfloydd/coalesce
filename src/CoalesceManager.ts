@@ -158,4 +158,24 @@ export class CoalesceManager {
             this.initializeView(file, view);
         }
     }
+    
+    // Add method to refresh all active views when settings change
+    refreshActiveViews() {
+        this.logger.debug("Refreshing all active views", { 
+            viewCount: this.activeViews.size 
+        });
+        
+        // Get all markdown views
+        const allMarkdownViews = this.app.workspace.getLeavesOfType('markdown')
+            .map(leaf => leaf.view as MarkdownView)
+            .filter(view => view?.file); // Only get views with files
+            
+        // Reinitialize all views with current files
+        allMarkdownViews.forEach(view => {
+            if (view.file) {
+                this.logger.debug("Refreshing view", { path: view.file.path });
+                this.initializeView(view.file, view);
+            }
+        });
+    }
 }

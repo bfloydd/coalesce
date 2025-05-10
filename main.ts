@@ -7,7 +7,7 @@ import { MarkdownView } from 'obsidian';
 
 export default class CoalescePlugin extends Plugin {
 	private settingsManager: SettingsManager;
-	private coalesceManager: CoalesceManager;
+	public coalesceManager: CoalesceManager;
 	private logger: Logger;
 
 	async onload() {

@@ -77,7 +77,9 @@ export class HeaderComponent {
         currentAlias: string | null = null,
         unsavedAliases: string[] = [],
         currentHeaderStyle: string,
-        onHeaderStyleChange: (style: string) => void
+        onHeaderStyleChange: (style: string) => void,
+        hideBacklinkLine: boolean = false,
+        onHideBacklinkLineChange: (hide: boolean) => void
     ): HTMLElement {
         HeaderComponent.currentHeaderStyle = currentHeaderStyle;
 
@@ -221,6 +223,52 @@ export class HeaderComponent {
              * Only daily notes settings (Moved to top)
              **************************************************************************/
 
+            // Create Hide Backlink Line setting
+            const hideBacklinkLineItem = document.createElement('div');
+            hideBacklinkLineItem.className = 'settings-item';
+
+            // Create left icon (filter icon)
+            const hideBacklinkLineIcon = document.createElement('div');
+            hideBacklinkLineIcon.className = 'setting-item-icon';
+            hideBacklinkLineIcon.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                </svg>
+            `;
+
+            const hideBacklinkLineLabel = document.createElement('span');
+            hideBacklinkLineLabel.textContent = 'Hide Backlink Line';
+            hideBacklinkLineLabel.className = 'setting-item-label';
+
+            const hideBacklinkLineCheckContainer = document.createElement('div');
+            hideBacklinkLineCheckContainer.className = 'checkmark-container';
+
+            const hideBacklinkLineCheckmark = document.createElement('div');
+            hideBacklinkLineCheckmark.className = 'checkmark';
+            hideBacklinkLineCheckmark.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            `;
+            hideBacklinkLineCheckmark.style.display = hideBacklinkLine ? 'block' : 'none';
+
+            hideBacklinkLineCheckContainer.appendChild(hideBacklinkLineCheckmark);
+            hideBacklinkLineItem.appendChild(hideBacklinkLineIcon);
+            hideBacklinkLineItem.appendChild(hideBacklinkLineLabel);
+            hideBacklinkLineItem.appendChild(hideBacklinkLineCheckContainer);
+
+            hideBacklinkLineItem.addEventListener('click', () => {
+                const newValue = !hideBacklinkLine;
+                hideBacklinkLineCheckmark.style.display = newValue ? 'block' : 'none';
+                onHideBacklinkLineChange(newValue);
+                
+                // Close the popup
+                if (popup) {
+                    popup.remove();
+                    popup = null;
+                }
+            });
+
             // Create Only Daily Notes setting
             const dailyNotesItem = document.createElement('div');
             dailyNotesItem.className = 'settings-item';
@@ -270,6 +318,9 @@ export class HeaderComponent {
                     popup = null;
                 }, 100);
             });
+
+            // Add the items to the popup
+            popup.appendChild(hideBacklinkLineItem);
             popup.appendChild(dailyNotesItem);
 
             // Add separator after daily notes

@@ -18,13 +18,15 @@ export class BlockComponent {
         public noteName: string,
         private headerStyle: string,
         private logger: Logger,
-        private strategy: string = 'default'
+        private strategy: string = 'default',
+        private hideBacklinkLine: boolean = false
     ) {
         this.logger.debug('Creating block component', {
             filePath,
             noteName,
             headerStyle,
             strategy,
+            hideBacklinkLine,
             contentLength: contents.length
         });
 
@@ -71,8 +73,9 @@ export class BlockComponent {
         // Create content container
         const contentPreview = this.mainContainer.createDiv('content-preview') as HTMLDivElement;
 
-        // Filter content if using Headers Only strategy
+        // Filter content if using Headers Only strategy or hiding backlink line
         let contentToRender = this.contents;
+        
         if (this.strategy === 'headers-only') {
             const lines = this.contents.split('\n');
             const headerLines = lines.filter(line => /^#{1,5}\s/.test(line));
@@ -81,6 +84,21 @@ export class BlockComponent {
             this.logger.debug('Filtered content for headers only', {
                 totalLines: lines.length,
                 headerLines: headerLines.length
+            });
+        } else if (this.hideBacklinkLine) {
+            // Filter out any line containing a link to the note
+            const lines = this.contents.split('\n');
+            const escapedNoteName = this.noteName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const backlinkRegex = new RegExp(`\\[\\[(?:[^\\]|]*?/)?${escapedNoteName}(?:\\|[^\\]]*)?\\]\\]`);
+            
+            const filteredLines = lines.filter(line => !backlinkRegex.test(line));
+            
+            contentToRender = filteredLines.join('\n');
+            
+            this.logger.debug('Filtered out backlink line', {
+                totalLines: lines.length,
+                filteredLines: filteredLines.length,
+                noteName: this.noteName
             });
         }
 

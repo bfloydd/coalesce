@@ -92,7 +92,8 @@ export class CoalesceView {
                         currentNoteName, 
                         this.settingsManager.settings.headerStyle,
                         this.logger,
-                        this.settingsManager.settings.blockBoundaryStrategy
+                        this.settingsManager.settings.blockBoundaryStrategy,
+                        this.settingsManager.settings.hideBacklinkLine
                     );
                     blocks.push(block);
                 }
@@ -288,6 +289,13 @@ export class CoalesceView {
                 this.settingsManager.settings.headerStyle = style;
                 await this.settingsManager.saveSettings();
                 await this.updateBlockTitles(style);
+            },
+            this.settingsManager.settings.hideBacklinkLine,
+            async (hide: boolean) => {
+                this.settingsManager.settings.hideBacklinkLine = hide;
+                await this.settingsManager.saveSettings();
+                // Refresh blocks to apply the new setting
+                await this.updateBacklinks(filesLinkingToThis, onLinkClick);
             }
         );
         this.container.appendChild(header);
@@ -365,6 +373,13 @@ export class CoalesceView {
                     this.settingsManager.settings.headerStyle = style;
                     await this.settingsManager.saveSettings();
                     await this.updateBlockTitles(style);
+                },
+                this.settingsManager.settings.hideBacklinkLine,
+                async (hide: boolean) => {
+                    this.settingsManager.settings.hideBacklinkLine = hide;
+                    await this.settingsManager.saveSettings();
+                    // Refresh blocks to apply the new setting
+                    await this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick!);
                 }
             );
             this.container.replaceChild(newHeader, oldHeader);
@@ -550,6 +565,13 @@ export class CoalesceView {
                     this.settingsManager.settings.headerStyle = style;
                     await this.settingsManager.saveSettings();
                     await this.updateBlockTitles(style);
+                },
+                this.settingsManager.settings.hideBacklinkLine,
+                async (hide: boolean) => {
+                    this.settingsManager.settings.hideBacklinkLine = hide;
+                    await this.settingsManager.saveSettings();
+                    // Refresh blocks to apply the new setting
+                    await this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick!);
                 }
             );
             header.replaceWith(newHeader);

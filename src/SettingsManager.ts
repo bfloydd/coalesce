@@ -11,6 +11,7 @@ interface CoalescePluginSettings {
     position: 'high' | 'low';
     onlyDailyNotes: boolean; // When true, hide Coalesce in daily notes
     headerStyle: string;
+    hideBacklinkLine: boolean; // When true, hide the line containing the backlink
 }
 
 const DEFAULT_SETTINGS: CoalescePluginSettings = {
@@ -23,7 +24,8 @@ const DEFAULT_SETTINGS: CoalescePluginSettings = {
     showFullPathTitle: false,
     position: 'low',
     onlyDailyNotes: false,
-    headerStyle: 'full'
+    headerStyle: 'full',
+    hideBacklinkLine: false
 };
 
 interface Plugin {

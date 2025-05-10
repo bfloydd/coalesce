@@ -37,5 +37,25 @@ export class ObsidianSettingsComponent extends PluginSettingTab {
                     this.settingsManager.settings.onlyDailyNotes = value;
                     await this.settingsManager.saveSettings();
                 }));
+                
+        new Setting(settingsContainer)
+            .setName('Hide Backlink Line')
+            .setDesc('Hide the line containing the backlink in blocks')
+            .addToggle(toggle => toggle
+                .setValue(this.settingsManager.settings.hideBacklinkLine)
+                .onChange(async (value) => {
+                    this.logger.debug("Setting changed", {
+                        setting: "Hide Backlink Line",
+                        value: value
+                    });
+                    this.settingsManager.settings.hideBacklinkLine = value;
+                    await this.settingsManager.saveSettings();
+                    
+                    // Refresh active views to apply the new setting
+                    if (this.plugin.coalesceManager) {
+                        this.logger.debug("Refreshing views after hideBacklinkLine change");
+                        this.plugin.coalesceManager.refreshActiveViews();
+                    }
+                }));
     }
 }
