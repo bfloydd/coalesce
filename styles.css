@@ -47,14 +47,21 @@
 .sort-button {
     background: none;
     border: none;
-    padding: 4px;
+    padding: 6px;
     cursor: pointer;
     display: flex;
     align-items: center;
 }
 
+.sort-button svg {
+    width: 20px;
+    height: 20px;
+}
+
 .collapse-button svg {
     transition: transform 0.2s ease;
+    width: 20px;
+    height: 20px;
 }
 
 /* Button group for arrow controls */
@@ -62,13 +69,14 @@
     display: flex;
     align-items: center;
     white-space: nowrap;
-    margin-left: 2px;
+    margin-left: 4px;
+    gap: 4px;
 }
 
 .settings-button {
     background: none;
     border: none;
-    padding: 4px;
+    padding: 6px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -81,8 +89,8 @@
 }
 
 .settings-button svg {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
 }
 
 .settings-popup {
@@ -433,7 +441,7 @@
 .is-phone .collapse-button,
 .is-mobile .settings-button,
 .is-phone .settings-button {
-    padding: 4px;
+    padding: 6px;
 }
 
 .is-mobile .sort-button svg,
@@ -442,8 +450,8 @@
 .is-phone .collapse-button svg,
 .is-mobile .settings-button svg,
 .is-phone .settings-button svg {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
 }
 
 @media (max-width: 400px) {
