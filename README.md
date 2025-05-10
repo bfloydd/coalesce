@@ -6,6 +6,8 @@ Coalesce your backlinked notes into a single view.
 
 Inspired by Roam, Logseq, Influx, OneNote's Quick Notes, and Obsidian's Backlinks in Document feature.
 
+![assets/logo-transparent](assets/logo-opaque.png)
+
 ## Features
 - Replace Obsidian's Backlinks in Document with a more comprehensive and configurable view.
 - Use Note aliases to further narrow the view.
