@@ -8,6 +8,8 @@ Inspired by Roam, Logseq, Influx, OneNote's Quick Notes, and Obsidian's Backlink
 
 ![assets/logo-transparent](assets/logo-opaque.png)
 
+![assets/example](assets/example.gif)
+
 ## Features
 - Replace Obsidian's Backlinks in Document with a more comprehensive and configurable view.
 - Use Note aliases to further narrow the view.
