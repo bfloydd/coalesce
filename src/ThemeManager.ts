@@ -11,12 +11,16 @@ export class ThemeManager {
 
     public static isValidTheme(theme: string): boolean {
         const isValid = this.THEMES.includes(theme as any);
+        this.logThemeValidation(theme, isValid);
+        return isValid;
+    }
+    
+    private static logThemeValidation(theme: string, isValid: boolean): void {
         this.logger.debug('Validating theme', {
             theme,
             isValid,
             availableThemes: this.THEMES
         });
-        return isValid;
     }
 
     public static getDefaultTheme(): string {

@@ -18,17 +18,14 @@ export class TopLineBlockFinder extends AbstractBlockFinder {
             matchText: match[0]
         });
 
-        if (match.index === undefined) {
-            this.logger.error('Match index is undefined');
-            throw new Error('Match index is undefined');
-        }
+        this.validateMatchIndex(match);
 
-        const lineStartIndex = content.lastIndexOf('\n', match.index) + 1;
-        const lineEndIndex = content.indexOf('\n', match.index);
+        const lineStartIndex = this.findLineStart(content, match.index!);
+        const lineEndIndex = this.findLineEnd(content, match.index!);
         
         const boundary = {
             start: lineStartIndex,
-            end: lineEndIndex === -1 ? content.length : lineEndIndex
+            end: this.calculateEndIndex(lineEndIndex, content.length)
         };
 
         this.logger.debug('Block boundary determined for top line', {
@@ -40,6 +37,25 @@ export class TopLineBlockFinder extends AbstractBlockFinder {
         });
         
         return boundary;
+    }
+
+    private validateMatchIndex(match: RegExpMatchArray): void {
+        if (match.index === undefined) {
+            this.logger.error('Match index is undefined');
+            throw new Error('Match index is undefined');
+        }
+    }
+
+    private findLineStart(content: string, matchIndex: number): number {
+        return content.lastIndexOf('\n', matchIndex) + 1;
+    }
+
+    private findLineEnd(content: string, matchIndex: number): number {
+        return content.indexOf('\n', matchIndex);
+    }
+
+    private calculateEndIndex(lineEndIndex: number, contentLength: number): number {
+        return lineEndIndex === -1 ? contentLength : lineEndIndex;
     }
 
     protected isValidBlock(content: string, boundary: BlockBoundary): boolean {

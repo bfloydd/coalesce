@@ -33,6 +33,18 @@ export abstract class AbstractHeaderStyle {
         });
         return sanitized;
     }
+    
+    protected extractFileName(path: string): string {
+        const parts = path.split('/');
+        const fileName = parts[parts.length - 1];
+        
+        this.logger.debug('File name extracted', {
+            parts,
+            fileName
+        });
+        
+        return fileName;
+    }
 
     protected abstract formatTitle(path: string): string;
 } 

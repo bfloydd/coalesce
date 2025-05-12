@@ -7,18 +7,9 @@ export class FirstHeadingShortHeaderStyle extends AbstractHeaderStyle {
             blockContentLength: this.blockContent.length
         });
         
-        const parts = path.split('/');
-        const fileName = parts[parts.length - 1];
-        
-        this.logger.debug('File name extracted', {
-            parts,
-            fileName
-        });
-        
+        const fileName = this.extractFileName(path);
         const firstHeading = this.findFirstHeading();
-        const formattedTitle = firstHeading ? 
-            `${fileName} - ${firstHeading}` : 
-            fileName;
+        const formattedTitle = this.combineFileNameAndHeading(fileName, firstHeading);
             
         this.logger.debug('Title formatted with heading', {
             fileName,
@@ -27,6 +18,10 @@ export class FirstHeadingShortHeaderStyle extends AbstractHeaderStyle {
         });
         
         return formattedTitle;
+    }
+    
+    private combineFileNameAndHeading(fileName: string, heading: string | null): string {
+        return heading ? `${fileName} - ${heading}` : fileName;
     }
 
     private findFirstHeading(): string | null {

@@ -24,32 +24,7 @@ export class HeaderStyleFactory {
             blockContentLength: blockContent.length
         });
 
-        let headerStyle: AbstractHeaderStyle;
-
-        switch (style) {
-            case 'first-heading-tidy-bold':
-                headerStyle = new FirstHeadingTidyBoldHeaderStyle(blockContent);
-                break;
-            case 'first-heading-tidy':
-                headerStyle = new FirstHeadingTidyHeaderStyle(blockContent);
-                break;
-            case 'first-heading-short':
-                headerStyle = new FirstHeadingShortHeaderStyle(blockContent);
-                break;
-            case 'short':
-                headerStyle = new ShortHeaderStyle(blockContent);
-                break;
-            case 'full':
-            default:
-                if (!this.VALID_STYLES.includes(style as any)) {
-                    this.logger.warn('Invalid header style, falling back to full style', {
-                        invalidStyle: style,
-                        validStyles: this.VALID_STYLES
-                    });
-                }
-                headerStyle = new FullHeaderStyle(blockContent);
-                break;
-        }
+        const headerStyle = this.instantiateHeaderStyle(style, blockContent);
 
         this.logger.debug('Header style created', {
             style,
@@ -57,5 +32,32 @@ export class HeaderStyleFactory {
         });
 
         return headerStyle;
+    }
+    
+    private static instantiateHeaderStyle(style: string, blockContent: string): AbstractHeaderStyle {
+        switch (style) {
+            case 'first-heading-tidy-bold':
+                return new FirstHeadingTidyBoldHeaderStyle(blockContent);
+            case 'first-heading-tidy':
+                return new FirstHeadingTidyHeaderStyle(blockContent);
+            case 'first-heading-short':
+                return new FirstHeadingShortHeaderStyle(blockContent);
+            case 'short':
+                return new ShortHeaderStyle(blockContent);
+            case 'full':
+                return new FullHeaderStyle(blockContent);
+            default:
+                return this.handleInvalidStyle(style, blockContent);
+        }
+    }
+    
+    private static handleInvalidStyle(style: string, blockContent: string): AbstractHeaderStyle {
+        if (!this.VALID_STYLES.includes(style as any)) {
+            this.logger.warn('Invalid header style, falling back to full style', {
+                invalidStyle: style,
+                validStyles: this.VALID_STYLES
+            });
+        }
+        return new FullHeaderStyle(blockContent);
     }
 }  

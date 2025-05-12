@@ -7,18 +7,9 @@ export class FirstHeadingTidyHeaderStyle extends AbstractHeaderStyle {
             blockContentLength: this.blockContent.length
         });
         
-        const parts = path.split('/');
-        const fileName = parts[parts.length - 1];
-        
-        this.logger.debug('File name extracted', {
-            parts,
-            fileName
-        });
-        
+        const fileName = this.extractFileName(path);
         const firstHeading = this.findAndFormatFirstHeading();
-        const formattedTitle = firstHeading ? 
-            `${fileName} - ${firstHeading}` : 
-            fileName;
+        const formattedTitle = this.combineFileNameAndHeading(fileName, firstHeading);
             
         this.logger.debug('Title formatted with heading', {
             fileName,
@@ -27,6 +18,10 @@ export class FirstHeadingTidyHeaderStyle extends AbstractHeaderStyle {
         });
         
         return formattedTitle;
+    }
+
+    private combineFileNameAndHeading(fileName: string, heading: string | null): string {
+        return heading ? `${fileName} - ${heading}` : fileName;
     }
 
     private findAndFormatFirstHeading(): string | null {
@@ -42,39 +37,7 @@ export class FirstHeadingTidyHeaderStyle extends AbstractHeaderStyle {
         this.logger.debug('Found raw heading text', { headingText });
         
         // Replace all wiki-links with formatted versions
-        headingText = headingText.replace(/\[\[([^\]]+)\]\]/g, (_match, content) => {
-            // Split by pipe if it exists
-            const [fullPath, alias] = content.split('|').map((s: string) => s.trim());
-            
-            // Get the last part of the path
-            const pathParts = fullPath.split('/');
-            const lastPart = pathParts[pathParts.length - 1];
-            
-            this.logger.debug('Processing wiki-link', {
-                fullPath,
-                alias,
-                lastPart
-            });
-            
-            let formattedLink: string;
-            if (!alias) {
-                // Case: [[Coal]] -> [Coal]
-                formattedLink = `[${lastPart}]`;
-            } else if (lastPart === alias) {
-                // Case: [[Path/To/Something|Something]] -> [Something]
-                formattedLink = `[${alias}]`;
-            } else {
-                // Case: [[Path/To/Something|Other]] -> [Something > Other]
-                formattedLink = `[${lastPart} > ${alias}]`;
-            }
-            
-            this.logger.debug('Wiki-link formatted', {
-                original: content,
-                formatted: formattedLink
-            });
-            
-            return formattedLink;
-        });
+        headingText = this.formatWikiLinksInHeading(headingText);
 
         this.logger.debug('Heading text fully formatted', {
             original: headingMatch[1],
@@ -82,5 +45,58 @@ export class FirstHeadingTidyHeaderStyle extends AbstractHeaderStyle {
         });
 
         return headingText;
+    }
+    
+    private formatWikiLinksInHeading(headingText: string): string {
+        return headingText.replace(/\[\[([^\]]+)\]\]/g, (_match, content) => {
+            return this.formatWikiLink(content);
+        });
+    }
+    
+    private formatWikiLink(linkContent: string): string {
+        // Split by pipe if it exists
+        const [fullPath, alias] = linkContent.split('|').map((s: string) => s.trim());
+        
+        // Get the last part of the path
+        const pathParts = fullPath.split('/');
+        const lastPart = pathParts[pathParts.length - 1];
+        
+        this.logger.debug('Processing wiki-link', {
+            fullPath,
+            alias,
+            lastPart
+        });
+        
+        let formattedLink: string;
+        
+        if (!alias) {
+            formattedLink = this.formatSimpleLink(lastPart);
+        } else if (lastPart === alias) {
+            formattedLink = this.formatSameNameLink(alias);
+        } else {
+            formattedLink = this.formatComplexLink(lastPart, alias);
+        }
+        
+        this.logger.debug('Wiki-link formatted', {
+            original: linkContent,
+            formatted: formattedLink
+        });
+        
+        return formattedLink;
+    }
+    
+    private formatSimpleLink(text: string): string {
+        // Case: [[Coal]] -> [Coal]
+        return `[${text}]`;
+    }
+    
+    private formatSameNameLink(alias: string): string {
+        // Case: [[Path/To/Something|Something]] -> [Something]
+        return `[${alias}]`;
+    }
+    
+    private formatComplexLink(lastPart: string, alias: string): string {
+        // Case: [[Path/To/Something|Other]] -> [Something > Other]
+        return `[${lastPart} > ${alias}]`;
     }
 } 

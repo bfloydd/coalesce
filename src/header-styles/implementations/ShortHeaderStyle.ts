@@ -7,11 +7,9 @@ export class ShortHeaderStyle extends AbstractHeaderStyle {
             blockContentLength: this.blockContent.length
         });
         
-        const parts = path.split('/');
-        const shortTitle = parts[parts.length - 1];
+        const shortTitle = this.extractFileName(path);
         
         this.logger.debug('Title shortened', {
-            parts,
             shortTitle
         });
         

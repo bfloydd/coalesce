@@ -42,26 +42,36 @@ export class BlockComponent {
             viewExists: !!view
         });
 
-        const displayText = this.filePath.replace(/\.md$/, '');
+        this.createContainers(container);
+        this.createToggleButton();
+        this.createBlockTitle(onLinkClick);
+        await this.renderContent(view);
+    }
 
-        // Create main container
+    private createContainers(container: HTMLElement): void {
         this.mainContainer = container.createDiv({ cls: 'backlink-item' });
-
-        // Create header container
         this.headerContainer = this.mainContainer.createDiv({ cls: 'block-header' });
+    }
 
-        // Create the toggle button
+    private createToggleButton(): void {
         this.toggleButton = this.headerContainer.createEl('span', {
             cls: 'toggle-arrow',
             text: '▼',
         });
 
-        // Block header
+        this.toggleButton.addEventListener('click', () => {
+            this.logger.debug('Toggle button clicked');
+            this.toggle();
+        });
+    }
+
+    private createBlockTitle(onLinkClick: (path: string) => void): void {
         const blockTitle = this.headerContainer.createEl('a', {
             text: this.getDisplayTitle(this.filePath, this.headerStyle),
             cls: 'block-title',
             href: '#',
         });
+        
         blockTitle.addEventListener('click', (event) => {
             event.preventDefault();
             this.logger.debug('Block title clicked', {
@@ -69,38 +79,11 @@ export class BlockComponent {
             });
             onLinkClick(this.filePath);
         });
+    }
 
-        // Create content container
+    private async renderContent(view: MarkdownView): Promise<void> {
         const contentPreview = this.mainContainer.createDiv('content-preview') as HTMLDivElement;
-
-        // Filter content if using Headers Only strategy or hiding backlink line
-        let contentToRender = this.contents;
-        
-        if (this.strategy === 'headers-only') {
-            const lines = this.contents.split('\n');
-            const headerLines = lines.filter(line => /^#{1,5}\s/.test(line));
-            contentToRender = headerLines.join('\n');
-            
-            this.logger.debug('Filtered content for headers only', {
-                totalLines: lines.length,
-                headerLines: headerLines.length
-            });
-        } else if (this.hideBacklinkLine) {
-            // Filter out any line containing a link to the note
-            const lines = this.contents.split('\n');
-            const escapedNoteName = this.noteName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const backlinkRegex = new RegExp(`\\[\\[(?:[^\\]|]*?/)?${escapedNoteName}(?:\\|[^\\]]*)?\\]\\]`);
-            
-            const filteredLines = lines.filter(line => !backlinkRegex.test(line));
-            
-            contentToRender = filteredLines.join('\n');
-            
-            this.logger.debug('Filtered out backlink line', {
-                totalLines: lines.length,
-                filteredLines: filteredLines.length,
-                noteName: this.noteName
-            });
-        }
+        const contentToRender = this.getContentToRender();
 
         try {
             await MarkdownRenderer.render(
@@ -114,12 +97,47 @@ export class BlockComponent {
         } catch (error) {
             this.logger.error('Failed to render content:', error);
         }
+    }
 
-        // Add click handler for toggle button
-        this.toggleButton.addEventListener('click', () => {
-            this.logger.debug('Toggle button clicked');
-            this.toggle();
+    private getContentToRender(): string {
+        if (this.strategy === 'headers-only') {
+            return this.filterHeadersOnly();
+        } else if (this.hideBacklinkLine) {
+            return this.filterBacklinkLines();
+        }
+        return this.contents;
+    }
+
+    private filterHeadersOnly(): string {
+        const lines = this.contents.split('\n');
+        const headerLines = lines.filter(line => /^#{1,5}\s/.test(line));
+        
+        this.logger.debug('Filtered content for headers only', {
+            totalLines: lines.length,
+            headerLines: headerLines.length
         });
+        
+        return headerLines.join('\n');
+    }
+
+    private filterBacklinkLines(): string {
+        const lines = this.contents.split('\n');
+        const escapedNoteName = this.escapeRegexChars(this.noteName);
+        const backlinkRegex = new RegExp(`\\[\\[(?:[^\\]|]*?/)?${escapedNoteName}(?:\\|[^\\]]*)?\\]\\]`);
+        
+        const filteredLines = lines.filter(line => !backlinkRegex.test(line));
+        
+        this.logger.debug('Filtered out backlink line', {
+            totalLines: lines.length,
+            filteredLines: filteredLines.length,
+            noteName: this.noteName
+        });
+        
+        return filteredLines.join('\n');
+    }
+
+    private escapeRegexChars(text: string): string {
+        return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     public getContainer(): HTMLElement | null {
@@ -129,7 +147,7 @@ export class BlockComponent {
     public toggle(): void {
         if (!this.mainContainer) return;
 
-        const contentPreview = this.mainContainer.querySelector('.content-preview') as HTMLDivElement;
+        const contentPreview = this.getContentPreviewElement();
         if (!contentPreview) return;
 
         const isCollapsed = contentPreview.style.display === 'none';
@@ -139,14 +157,13 @@ export class BlockComponent {
             newState: !isCollapsed
         });
 
-        contentPreview.style.display = isCollapsed ? 'block' : 'none';
-        this.toggleButton.textContent = isCollapsed ? '▼' : '▶';
+        this.updateCollapsedState(contentPreview, !isCollapsed);
     }
 
     public setCollapsed(collapsed: boolean): void {
         if (!this.mainContainer) return;
 
-        const contentPreview = this.mainContainer.querySelector('.content-preview') as HTMLDivElement;
+        const contentPreview = this.getContentPreviewElement();
         if (!contentPreview) return;
 
         this.logger.debug('Setting block collapse state', {
@@ -154,6 +171,14 @@ export class BlockComponent {
             collapsed
         });
 
+        this.updateCollapsedState(contentPreview, collapsed);
+    }
+
+    private getContentPreviewElement(): HTMLDivElement | null {
+        return this.mainContainer.querySelector('.content-preview') as HTMLDivElement;
+    }
+
+    private updateCollapsedState(contentPreview: HTMLDivElement, collapsed: boolean): void {
         contentPreview.style.display = collapsed ? 'none' : 'block';
         this.toggleButton.textContent = collapsed ? '▶' : '▼';
     }

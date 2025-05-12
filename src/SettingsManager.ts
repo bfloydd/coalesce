@@ -57,6 +57,10 @@ export class SettingsManager {
         const savedData = await this.plugin.loadData();
         this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
         
+        this.logSettingsLoaded(savedData);
+    }
+
+    private logSettingsLoaded(savedData: Partial<CoalescePluginSettings>) {
         this.logger.debug('Settings loaded', {
             defaults: DEFAULT_SETTINGS,
             saved: savedData,
@@ -73,8 +77,12 @@ export class SettingsManager {
             await this.plugin.saveData(this.settings);
             this.logger.debug('Settings saved successfully');
         } catch (error) {
-            this.logger.error('Failed to save settings:', error);
-            throw error; // Re-throw to allow caller to handle
+            this.handleSaveError(error);
         }
+    }
+
+    private handleSaveError(error: any) {
+        this.logger.error('Failed to save settings:', error);
+        throw error;
     }
 }

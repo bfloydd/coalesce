@@ -14,32 +14,36 @@ export class BlockFinderFactory {
             validStrategies: this.VALID_STRATEGIES
         });
 
-        let blockFinder: AbstractBlockFinder;
+        const blockFinder = this.instantiateBlockFinder(strategy, logger);
         
-        switch (strategy) {
-            case 'headers-only':
-                blockFinder = new HeadersOnlyBlockFinder(logger);
-                break;
-            case 'top-line':
-                blockFinder = new TopLineBlockFinder(logger);
-                break;
-            case 'default':
-            default:
-                if (!this.VALID_STRATEGIES.includes(strategy as any)) {
-                    this.logger.warn('Invalid block finder strategy, falling back to default', {
-                        invalidStrategy: strategy,
-                        validStrategies: this.VALID_STRATEGIES
-                    });
-                }
-                blockFinder = new DefaultBlockFinder(logger);
-                break;
-        }
-
         this.logger.debug('Block finder created', {
             strategy,
             type: blockFinder.constructor.name
         });
 
         return blockFinder;
+    }
+    
+    private static instantiateBlockFinder(strategy: string, logger: Logger): AbstractBlockFinder {
+        switch (strategy) {
+            case 'headers-only':
+                return new HeadersOnlyBlockFinder(logger);
+            case 'top-line':
+                return new TopLineBlockFinder(logger);
+            case 'default':
+                return new DefaultBlockFinder(logger);
+            default:
+                return this.handleInvalidStrategy(strategy, logger);
+        }
+    }
+    
+    private static handleInvalidStrategy(strategy: string, logger: Logger): AbstractBlockFinder {
+        if (!this.VALID_STRATEGIES.includes(strategy as any)) {
+            this.logger.warn('Invalid block finder strategy, falling back to default', {
+                invalidStrategy: strategy,
+                validStrategies: this.VALID_STRATEGIES
+            });
+        }
+        return new DefaultBlockFinder(logger);
     }
 } 

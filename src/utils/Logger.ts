@@ -39,11 +39,7 @@ export class Logger {
      */
     on(level: LogLevel | keyof typeof LogLevel | number = LogLevel.INFO): void {
         this.enabled = true;
-        if (typeof level === 'string') {
-            this.level = LogLevel[level] as number;
-        } else {
-            this.level = level;
-        }
+        this.setLevel(level);
         this.info(`Logging enabled at level: ${LogLevel[this.level]}`);
     }
 
@@ -54,6 +50,14 @@ export class Logger {
         this.enabled = false;
         this.level = LogLevel.NONE;
         this.info('Logging disabled');
+    }
+
+    private setLevel(level: LogLevel | keyof typeof LogLevel | number): void {
+        if (typeof level === 'string') {
+            this.level = LogLevel[level] as number;
+        } else {
+            this.level = level;
+        }
     }
 
     /**
@@ -84,16 +88,24 @@ export class Logger {
         this.debug('parsed level:', parsedLevel);
 
         if (typeof parsedLevel === 'boolean') {
-            this.enabled = parsedLevel;
-            this.level = LogLevel.INFO;
-            this.debug(`Logging ${parsedLevel ? 'enabled' : 'disabled'} (level: ${LogLevel[this.level]})`);
-            this.debug('Current state:', { enabled: this.enabled, level: this.level });
+            this.setLoggingFromBoolean(parsedLevel);
         } else {
-            this.enabled = true;
-            this.level = parsedLevel;
-            this.debug(`Logging level set to ${LogLevel[this.level]}`);
-            this.debug('Current state:', { enabled: this.enabled, level: this.level });
+            this.setLoggingFromLevel(parsedLevel);
         }
+    }
+
+    private setLoggingFromBoolean(enabled: boolean): void {
+        this.enabled = enabled;
+        this.level = LogLevel.INFO;
+        this.debug(`Logging ${enabled ? 'enabled' : 'disabled'} (level: ${LogLevel[this.level]})`);
+        this.debug('Current state:', { enabled: this.enabled, level: this.level });
+    }
+
+    private setLoggingFromLevel(level: LogLevel): void {
+        this.enabled = true;
+        this.level = level;
+        this.debug(`Logging level set to ${LogLevel[this.level]}`);
+        this.debug('Current state:', { enabled: this.enabled, level: this.level });
     }
 
     /**********************************************************
@@ -101,31 +113,27 @@ export class Logger {
      *********************************************************/
 
     debug(message?: any, ...optionalParams: any[]): void {
-        if (!this.enabled || this.level > LogLevel.DEBUG) {
-            return;
-        }
+        if (!this.shouldLog(LogLevel.DEBUG)) return;
         console.debug(this.prefix + message, ...optionalParams);
     }
 
     info(message?: any, ...optionalParams: any[]): void {
-        if (!this.enabled || this.level > LogLevel.INFO) {
-            return;
-        }
+        if (!this.shouldLog(LogLevel.INFO)) return;
         console.log(this.prefix + message, ...optionalParams);
     }
 
     warn(message?: any, ...optionalParams: any[]): void {
-        if (!this.enabled || this.level > LogLevel.WARN) {
-            return;
-        }
+        if (!this.shouldLog(LogLevel.WARN)) return;
         console.warn(this.prefix + message, ...optionalParams);
     }
 
     error(message?: any, ...optionalParams: any[]): void {
-        if (!this.enabled || this.level > LogLevel.ERROR) {
-            return;
-        }
+        if (!this.shouldLog(LogLevel.ERROR)) return;
         console.error(this.prefix + message, ...optionalParams);
+    }
+
+    private shouldLog(level: LogLevel): boolean {
+        return this.enabled && this.level <= level;
     }
 
     /**********************************************************

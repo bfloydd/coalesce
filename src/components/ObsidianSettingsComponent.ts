@@ -24,38 +24,48 @@ export class ObsidianSettingsComponent extends PluginSettingTab {
         
         const settingsContainer = containerEl.createDiv('coalesce-settings');
 
-        new Setting(settingsContainer)
+        this.addDailyNotesToggle(settingsContainer);
+        this.addHideBacklinkLineToggle(settingsContainer);
+    }
+    
+    private addDailyNotesToggle(container: HTMLElement): void {
+        new Setting(container)
             .setName('Hide in Daily Notes')
             .setDesc('Hide Coalesce view in daily notes')
             .addToggle(toggle => toggle
                 .setValue(this.settingsManager.settings.onlyDailyNotes)
                 .onChange(async (value) => {
-                    this.logger.debug("Setting changed", {
-                        setting: "Hide in Daily Notes",
-                        value: value
-                    });
+                    this.logSettingChange("Hide in Daily Notes", value);
                     this.settingsManager.settings.onlyDailyNotes = value;
                     await this.settingsManager.saveSettings();
                 }));
-                
-        new Setting(settingsContainer)
+    }
+    
+    private addHideBacklinkLineToggle(container: HTMLElement): void {
+        new Setting(container)
             .setName('Hide Backlink Line')
             .setDesc('Hide the line containing the backlink in blocks')
             .addToggle(toggle => toggle
                 .setValue(this.settingsManager.settings.hideBacklinkLine)
                 .onChange(async (value) => {
-                    this.logger.debug("Setting changed", {
-                        setting: "Hide Backlink Line",
-                        value: value
-                    });
+                    this.logSettingChange("Hide Backlink Line", value);
                     this.settingsManager.settings.hideBacklinkLine = value;
                     await this.settingsManager.saveSettings();
-                    
-                    // Refresh active views to apply the new setting
-                    if (this.plugin.coalesceManager) {
-                        this.logger.debug("Refreshing views after hideBacklinkLine change");
-                        this.plugin.coalesceManager.refreshActiveViews();
-                    }
+                    this.refreshViewsIfNeeded();
                 }));
+    }
+    
+    private logSettingChange(settingName: string, value: any): void {
+        this.logger.debug("Setting changed", {
+            setting: settingName,
+            value: value
+        });
+    }
+    
+    private refreshViewsIfNeeded(): void {
+        if (this.plugin.coalesceManager) {
+            this.logger.debug("Refreshing views after hideBacklinkLine change");
+            this.plugin.coalesceManager.refreshActiveViews();
+        }
     }
 }

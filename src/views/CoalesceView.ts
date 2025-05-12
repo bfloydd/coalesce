@@ -8,13 +8,9 @@ import { AbstractBlockFinder } from '../block-finders/base/AbstractBlockFinder';
 import { BlockFinderFactory } from '../block-finders/BlockFinderFactory';
 import { DailyNote } from '../utils/DailyNote';
 
-/**
- * Handles the UI representation of backlinks
- * Manages the DOM elements and rendering
- * Handles user interactions (clicking, toggling, etc.)
- * Coordinates between the block finders and the UI
+/** 
+ * Handles backlink UI representation, DOM management, user interactions, and coordination between block finders and UI 
  */
-
 export class CoalesceView {
     private container: HTMLElement;
     private headerComponent: HeaderComponent;
@@ -43,17 +39,19 @@ export class CoalesceView {
             this.logger
         );
         
-        // Initialize instance properties from settings
+        this.initializeFromSettings();
+        this.applyTheme(this.currentTheme);
+        this.attachToDOM();
+        this.loadAliasesFromMetadata();
+    }
+
+    private initializeFromSettings(): void {
         this.sortDescending = this.settingsManager.settings.sortDescending;
         this.blocksCollapsed = this.settingsManager.settings.blocksCollapsed;
-
         this.logger.debug("Appending backlinks container to view");
+    }
 
-        this.applyTheme(this.currentTheme);
-
-        this.attachToDOM();
-
-        // Get aliases from file frontmatter
+    private loadAliasesFromMetadata(): void {
         if (this.view.file) {
             const fileCache = this.view.app.metadataCache.getCache(this.view.file.path);
             this.aliases = fileCache?.frontmatter?.aliases || [];
@@ -83,24 +81,31 @@ export class CoalesceView {
             if (file && file instanceof TFile) {
                 const content = await this.view.app.vault.read(file);
                 const boundaries = this.blockFinder.findBlockBoundaries(content, currentNoteName);
-
-                for (const { start, end } of boundaries) {
-                    const blockContent = content.substring(start, end);
-                    const block = new BlockComponent(
-                        blockContent, 
-                        filePath, 
-                        currentNoteName, 
-                        this.settingsManager.settings.headerStyle,
-                        this.logger,
-                        this.settingsManager.settings.blockBoundaryStrategy,
-                        this.settingsManager.settings.hideBacklinkLine
-                    );
-                    blocks.push(block);
-                }
+                blocks.push(...this.createBlocksFromBoundaries(content, filePath, boundaries));
             }
         } catch (error) {
             this.logger.error(`Failed to read file content for ${filePath}:`, error);
         }
+        return blocks;
+    }
+
+    private createBlocksFromBoundaries(content: string, filePath: string, boundaries: {start: number, end: number}[]): BlockComponent[] {
+        const blocks: BlockComponent[] = [];
+        
+        for (const { start, end } of boundaries) {
+            const blockContent = content.substring(start, end);
+            const block = new BlockComponent(
+                blockContent, 
+                filePath, 
+                this.currentNoteName, 
+                this.settingsManager.settings.headerStyle,
+                this.logger,
+                this.settingsManager.settings.blockBoundaryStrategy,
+                this.settingsManager.settings.hideBacklinkLine
+            );
+            blocks.push(block);
+        }
+        
         return blocks;
     }
 
@@ -130,53 +135,59 @@ export class CoalesceView {
 
     private extractUnsavedAliases(filesLinkingToThis: string[]): string[] {
         const unsavedAliases = new Set<string>();
-        
-        // Process each block to find unsaved aliases
+        this.processBlocksForAliases(unsavedAliases);
+        return Array.from(unsavedAliases).sort();
+    }
+    
+    private processBlocksForAliases(unsavedAliases: Set<string>): void {
         this.allBlocks.forEach(({ block }) => {
             const content = block.contents;
-            
-            // Match [[path/notename|alias1|alias2]] pattern, escaping the note name for regex
-            const escapedNoteName = this.currentNoteName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const escapedNoteName = this.escapeRegexChars(this.currentNoteName);
             const regex = new RegExp(`\\[\\[(?:[^\\]|]*?/)?${escapedNoteName}\\|([^\\]]+)\\]\\]`, 'g');
             const matches = content.matchAll(regex);
             
             for (const match of matches) {
-                const aliasString = match[1];
-                if (!aliasString) continue;
-                
-                // Split by | to get all aliases after the note name
-                const aliases = aliasString.split('|');
-                aliases.forEach(alias => {
-                    // Only add if it's not already in the saved aliases and not the current note name
-                    if (alias && !this.aliases.includes(alias) && alias !== this.currentNoteName) {
-                        unsavedAliases.add(alias);
-                    }
-                });
+                this.processAliasMatch(match, unsavedAliases);
             }
         });
-
-        return Array.from(unsavedAliases).sort();
+    }
+    
+    private escapeRegexChars(input: string): string {
+        return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+    
+    private processAliasMatch(match: RegExpMatchArray, unsavedAliases: Set<string>): void {
+        const aliasString = match[1];
+        if (!aliasString) return;
+        
+        const aliases = aliasString.split('|');
+        aliases.forEach(alias => {
+            if (alias && !this.aliases.includes(alias) && alias !== this.currentNoteName) {
+                unsavedAliases.add(alias);
+            }
+        });
     }
 
     private sortBlocks(): void {
-        // Sort blocks in place
-        this.allBlocks.sort((a, b) => {
-            // First sort by source path
-            const pathCompare = this.sortDescending 
-                ? b.sourcePath.localeCompare(a.sourcePath)
-                : a.sourcePath.localeCompare(b.sourcePath);
-            
-            if (pathCompare !== 0) return pathCompare;
+        this.allBlocks.sort(this.compareBlocks.bind(this));
+        this.updateDomOrder();
+    }
+    
+    private compareBlocks(a: { block: BlockComponent; sourcePath: string }, b: { block: BlockComponent; sourcePath: string }): number {
+        const pathCompare = this.sortDescending 
+            ? b.sourcePath.localeCompare(a.sourcePath)
+            : a.sourcePath.localeCompare(b.sourcePath);
+        
+        if (pathCompare !== 0) return pathCompare;
 
-            // If paths are equal, sort by block position in file
-            const aContent = a.block.contents;
-            const bContent = b.block.contents;
-            return this.sortDescending 
-                ? bContent.localeCompare(aContent)
-                : aContent.localeCompare(bContent);
-        });
-
-        // Update DOM order to match sorted order
+        const aContent = a.block.contents;
+        const bContent = b.block.contents;
+        return this.sortDescending 
+            ? bContent.localeCompare(aContent)
+            : aContent.localeCompare(bContent);
+    }
+    
+    private updateDomOrder(): void {
         const linksContainer = this.container.querySelector('.backlinks-list');
         if (linksContainer) {
             this.allBlocks.forEach(({ block }) => {
@@ -193,10 +204,11 @@ export class CoalesceView {
         this.settingsManager.settings.sortDescending = this.sortDescending;
         this.settingsManager.saveSettings();
         
-        // Sort blocks and update UI
         this.sortBlocks();
-        
-        // Update sort button state
+        this.updateSortButtonState();
+    }
+    
+    private updateSortButtonState(): void {
         const header = this.container.querySelector('.backlinks-header');
         if (header) {
             const sortButton = header.querySelector('.sort-button svg') as SVGElement;
@@ -215,14 +227,8 @@ export class CoalesceView {
         const linksContainer = this.container.createDiv('backlinks-list');
         this.allBlocks = [];
         
-        // Collect all blocks first
-        for (const sourcePath of filesLinkingToThis) {
-            const blocks = await this.getBlockData(sourcePath, this.currentNoteName);
-            blocks.forEach(block => {
-                this.allBlocks.push({ block, sourcePath });
-            });
-        }
-
+        await this.collectBlocksFromFiles(filesLinkingToThis);
+        
         // Extract unsaved aliases after collecting blocks
         const unsavedAliases = this.extractUnsavedAliases(filesLinkingToThis);
 
@@ -230,6 +236,30 @@ export class CoalesceView {
         this.sortBlocks();
 
         // Render blocks with correct initial state
+        await this.renderBlocks(linksContainer, onLinkClick);
+
+        // Create header after blocks are rendered
+        const header = this.createBacklinksHeader(unsavedAliases, filesLinkingToThis, onLinkClick);
+        this.container.appendChild(header);
+        this.container.appendChild(linksContainer);
+    }
+
+    /**
+     * Collects blocks from all provided files
+     */
+    private async collectBlocksFromFiles(filesLinkingToThis: string[]): Promise<void> {
+        for (const sourcePath of filesLinkingToThis) {
+            const blocks = await this.getBlockData(sourcePath, this.currentNoteName);
+            blocks.forEach(block => {
+                this.allBlocks.push({ block, sourcePath });
+            });
+        }
+    }
+
+    /**
+     * Renders all blocks into the provided container
+     */
+    private async renderBlocks(linksContainer: HTMLElement, onLinkClick: (path: string) => void): Promise<void> {
         for (const { block } of this.allBlocks) {
             await block.render(linksContainer, this.view, onLinkClick);
             const blockContainer = block.getContainer();
@@ -241,9 +271,17 @@ export class CoalesceView {
                 block.setCollapsed(!this.blocksCollapsed);
             }
         }
+    }
 
-        // Create header after blocks are rendered
-        const header = this.headerComponent.createHeader(
+    /**
+     * Creates the backlinks header with all needed event handlers
+     */
+    private createBacklinksHeader(
+        unsavedAliases: string[], 
+        filesLinkingToThis: string[], 
+        onLinkClick: (path: string) => void
+    ): HTMLElement {
+        return this.headerComponent.createHeader(
             this.container, 
             0,
             this.allBlocks.length,
@@ -252,31 +290,15 @@ export class CoalesceView {
             () => this.toggleAllBlocks(),
             this.blocksCollapsed,
             this.settingsManager.settings.blockBoundaryStrategy,
-            async (strategy) => {
-                this.settingsManager.settings.blockBoundaryStrategy = strategy;
-                await this.settingsManager.saveSettings();
-                this.updateBlockBoundaryStrategy(strategy);
-                await this.updateBacklinks(filesLinkingToThis, onLinkClick);
-            },
+            async (strategy) => this.handleStrategyChange(strategy),
             this.currentTheme,
             async (theme) => this.handleThemeChange(theme),
             this.settingsManager.settings.showFullPathTitle,
-            async (show) => {
-                this.settingsManager.settings.showFullPathTitle = show;
-                await this.settingsManager.saveSettings();
-                await this.updateBlockTitles(show ? 'full' : 'short');
-            },
+            async (show) => this.handleFullPathTitleChange(show),
             this.settingsManager.settings.position,
-            async (position) => {
-                this.settingsManager.settings.position = position;
-                await this.settingsManager.saveSettings();
-                this.updatePosition();
-            },
+            async (position) => this.handlePositionChange(position),
             this.settingsManager.settings.onlyDailyNotes,
-            async (show: boolean) => {
-                this.settingsManager.settings.onlyDailyNotes = show;
-                await this.settingsManager.saveSettings();
-            },
+            async (show: boolean) => this.handleDailyNotesChange(show),
             this.aliases,
             (alias: string | null) => {
                 this.currentAlias = alias;
@@ -285,21 +307,65 @@ export class CoalesceView {
             this.currentAlias,
             unsavedAliases,
             this.settingsManager.settings.headerStyle,
-            async (style: string) => {
-                this.settingsManager.settings.headerStyle = style;
-                await this.settingsManager.saveSettings();
-                await this.updateBlockTitles(style);
-            },
+            async (style: string) => this.handleHeaderStyleChange(style),
             this.settingsManager.settings.hideBacklinkLine,
-            async (hide: boolean) => {
-                this.settingsManager.settings.hideBacklinkLine = hide;
-                await this.settingsManager.saveSettings();
-                // Refresh blocks to apply the new setting
-                await this.updateBacklinks(filesLinkingToThis, onLinkClick);
-            }
+            async (hide: boolean) => this.handleHideBacklinkLineChange(hide)
         );
-        this.container.appendChild(header);
-        this.container.appendChild(linksContainer);
+    }
+
+    /**
+     * Handles the change of block boundary strategy
+     */
+    private async handleStrategyChange(strategy: string): Promise<void> {
+        this.settingsManager.settings.blockBoundaryStrategy = strategy;
+        await this.settingsManager.saveSettings();
+        this.updateBlockBoundaryStrategy(strategy);
+        await this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick!);
+    }
+
+    /**
+     * Handles the change of full path title setting
+     */
+    private async handleFullPathTitleChange(show: boolean): Promise<void> {
+        this.settingsManager.settings.showFullPathTitle = show;
+        await this.settingsManager.saveSettings();
+        await this.updateBlockTitles(show ? 'full' : 'short');
+    }
+
+    /**
+     * Handles the change of position setting
+     */
+    private async handlePositionChange(position: 'high' | 'low'): Promise<void> {
+        this.settingsManager.settings.position = position;
+        await this.settingsManager.saveSettings();
+        this.updatePosition();
+    }
+
+    /**
+     * Handles the change of daily notes setting
+     */
+    private async handleDailyNotesChange(show: boolean): Promise<void> {
+        this.settingsManager.settings.onlyDailyNotes = show;
+        await this.settingsManager.saveSettings();
+    }
+
+    /**
+     * Handles the change of header style
+     */
+    private async handleHeaderStyleChange(style: string): Promise<void> {
+        this.settingsManager.settings.headerStyle = style;
+        await this.settingsManager.saveSettings();
+        await this.updateBlockTitles(style);
+    }
+
+    /**
+     * Handles the change of hide backlink line setting
+     */
+    private async handleHideBacklinkLineChange(hide: boolean): Promise<void> {
+        this.settingsManager.settings.hideBacklinkLine = hide;
+        await this.settingsManager.saveSettings();
+        // Refresh blocks to apply the new setting
+        await this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick!);
     }
 
     private toggleAllBlocks(): void {
@@ -308,6 +374,16 @@ export class CoalesceView {
         this.settingsManager.saveSettings();
 
         // Update all blocks based on the new state
+        this.updateAllBlocksCollapsedState();
+
+        // Update header to reflect new state
+        this.updateHeaderWithVisibleBlockCount();
+    }
+
+    /**
+     * Updates the collapse state of all blocks based on the current collapsed setting
+     */
+    private updateAllBlocksCollapsedState(): void {
         this.allBlocks.forEach(({ block }) => {
             const blockContainer = block.getContainer();
             if (blockContainer) {
@@ -318,72 +394,35 @@ export class CoalesceView {
                 block.setCollapsed(!this.blocksCollapsed);
             }
         });
+    }
 
-        // Update header to reflect new state
+    /**
+     * Updates the header with the current count of visible blocks
+     */
+    private updateHeaderWithVisibleBlockCount(): void {
         const oldHeader = this.container.querySelector('.backlinks-header');
         if (oldHeader && this.container.contains(oldHeader)) {
-            const visibleBlocks = this.allBlocks.filter(({ block }) => {
-                const container = block.getContainer();
-                return container && container.style.display !== 'none';
-            }).length;
-
-            const newHeader = this.headerComponent.createHeader(
-                this.container,
-                0,
-                visibleBlocks,
-                this.sortDescending,
-                () => this.toggleSort(),
-                () => this.toggleAllBlocks(),
-                this.blocksCollapsed,
-                this.settingsManager.settings.blockBoundaryStrategy,
-                async (strategy) => {
-                    this.settingsManager.settings.blockBoundaryStrategy = strategy;
-                    await this.settingsManager.saveSettings();
-                    this.updateBlockBoundaryStrategy(strategy);
-                    await this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick!);
-                },
-                this.currentTheme,
-                async (theme) => this.handleThemeChange(theme),
-                this.settingsManager.settings.showFullPathTitle,
-                async (show) => {
-                    this.settingsManager.settings.showFullPathTitle = show;
-                    await this.settingsManager.saveSettings();
-                    await this.updateBlockTitles(show ? 'full' : 'short');
-                },
-                this.settingsManager.settings.position,
-                async (position) => {
-                    this.settingsManager.settings.position = position;
-                    await this.settingsManager.saveSettings();
-                    this.updatePosition();
-                },
-                this.settingsManager.settings.onlyDailyNotes,
-                async (show: boolean) => {
-                    this.settingsManager.settings.onlyDailyNotes = show;
-                    await this.settingsManager.saveSettings();
-                },
-                this.aliases,
-                (alias: string | null) => {
-                    this.currentAlias = alias;
-                    this.filterBlocksByAlias();
-                },
-                this.currentAlias,
-                this.extractUnsavedAliases(this.currentFilesLinkingToThis),
-                this.settingsManager.settings.headerStyle,
-                async (style: string) => {
-                    this.settingsManager.settings.headerStyle = style;
-                    await this.settingsManager.saveSettings();
-                    await this.updateBlockTitles(style);
-                },
-                this.settingsManager.settings.hideBacklinkLine,
-                async (hide: boolean) => {
-                    this.settingsManager.settings.hideBacklinkLine = hide;
-                    await this.settingsManager.saveSettings();
-                    // Refresh blocks to apply the new setting
-                    await this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick!);
-                }
+            const visibleBlocks = this.countVisibleBlocks();
+            const unsavedAliases = this.extractUnsavedAliases(this.currentFilesLinkingToThis);
+            
+            const newHeader = this.createBacklinksHeader(
+                unsavedAliases,
+                this.currentFilesLinkingToThis,
+                this.currentOnLinkClick!
             );
+            
             this.container.replaceChild(newHeader, oldHeader);
         }
+    }
+
+    /**
+     * Counts the number of blocks that are currently visible
+     */
+    private countVisibleBlocks(): number {
+        return this.allBlocks.filter(({ block }) => {
+            const container = block.getContainer();
+            return container && container.style.display !== 'none';
+        }).length;
     }
 
     public cleanup(): void {
@@ -461,121 +500,84 @@ export class CoalesceView {
             savedAliases: this.aliases
         });
         
-        // Show all blocks and get total counts when no alias is selected
+        this.updateBlockVisibilityByAlias();
+        this.updateHeaderWithVisibleBlockCount();
+    }
+
+    /**
+     * Updates block visibility based on current alias filter
+     */
+    private updateBlockVisibilityByAlias(): void {
+        // Show all blocks when no alias is selected
         if (!this.currentAlias) {
-            this.allBlocks.forEach(({ block }) => {
-                const container = block.getContainer();
-                if (container) {
-                    container.style.display = '';
-                }
-            });
-        } else {
-            // Filter blocks that contain the selected alias
-            this.allBlocks.forEach(({ block }) => {
-                const container = block.getContainer();
-                if (!container) return;
-
-                const content = block.contents;
-                let hasAlias = false;
-                
-                // First check if it's a saved alias (from file properties)
-                if (this.currentAlias && this.aliases.includes(this.currentAlias)) {
-                    hasAlias = content.includes(`[[${this.currentAlias}]]`);
-                }
-                
-                // If not found and we have an alias selected, check for unsaved alias pattern
-                if (!hasAlias && this.currentAlias) {
-                    // Match [[path/notename|alias1|alias2]] pattern
-                    const escapedNoteName = this.currentNoteName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    const regex = new RegExp(`\\[\\[(?:[^\\]|]*?/)?${escapedNoteName}\\|([^\\]]+)\\]\\]`, 'g');
-                    const matches = Array.from(content.matchAll(regex));
-                    
-                    for (const match of matches) {
-                        const aliasString = match[1];
-                        if (!aliasString) continue;
-                        
-                        // Split by | to get all aliases after the note name
-                        const aliases = aliasString.split('|');
-                        if (aliases.includes(this.currentAlias)) {
-                            hasAlias = true;
-                            break;
-                        }
-                    }
-                }
-                
-                container.style.display = hasAlias ? '' : 'none';
-            });
+            this.showAllBlocks();
+            return;
         }
-
-        // Update the block count in the header
-        const visibleBlocks = this.allBlocks.filter(({ block }) => {
+        
+        // Filter blocks that contain the selected alias
+        this.allBlocks.forEach(({ block }) => {
             const container = block.getContainer();
-            return container && container.style.display !== 'none';
-        }).length;
+            if (!container) return;
 
-        // Get current unsaved aliases
-        const unsavedAliases = this.extractUnsavedAliases(this.currentFilesLinkingToThis);
+            const hasAlias = this.blockContainsAlias(block);
+            container.style.display = hasAlias ? '' : 'none';
+        });
+    }
 
-        // Update header with new counts
-        const header = this.container.querySelector('.backlinks-header');
-        if (header) {
-            const newHeader = this.headerComponent.createHeader(
-                this.container,
-                0,
-                visibleBlocks,
-                this.sortDescending,
-                () => this.toggleSort(),
-                () => this.toggleAllBlocks(),
-                this.blocksCollapsed,
-                this.settingsManager.settings.blockBoundaryStrategy,
-                async (strategy) => {
-                    this.settingsManager.settings.blockBoundaryStrategy = strategy;
-                    await this.settingsManager.saveSettings();
-                    this.updateBlockBoundaryStrategy(strategy);
-                    await this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick!);
-                },
-                this.currentTheme,
-                async (theme) => this.handleThemeChange(theme),
-                this.settingsManager.settings.showFullPathTitle,
-                async (show) => {
-                    this.settingsManager.settings.showFullPathTitle = show;
-                    await this.settingsManager.saveSettings();
-                    await this.updateBlockTitles(show ? 'full' : 'short');
-                },
-                this.settingsManager.settings.position,
-                async (position) => {
-                    this.settingsManager.settings.position = position;
-                    await this.settingsManager.saveSettings();
-                    this.updatePosition();
-                },
-                this.settingsManager.settings.onlyDailyNotes,
-                async (show: boolean) => {
-                    this.settingsManager.settings.onlyDailyNotes = show;
-                    await this.settingsManager.saveSettings();
-                },
-                this.aliases,
-                (alias: string | null) => {
-                    this.currentAlias = alias;
-                    this.filterBlocksByAlias();
-                },
-                this.currentAlias,
-                unsavedAliases,
-                this.settingsManager.settings.headerStyle,
-                async (style: string) => {
-                    this.settingsManager.settings.headerStyle = style;
-                    await this.settingsManager.saveSettings();
-                    await this.updateBlockTitles(style);
-                },
-                this.settingsManager.settings.hideBacklinkLine,
-                async (hide: boolean) => {
-                    this.settingsManager.settings.hideBacklinkLine = hide;
-                    await this.settingsManager.saveSettings();
-                    // Refresh blocks to apply the new setting
-                    await this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick!);
-                }
-            );
-            header.replaceWith(newHeader);
+    /**
+     * Shows all blocks regardless of alias
+     */
+    private showAllBlocks(): void {
+        this.allBlocks.forEach(({ block }) => {
+            const container = block.getContainer();
+            if (container) {
+                container.style.display = '';
+            }
+        });
+    }
+
+    /**
+     * Checks if a block contains the currently selected alias
+     */
+    private blockContainsAlias(block: BlockComponent): boolean {
+        if (!this.currentAlias) return true;
+        
+        const content = block.contents;
+        
+        // First check if it's a saved alias (from file properties)
+        if (this.aliases.includes(this.currentAlias)) {
+            if (content.includes(`[[${this.currentAlias}]]`)) {
+                return true;
+            }
         }
+        
+        // Check for unsaved alias pattern
+        return this.blockContainsUnsavedAlias(content);
+    }
+
+    /**
+     * Checks if a block content contains the currently selected alias as an unsaved alias
+     */
+    private blockContainsUnsavedAlias(content: string): boolean {
+        if (!this.currentAlias) return false;
+        
+        // Match [[path/notename|alias1|alias2]] pattern
+        const escapedNoteName = this.escapeRegexChars(this.currentNoteName);
+        const regex = new RegExp(`\\[\\[(?:[^\\]|]*?/)?${escapedNoteName}\\|([^\\]]+)\\]\\]`, 'g');
+        const matches = Array.from(content.matchAll(regex));
+        
+        for (const match of matches) {
+            const aliasString = match[1];
+            if (!aliasString) continue;
+            
+            // Split by | to get all aliases after the note name
+            const aliases = aliasString.split('|');
+            if (aliases.includes(this.currentAlias)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     // Add method to ensure view is attached to DOM without re-rendering
