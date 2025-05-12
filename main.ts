@@ -11,17 +11,7 @@ export default class CoalescePlugin extends Plugin {
 	private logger: Logger;
 
 	async onload() {
-		// Initialize logger with plugin name prefix
-		this.logger = new Logger('Coalesce');
-		
-		// Expose logging methods through plugin instance
-		(this.app as any).plugins.plugins.coalesce.log = {
-			on: (level?: LogLevel | keyof typeof LogLevel | number) => this.logger.on(level),
-			off: () => this.logger.off(),
-			isEnabled: () => this.logger.isEnabled()
-		};
-		
-		this.logger.debug("Initializing plugin");
+		this.initializeLogger();
 		
 		this.settingsManager = new SettingsManager(this);
 		await this.settingsManager.loadSettings();
@@ -40,7 +30,24 @@ export default class CoalescePlugin extends Plugin {
 			this.logger
 		);
 
-		// Register event handlers
+		this.registerEventHandlers();
+		this.addSettingTab(new ObsidianSettingsComponent(this.app, this, this.settingsManager));
+		this.logger.debug("Plugin initialization complete");
+	}
+
+	private initializeLogger() {
+		this.logger = new Logger('Coalesce');
+		
+		(this.app as any).plugins.plugins.coalesce.log = {
+			on: (level?: LogLevel | keyof typeof LogLevel | number) => this.logger.on(level),
+			off: () => this.logger.off(),
+			isEnabled: () => this.logger.isEnabled()
+		};
+		
+		this.logger.debug("Initializing plugin");
+	}
+
+	private registerEventHandlers() {
 		this.registerEvent(
 			this.app.workspace.on('file-open', (file: TFile) => {
 				if (file) {
@@ -50,7 +57,6 @@ export default class CoalescePlugin extends Plugin {
 			})
 		);
 
-		// Handle edit/view mode switches
 		this.registerEvent(
 			this.app.workspace.on('layout-change', () => {
 				const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -60,15 +66,10 @@ export default class CoalescePlugin extends Plugin {
 				}
 			})
 		);
-
-		// Add settings tab
-		this.addSettingTab(new ObsidianSettingsComponent(this.app, this, this.settingsManager));
-		this.logger.debug("Plugin initialization complete");
 	}
 
 	onunload() {
 		this.logger.debug("Unloading plugin");
-		// Clean up logging methods
 		if ((this.app as any).plugins.plugins.coalesce) {
 			delete (this.app as any).plugins.plugins.coalesce.log;
 		}
