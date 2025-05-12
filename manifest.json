@@ -1,7 +1,7 @@
 {
 	"id": "coalesce",
 	"name": "Coalesce",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
 	"description": "Coalesce your backlinked notes into a single view",
 	"author": "Floyd",
