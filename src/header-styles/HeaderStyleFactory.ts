@@ -72,7 +72,11 @@ export class HeaderStyleFactory {
     }
     
     private static handleInvalidStyle(style: string, blockContent: string): AbstractHeaderStyle {
-        if (!this.VALID_STYLES.includes(style as any)) {
+        // Use type predicate to check if style is in VALID_STYLES
+        const isValidStyle = (s: string): s is typeof this.VALID_STYLES[number] => 
+            this.VALID_STYLES.includes(s as typeof this.VALID_STYLES[number]);
+            
+        if (!isValidStyle(style)) {
             this.logger.warn('Invalid header style, falling back to full style', {
                 invalidStyle: style,
                 validStyles: this.VALID_STYLES

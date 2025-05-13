@@ -67,7 +67,11 @@ export class BlockFinderFactory {
     }
     
     private static handleInvalidStrategy(strategy: string, logger: Logger): AbstractBlockFinder {
-        if (!this.VALID_STRATEGIES.includes(strategy as any)) {
+        // Use type predicate to check if strategy is in VALID_STRATEGIES
+        const isValidStrategy = (s: string): s is typeof this.VALID_STRATEGIES[number] => 
+            this.VALID_STRATEGIES.includes(s as typeof this.VALID_STRATEGIES[number]);
+            
+        if (!isValidStrategy(strategy)) {
             this.logger.warn('Invalid block finder strategy, falling back to default', {
                 invalidStrategy: strategy,
                 validStrategies: this.VALID_STRATEGIES

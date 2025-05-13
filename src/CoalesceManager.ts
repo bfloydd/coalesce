@@ -1,10 +1,15 @@
-import { App, MarkdownView, TFile } from 'obsidian';
+import { App, MarkdownView, TFile, WorkspaceLeaf } from 'obsidian';
 import { CoalesceView } from './views/CoalesceView';
 import { Logger } from './utils/Logger';
 import { SettingsManager } from './SettingsManager';
 import { AbstractBlockFinder } from './block-finders/base/AbstractBlockFinder';
 import { BlockFinderFactory } from './block-finders/BlockFinderFactory';
 import { DailyNote } from './utils/DailyNote';
+
+// Interface to extend WorkspaceLeaf with the id property
+interface WorkspaceLeafWithID extends WorkspaceLeaf {
+    id: string;
+}
 
 /** Manages view lifecycle, handles file events, and coordinates backlinks across multiple views */
 export class CoalesceManager {
@@ -36,7 +41,7 @@ export class CoalesceManager {
 
     private processMarkdownViews(views: MarkdownView[], viewsToKeep: Set<string>) {
         views.forEach(view => {
-            const leafId = (view.leaf as any).id;
+            const leafId = (view.leaf as WorkspaceLeafWithID).id;
             const viewFile = view.file;
             
             if (!viewFile) return;
@@ -68,7 +73,7 @@ export class CoalesceManager {
     }
 
     private initializeView(file: TFile, view: MarkdownView) {
-        const leafId = (view.leaf as any).id;
+        const leafId = (view.leaf as WorkspaceLeafWithID).id;
         
         const existingView = this.activeViews.get(leafId);
         if (existingView) {
@@ -140,7 +145,7 @@ export class CoalesceManager {
     }
 
     handleModeSwitch(file: TFile, view: MarkdownView) {
-        const leafId = (view.leaf as any).id;
+        const leafId = (view.leaf as WorkspaceLeafWithID).id;
         
         this.logger.debug("Handling mode switch", {
             leafId,

@@ -5,6 +5,23 @@ import { Logger, LogLevel } from './src/utils/Logger';
 import { ObsidianSettingsComponent } from './src/components/ObsidianSettingsComponent';
 import { MarkdownView } from 'obsidian';
 
+// Define a type for the Obsidian plugin instance with log
+interface CoalescePluginInstance {
+	log?: {
+		on: (level?: LogLevel | keyof typeof LogLevel | number) => void;
+		off: () => void;
+		isEnabled: () => boolean;
+	};
+}
+
+// Type for the plugins container
+interface ObsidianPlugins {
+	plugins: {
+		coalesce: CoalescePluginInstance;
+		[key: string]: any;
+	};
+}
+
 export default class CoalescePlugin extends Plugin {
 	private settingsManager: SettingsManager;
 	public coalesceManager: CoalesceManager;
@@ -38,11 +55,15 @@ export default class CoalescePlugin extends Plugin {
 	private initializeLogger() {
 		this.logger = new Logger('Coalesce');
 		
-		(this.app as any).plugins.plugins.coalesce.log = {
-			on: (level?: LogLevel | keyof typeof LogLevel | number) => this.logger.on(level),
-			off: () => this.logger.off(),
-			isEnabled: () => this.logger.isEnabled()
-		};
+		const obsidianApp = this.app as unknown as App & { plugins: ObsidianPlugins };
+		
+		if (obsidianApp.plugins && obsidianApp.plugins.plugins && obsidianApp.plugins.plugins.coalesce) {
+			obsidianApp.plugins.plugins.coalesce.log = {
+				on: (level?: LogLevel | keyof typeof LogLevel | number) => this.logger.on(level),
+				off: () => this.logger.off(),
+				isEnabled: () => this.logger.isEnabled()
+			};
+		}
 		
 		this.logger.debug("Initializing plugin");
 	}
@@ -70,9 +91,13 @@ export default class CoalescePlugin extends Plugin {
 
 	onunload() {
 		this.logger.debug("Unloading plugin");
-		if ((this.app as any).plugins.plugins.coalesce) {
-			delete (this.app as any).plugins.plugins.coalesce.log;
+		
+		const obsidianApp = this.app as unknown as App & { plugins: ObsidianPlugins };
+		
+		if (obsidianApp.plugins && obsidianApp.plugins.plugins && obsidianApp.plugins.plugins.coalesce && obsidianApp.plugins.plugins.coalesce.log) {
+			obsidianApp.plugins.plugins.coalesce.log = undefined;
 		}
+		
 		this.coalesceManager.clearBacklinks();
 		this.logger.debug("Plugin cleanup complete");
 	}

@@ -17,7 +17,11 @@ export class HeaderStyleManager {
     }
 
     public static isValidStyle(style: string): boolean {
-        const isValid = this.STYLES.includes(style as any);
+        // Use type predicate to check if style is in STYLES
+        const isValidStyle = (s: string): s is typeof this.STYLES[number] => 
+            this.STYLES.includes(s as typeof this.STYLES[number]);
+            
+        const isValid = isValidStyle(style);
         this.logger.debug('Validating header style', {
             style,
             isValid,

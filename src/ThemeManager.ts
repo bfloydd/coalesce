@@ -10,7 +10,11 @@ export class ThemeManager {
     }
 
     public static isValidTheme(theme: string): boolean {
-        const isValid = this.THEMES.includes(theme as any);
+        // Use type predicate to check if theme is in THEMES
+        const isValidTheme = (t: string): t is typeof this.THEMES[number] => 
+            this.THEMES.includes(t as typeof this.THEMES[number]);
+            
+        const isValid = isValidTheme(theme);
         this.logThemeValidation(theme, isValid);
         return isValid;
     }
