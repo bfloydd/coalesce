@@ -468,6 +468,13 @@ export class CoalesceView {
             return;
         }
 
+        // Only create backlinks list if it doesn't exist and we're not handling this in updatePosition
+        if (!this.container.querySelector('.backlinks-list') && this.allBlocks.length === 0) {
+            const linksContainer = document.createElement('div');
+            linksContainer.addClass('backlinks-list');
+            this.container.appendChild(linksContainer);
+        }
+
         if (this.settingsManager.settings.position === 'high') {
             // Position 1 (high)
             const markdownContent = this.view.containerEl.querySelector('.markdown-preview-section .mod-footer') as HTMLElement;
@@ -490,8 +497,53 @@ export class CoalesceView {
 
     // Add method to handle position changes
     public async updatePosition() {
-        this.clear();
+        // Remove from current position in the DOM
+        if (this.container.parentElement) {
+            this.container.parentElement.removeChild(this.container);
+        }
+        
+        // Clear the container but keep our data
+        this.container.empty();
+        
+        // Create a new backlinks list container
+        const linksContainer = document.createElement('div');
+        linksContainer.addClass('backlinks-list');
+        this.container.appendChild(linksContainer);
+        
+        // Attach to new position in DOM
         this.attachToDOM();
+        
+        // Restore backlinks if we had any
+        if (this.allBlocks.length > 0 && this.currentFilesLinkingToThis.length > 0 && this.currentOnLinkClick) {
+            // Recreate the header with the current settings
+            const unsavedAliases = this.extractUnsavedAliases(this.currentFilesLinkingToThis);
+            const header = this.createBacklinksHeader(unsavedAliases, this.currentFilesLinkingToThis, this.currentOnLinkClick);
+            
+            // Add the header to the container (no need to replace since we emptied it)
+            this.container.insertBefore(header, this.container.firstChild);
+            
+            // Get the links container we just created
+            if (linksContainer) {
+                // Re-render existing blocks to the new location
+                await this.renderBlocks(linksContainer, this.currentOnLinkClick);
+                
+                // Ensure blocks maintain their current collapsed state
+                this.allBlocks.forEach(({ block }) => {
+                    const blockContainer = block.getContainer();
+                    if (blockContainer) {
+                        if (this.blocksCollapsed) {
+                            blockContainer.classList.add('is-collapsed');
+                        }
+                    }
+                });
+                
+                // Update block visibility based on current alias filter
+                this.updateBlockVisibilityByAlias();
+                
+                // Update the header with the correct block count
+                this.updateHeaderWithVisibleBlockCount();
+            }
+        }
     }
 
     // Add getter for view
