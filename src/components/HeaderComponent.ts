@@ -346,9 +346,16 @@ export class HeaderComponent {
             </svg>
         `;
         
-        settingsButton.addEventListener('click', () => {
-            // Remove any existing popup
-            document.querySelector('.settings-popup')?.remove();
+        settingsButton.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent body click from being triggered immediately
+            
+            // Check if there's already a popup open
+            const existingPopup = document.querySelector('.settings-popup');
+            if (existingPopup) {
+                // If popup exists and is associated with this button, close it
+                existingPopup.remove();
+                return;
+            }
             
             // Create settings popup
             const popup = this.createSettingsPopup(
@@ -628,7 +635,8 @@ export class HeaderComponent {
     private setupPopupClickOutsideHandler(popup: HTMLElement, settingsButton: HTMLElement): void {
         const closePopup = (e: MouseEvent) => {
             const target = e.target as HTMLElement;
-            if (popup && !popup.contains(target) && target !== settingsButton) {
+            // Only close if clicking outside both popup and settings button
+            if (!popup.contains(target) && target !== settingsButton && !settingsButton.contains(target)) {
                 document.removeEventListener('click', closePopup);
                 popup.remove();
             }
@@ -637,7 +645,7 @@ export class HeaderComponent {
         // Use setTimeout to avoid closing immediately due to the click that opened it
         setTimeout(() => {
             document.addEventListener('click', closePopup);
-        }, 0);
+        }, 10);
     }
 
     /**
