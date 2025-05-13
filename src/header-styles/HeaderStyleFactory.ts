@@ -16,6 +16,26 @@ export class HeaderStyleFactory {
     ] as const;
     private static logger: Logger = new Logger('HeaderStyleFactory');
 
+    /**
+     * Returns the list of valid header styles
+     */
+    static getValidStyles(): ReadonlyArray<string> {
+        return this.VALID_STYLES;
+    }
+
+    /**
+     * Returns a map of style IDs to their display labels
+     */
+    static getStyleLabels(): Record<string, string> {
+        return {
+            'full': 'Full Path',
+            'short': 'Filename',
+            'first-heading-short': 'First Heading',
+            'first-heading-tidy': 'Heading Tidy',
+            'first-heading-tidy-bold': 'Heading Tidy Bold'
+        };
+    }
+
     static createHeaderStyle(style: string, blockContent: string = ''): AbstractHeaderStyle {
         this.logger.debug('Creating header style', {
             requestedStyle: style,

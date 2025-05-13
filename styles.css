@@ -31,7 +31,7 @@
 .backlinks-header-left {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 8px;
     flex-wrap: wrap;
     min-width: 0;
     flex: 1;
@@ -44,24 +44,42 @@
     flex-wrap: nowrap;
 }
 
-.sort-button {
+.sort-button, .collapse-button, .settings-button {
     background: none;
     border: none;
     padding: 6px;
     cursor: pointer;
     display: flex;
     align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    border-radius: 4px;
 }
 
-.sort-button svg {
-    width: 20px;
-    height: 20px;
+.sort-button:hover, .collapse-button:hover, .settings-button:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
 }
 
-.collapse-button svg {
-    transition: transform 0.2s ease;
-    width: 20px;
-    height: 20px;
+.sort-button svg, .collapse-button svg {
+    width: 16px;
+    height: 16px;
+}
+
+.collapse-button svg:not(.is-collapsed) {
+    transform: none;
+}
+
+.collapse-button svg.is-collapsed {
+    transform: rotate(-90deg);
+}
+
+.sort-button svg.sort-ascending {
+    transform: rotate(180deg);
+}
+
+.sort-button svg.sort-descending {
+    transform: none;
 }
 
 /* Button group for arrow controls */
@@ -73,50 +91,41 @@
     gap: 4px;
 }
 
-.settings-button {
-    background: none;
-    border: none;
-    padding: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    color: var(--text-muted);
-    border-radius: 4px;
-}
-
-.settings-button:hover {
-    background-color: var(--background-modifier-hover);
-}
-
 .settings-button svg {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
 }
 
+/* Settings popup position - will be adjusted via JavaScript */
 .settings-popup {
     position: fixed;
     background-color: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
     border-radius: 6px;
-    padding: 2px;
+    padding: 6px 0;
     z-index: 1000;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    min-width: 200px;
+    min-width: 180px;
     max-height: 80vh;
     overflow-y: auto;
     color: var(--text-normal);
+    top: 0;
+    right: 0;
+    font-size: 14px;
 }
 
 .settings-item {
     display: flex;
     align-items: center;
-    padding: 0 8px;
+    padding: 2px 8px;
     cursor: pointer;
     position: relative;
     user-select: none;
     color: var(--text-normal);
-    height: 24px;
-    font-size: 13px;
+    font-size: 14px;
+    height: 26px;
+    padding-left: 8px;
+    gap: 4px;
 }
 
 .settings-item:hover {
@@ -130,61 +139,89 @@
     width: 16px;
     height: 16px;
     color: var(--text-muted);
-    margin-right: 4px;
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+
+.settings-header .setting-item-icon {
+    color: var(--text-faint);
 }
 
 .setting-item-label {
     flex: 1;
     margin-left: 4px;
     color: var(--text-normal);
-    line-height: 1;
+    font-size: 14px;
 }
 
-.checkmark-container {
+/* Obsidian-style section headers */
+.settings-header {
+    cursor: default !important;
+    color: var(--text-faint);
+    font-size: 12px;
+    padding: 2px 8px;
+    margin-top: 4px;
+    font-weight: 600;
+    height: auto;
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 16px;
-    height: 16px;
-    margin-left: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
 }
 
-.checkmark {
-    color: var(--text-accent);
-    width: 14px;
-    height: 14px;
+.settings-header:hover {
+    background-color: transparent !important;
 }
 
-.settings-item:hover .checkmark {
-    color: var(--text-accent-hover);
+.settings-header:first-child {
+    margin-top: 0;
 }
 
-.toggle-container {
-    width: 16px;
-    height: 16px;
-    margin-right: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
+.menu-separator {
+    height: 1px;
+    background-color: var(--background-modifier-border);
+    margin: 4px 0;
 }
 
-.toggle-circle {
-    width: 16px;
-    height: 16px;
-    border: 1px solid var(--text-muted);
-    border-radius: 50%;
-    background-color: var(--background-modifier-form-field);
-    transition: background-color 150ms ease;
+.settings-popup .menu-separator {
+    margin: 2px 0;
 }
 
-.toggle-circle.is-enabled {
-    background-color: var(--text-accent);
-    border-color: var(--text-accent);
+.alias-dropdown {
+    margin: 0 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--background-modifier-border);
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    font-size: var(--font-ui-smaller);
+    min-width: 120px;
+    height: 24px;
+    flex-shrink: 1;
+    text-overflow: ellipsis;
 }
 
-.settings-item:hover .toggle-circle:not(.is-enabled) {
-    border-color: var(--text-normal);
+.is-mobile .alias-dropdown,
+.is-phone .alias-dropdown {
+    min-width: 100px;
+    font-size: var(--font-ui-smallest);
+    padding: 2px 4px;
+    height: 20px;
+}
+
+.alias-dropdown:hover {
+    border-color: var(--background-modifier-border-hover);
+}
+
+.alias-dropdown:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+}
+
+.alias-dropdown:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    border-color: var(--background-modifier-border);
 }
 
 /* ============================
@@ -235,6 +272,27 @@
     margin-bottom: 0px;
     text-decoration: none;
     color: var(--text-normal);
+}
+
+/* ============================
+   Checkmark Styles
+   ============================ */
+
+/* Checkmark container - smaller and more compact */
+.checkmark-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin-left: auto;
+}
+
+/* Obsidian-style checkmark */
+.checkmark {
+    color: var(--interactive-accent);
+    width: 16px;
+    height: 16px;
 }
 
 /* ============================
@@ -305,61 +363,6 @@
 
 .theme-modern .backlink-item {
     padding: 3px 0px;
-}
-
-.settings-header {
-    cursor: default !important;
-    color: var(--text-muted);
-    font-size: 12px;
-    padding-top: 4px;
-}
-
-.settings-header:hover {
-    background-color: transparent !important;
-}
-
-.menu-separator {
-    height: 1px;
-    background-color: var(--background-modifier-border);
-    margin: 4px 0;
-}
-
-.alias-dropdown {
-    margin-left: 8px;
-    margin-right: 8px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 1px solid var(--background-modifier-border);
-    background-color: var(--background-primary);
-    color: var(--text-normal);
-    font-size: var(--font-ui-smaller);
-    min-width: 120px;
-    height: 24px;
-    flex-shrink: 1;
-    text-overflow: ellipsis;
-}
-
-.is-mobile .alias-dropdown,
-.is-phone .alias-dropdown {
-    min-width: 100px;
-    font-size: var(--font-ui-smallest);
-    padding: 2px 4px;
-    height: 20px;
-}
-
-.alias-dropdown:hover {
-    border-color: var(--background-modifier-border-hover);
-}
-
-.alias-dropdown:focus {
-    outline: none;
-    border-color: var(--interactive-accent);
-}
-
-.alias-dropdown:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-    border-color: var(--background-modifier-border);
 }
 
 /* ============================
@@ -520,4 +523,72 @@
 
 .backlinks-header.compact .button-group {
     margin-left: 0;
+}
+
+/* ============================
+   Utility Classes (for JS refactoring)
+   ============================ */
+
+/* Display utilities */
+.is-hidden {
+    display: none !important;
+}
+
+.is-visible {
+    display: block !important;
+}
+
+.is-collapsed .content-preview {
+    display: none !important;
+}
+
+/* Checkmark states */
+.checkmark-container .checkmark {
+    display: none;
+}
+
+.checkmark-container.is-checked .checkmark {
+    display: block;
+    color: var(--interactive-accent);
+}
+
+/* Block states */
+.backlink-item.has-alias {
+    display: block;
+}
+
+.backlink-item.no-alias {
+    display: none;
+}
+
+.backlinks-header-left svg {
+    width: 16px;
+    height: 16px;
+    color: var(--text-muted);
+}
+
+/* Fix for settings popup checkmarks */
+.settings-item[data-style] .checkmark-container,
+.settings-item[data-position] .checkmark-container,
+.settings-item[data-strategy] .checkmark-container,
+.settings-item[data-theme] .checkmark-container {
+    margin-left: auto;
+}
+
+.settings-item[data-style] .checkmark-container .checkmark,
+.settings-item[data-position] .checkmark-container .checkmark,
+.settings-item[data-strategy] .checkmark-container .checkmark,
+.settings-item[data-theme] .checkmark-container .checkmark {
+    display: none;
+}
+
+.settings-item[data-style] .checkmark-container.is-checked .checkmark,
+.settings-item[data-position] .checkmark-container.is-checked .checkmark,
+.settings-item[data-strategy] .checkmark-container.is-checked .checkmark,
+.settings-item[data-theme] .checkmark-container.is-checked .checkmark {
+    display: block;
+}
+
+.settings-submenu-item {
+    padding-left: 24px;
 }

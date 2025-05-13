@@ -1,9 +1,11 @@
 import { ThemeManager } from '../ThemeManager';
 import { Logger } from '../utils/Logger';
 import { HeaderStyleManager } from '../header-styles/HeaderStyleManager';
+import { BlockFinderFactory } from '../block-finders/BlockFinderFactory';
+import { HeaderStyleFactory } from '../header-styles/HeaderStyleFactory';
 
 export class HeaderComponent {
-    private static currentHeaderStyle: string = 'full';
+    private static currentHeaderStyle: string = HeaderStyleFactory.getValidStyles()[0];
     private resizeObserver: ResizeObserver | null = null;
     private observedContainer: HTMLElement | null = null;
 
@@ -249,25 +251,35 @@ export class HeaderComponent {
 
     private createSortButton(sortDescending: boolean, onSortToggle: () => void): HTMLButtonElement {
         const sortButton = document.createElement('button');
-        sortButton.classList.add('clickable-icon', 'sort-button');
+        sortButton.classList.add('sort-button');
+        sortButton.setAttribute('aria-label', sortDescending ? 'Sort ascending' : 'Sort descending');
+        
+        const svgClass = sortDescending ? 'sort-descending' : 'sort-ascending';
         sortButton.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 16 16" style="transform: ${sortDescending ? 'none' : 'rotate(180deg)'}">
+            <svg width="16" height="16" viewBox="0 0 16 16" class="${svgClass}">
                 <path fill="currentColor" d="M4 4l4 4 4-4H4z"/>
             </svg>
         `;
+        
         sortButton.addEventListener('click', onSortToggle);
+        
         return sortButton;
     }
 
     private createCollapseButton(isCollapsed: boolean, onCollapseToggle: () => void): HTMLButtonElement {
         const collapseButton = document.createElement('button');
-        collapseButton.classList.add('clickable-icon', 'collapse-button');
+        collapseButton.classList.add('collapse-button');
+        collapseButton.setAttribute('aria-label', isCollapsed ? 'Expand all' : 'Collapse all');
+        
+        const svgClass = isCollapsed ? 'is-collapsed' : '';
         collapseButton.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 16 16" style="transform: ${isCollapsed ? 'rotate(-90deg)' : 'none'}">
+            <svg width="16" height="16" viewBox="0 0 16 16" class="${svgClass}">
                 <path fill="currentColor" d="M4 4l4 4 4-4H4z"/>
             </svg>
         `;
+        
         collapseButton.addEventListener('click', onCollapseToggle);
+        
         return collapseButton;
     }
 
@@ -324,7 +336,8 @@ export class HeaderComponent {
         onThemeChange: (theme: string) => void = () => {}
     ): HTMLButtonElement {
         const settingsButton = document.createElement('button');
-        settingsButton.className = 'settings-button';
+        settingsButton.classList.add('settings-button');
+        settingsButton.setAttribute('aria-label', 'Settings');
         settingsButton.innerHTML = `
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="1"></circle>
@@ -332,19 +345,13 @@ export class HeaderComponent {
                 <circle cx="12" cy="19" r="1"></circle>
             </svg>
         `;
-
-        let popup: HTMLElement | null = null;
-
-        settingsButton.addEventListener('click', (e) => {
-            e.stopPropagation();
+        
+        settingsButton.addEventListener('click', () => {
+            // Remove any existing popup
+            document.querySelector('.settings-popup')?.remove();
             
-            if (popup) {
-                popup.remove();
-                popup = null;
-                return;
-            }
-
-            popup = this.createSettingsPopup(
+            // Create settings popup
+            const popup = this.createSettingsPopup(
                 hideBacklinkLine,
                 onHideBacklinkLineChange,
                 onlyDailyNotes,
@@ -365,9 +372,8 @@ export class HeaderComponent {
             // Calculate popup position relative to button
             const buttonRect = settingsButton.getBoundingClientRect();
             
-            // Position the popup below the button
-            popup.style.top = `${buttonRect.bottom}px`;
-            popup.style.right = `${window.innerWidth - buttonRect.right}px`;
+            // Position the popup below the button using setAttribute instead of direct style access
+            popup.setAttribute('style', `top: ${buttonRect.bottom}px; right: ${window.innerWidth - buttonRect.right}px;`);
             
             // Close popup when clicking outside
             this.setupPopupClickOutsideHandler(popup, settingsButton);
@@ -391,40 +397,55 @@ export class HeaderComponent {
         onThemeChange: (theme: string) => void = () => {}
     ): HTMLElement {
         const popup = document.createElement('div');
-        popup.className = 'settings-popup';
+        popup.classList.add('settings-popup');
+        
+        // Set position values with custom attributes to be used by CSS via attr()
+        // Unfortunately we still need to use inline styles for positioning as CSS can't
+        // dynamically position like this without CSS-in-JS, but we're using setAttribute
+        // to make it more explicit that we're applying custom styles
+        const settingsButton = document.querySelector('.settings-button') as HTMLElement;
+        if (settingsButton) {
+            const buttonRect = settingsButton.getBoundingClientRect();
+            popup.setAttribute('style', `top: ${buttonRect.bottom}px; right: ${window.innerWidth - buttonRect.right}px;`);
+        }
 
-        // Add the hide backlink line setting
-        const hideBacklinkLineItem = this.createHideBacklinkLineSetting(hideBacklinkLine, onHideBacklinkLineChange, popup);
-        popup.appendChild(hideBacklinkLineItem);
-
-        // Add the only daily notes setting
-        const dailyNotesItem = this.createOnlyDailyNotesSetting(onlyDailyNotes, onOnlyDailyNotesChange, popup);
-        popup.appendChild(dailyNotesItem);
-
-        // Add separator after daily notes
-        popup.createEl('div', { cls: 'menu-separator' });
-
-        // Add header style settings
+        // Add sections to the popup
+        const hideBacklinkLineSetting = this.createHideBacklinkLineSetting(hideBacklinkLine, onHideBacklinkLineChange, popup);
+        popup.appendChild(hideBacklinkLineSetting);
+        
+        const onlyDailyNotesSetting = this.createOnlyDailyNotesSetting(onlyDailyNotes, onOnlyDailyNotesChange, popup);
+        popup.appendChild(onlyDailyNotesSetting);
+        
+        // Add separator after top options
+        const separator1 = document.createElement('div');
+        separator1.classList.add('menu-separator');
+        popup.appendChild(separator1);
+        
         this.addHeaderStyleSettings(popup, currentHeaderStyle, onHeaderStyleChange);
         
         // Add separator after header style
-        popup.createEl('div', { cls: 'menu-separator' });
+        const separator2 = document.createElement('div');
+        separator2.classList.add('menu-separator');
+        popup.appendChild(separator2);
         
-        // Add position settings
         this.addPositionSettings(popup, currentPosition, onPositionChange);
         
         // Add separator after position
-        popup.createEl('div', { cls: 'menu-separator' });
+        const separator3 = document.createElement('div');
+        separator3.classList.add('menu-separator');
+        popup.appendChild(separator3);
         
-        // Add block style settings
         this.addBlockStyleSettings(popup, currentStrategy, onStrategyChange);
         
         // Add separator after block style
-        popup.createEl('div', { cls: 'menu-separator' });
+        const separator4 = document.createElement('div');
+        separator4.classList.add('menu-separator');
+        popup.appendChild(separator4);
         
-        // Add theme settings
         this.addThemeSettings(popup, currentTheme, onThemeChange);
-
+        
+        this.setupPopupClickOutsideHandler(popup, settingsButton);
+        
         return popup;
     }
 
@@ -433,51 +454,45 @@ export class HeaderComponent {
         onHideBacklinkLineChange: (hide: boolean) => void,
         popup: HTMLElement
     ): HTMLElement {
-        const hideBacklinkLineItem = document.createElement('div');
-        hideBacklinkLineItem.className = 'settings-item';
-
-        // Create left icon (filter icon)
-        const hideBacklinkLineIcon = document.createElement('div');
-        hideBacklinkLineIcon.className = 'setting-item-icon';
-        hideBacklinkLineIcon.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-            </svg>
-        `;
-
-        const hideBacklinkLineLabel = document.createElement('span');
-        hideBacklinkLineLabel.textContent = 'Hide Backlink Line';
-        hideBacklinkLineLabel.className = 'setting-item-label';
-
-        const hideBacklinkLineCheckContainer = document.createElement('div');
-        hideBacklinkLineCheckContainer.className = 'checkmark-container';
-
-        const hideBacklinkLineCheckmark = document.createElement('div');
-        hideBacklinkLineCheckmark.className = 'checkmark';
-        hideBacklinkLineCheckmark.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-        `;
-        hideBacklinkLineCheckmark.style.display = hideBacklinkLine ? 'block' : 'none';
-
-        hideBacklinkLineCheckContainer.appendChild(hideBacklinkLineCheckmark);
-        hideBacklinkLineItem.appendChild(hideBacklinkLineIcon);
-        hideBacklinkLineItem.appendChild(hideBacklinkLineLabel);
-        hideBacklinkLineItem.appendChild(hideBacklinkLineCheckContainer);
-
-        hideBacklinkLineItem.addEventListener('click', () => {
+        const item = document.createElement('div');
+        item.classList.add('settings-item');
+        
+        // Add icon
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        icon.classList.add('setting-item-icon');
+        icon.setAttribute('viewBox', '0 0 24 24');
+        icon.setAttribute('width', '16');
+        icon.setAttribute('height', '16');
+        icon.innerHTML = '<path fill="currentColor" d="M12.968 16L10 20H3l4-6H3l3-4h6l-3 4h3.968zm5.991-7.474a.997.997 0 0 1-.028 1.136l-7.99 11.985a1 1 0 0 1-1.664-1.11l7.99-11.987a1 1 0 0 1 1.692-.024z"/>';
+        
+        const label = document.createElement('span');
+        label.classList.add('setting-item-label');
+        label.textContent = 'Hide Backlink Line';
+        
+        const checkmarkContainer = document.createElement('div');
+        checkmarkContainer.classList.add('checkmark-container');
+        if (hideBacklinkLine) {
+            checkmarkContainer.classList.add('is-checked');
+        }
+        
+        const hideBacklinkLineCheckmark = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        hideBacklinkLineCheckmark.classList.add('checkmark');
+        hideBacklinkLineCheckmark.setAttribute('viewBox', '0 0 24 24');
+        hideBacklinkLineCheckmark.innerHTML = '<path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
+        
+        checkmarkContainer.appendChild(hideBacklinkLineCheckmark);
+        
+        item.appendChild(icon);
+        item.appendChild(label);
+        item.appendChild(checkmarkContainer);
+        
+        item.addEventListener('click', () => {
             const newValue = !hideBacklinkLine;
-            hideBacklinkLineCheckmark.style.display = newValue ? 'block' : 'none';
+            checkmarkContainer.classList.toggle('is-checked');
             onHideBacklinkLineChange(newValue);
-            
-            // Close the popup
-            if (popup) {
-                popup.remove();
-            }
         });
-
-        return hideBacklinkLineItem;
+        
+        return item;
     }
 
     private createOnlyDailyNotesSetting(
@@ -485,55 +500,45 @@ export class HeaderComponent {
         onOnlyDailyNotesChange: (show: boolean) => void,
         popup: HTMLElement
     ): HTMLElement {
-        const dailyNotesItem = document.createElement('div');
-        dailyNotesItem.className = 'settings-item';
-
-        // Create left icon (calendar icon)
-        const dailyNotesIcon = document.createElement('div');
-        dailyNotesIcon.className = 'setting-item-icon';
-        dailyNotesIcon.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-        `;
-
-        const dailyNotesLabel = document.createElement('span');
-        dailyNotesLabel.textContent = 'Hide in Daily Notes';
-        dailyNotesLabel.className = 'setting-item-label';
-
-        const dailyNotesCheckContainer = document.createElement('div');
-        dailyNotesCheckContainer.className = 'checkmark-container';
-
-        const dailyNotesCheckmark = document.createElement('div');
-        dailyNotesCheckmark.className = 'checkmark';
-        dailyNotesCheckmark.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-        `;
-        dailyNotesCheckmark.style.display = onlyDailyNotes ? 'block' : 'none';
-
-        dailyNotesCheckContainer.appendChild(dailyNotesCheckmark);
-        dailyNotesItem.appendChild(dailyNotesIcon);
-        dailyNotesItem.appendChild(dailyNotesLabel);
-        dailyNotesItem.appendChild(dailyNotesCheckContainer);
-
-        dailyNotesItem.addEventListener('click', (e) => {
-            e.stopPropagation();
+        const item = document.createElement('div');
+        item.classList.add('settings-item');
+        
+        // Add icon
+        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        icon.classList.add('setting-item-icon');
+        icon.setAttribute('viewBox', '0 0 24 24');
+        icon.setAttribute('width', '16');
+        icon.setAttribute('height', '16');
+        icon.innerHTML = '<path fill="currentColor" d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5v-5z"/>';
+        
+        const label = document.createElement('span');
+        label.classList.add('setting-item-label');
+        label.textContent = 'Hide in Daily Notes';
+        
+        const checkmarkContainer = document.createElement('div');
+        checkmarkContainer.classList.add('checkmark-container');
+        if (onlyDailyNotes) {
+            checkmarkContainer.classList.add('is-checked');
+        }
+        
+        const dailyNotesCheckmark = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        dailyNotesCheckmark.classList.add('checkmark');
+        dailyNotesCheckmark.setAttribute('viewBox', '0 0 24 24');
+        dailyNotesCheckmark.innerHTML = '<path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
+        
+        checkmarkContainer.appendChild(dailyNotesCheckmark);
+        
+        item.appendChild(icon);
+        item.appendChild(label);
+        item.appendChild(checkmarkContainer);
+        
+        item.addEventListener('click', () => {
             const newState = !onlyDailyNotes;
-            dailyNotesCheckmark.style.display = newState ? 'block' : 'none';
+            checkmarkContainer.classList.toggle('is-checked');
             onOnlyDailyNotesChange(newState);
-            
-            // Close popup after a short delay to ensure the click is processed
-            setTimeout(() => {
-                popup?.remove();
-            }, 100);
         });
-
-        return dailyNotesItem;
+        
+        return item;
     }
 
     private addHeaderStyleSettings(
@@ -543,20 +548,25 @@ export class HeaderComponent {
     ): void {
         // Create header style settings header
         const headerStyleHeader = document.createElement('div');
-        headerStyleHeader.className = 'settings-item settings-header';
-        headerStyleHeader.innerHTML = `
-            <div class="setting-item-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M4 7V4h16v3"/>
-                    <path d="M9 20h6"/>
-                    <path d="M12 4v16"/>
-                </svg>
-            </div>
-            <span class="setting-item-label">Header Style</span>
-        `;
+        headerStyleHeader.classList.add('settings-item', 'settings-header');
+        
+        // Add header icon
+        const headerIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        headerIcon.classList.add('setting-item-icon');
+        headerIcon.setAttribute('viewBox', '0 0 24 24');
+        headerIcon.setAttribute('width', '16');
+        headerIcon.setAttribute('height', '16');
+        headerIcon.innerHTML = '<path fill="currentColor" d="M3 7h6v6H3V7m0 10h6v-2H3v2m8 0h10v-2H11v2m0-4h10v-2H11v2m0-4h10V7H11v2z"/>';
+        
+        headerStyleHeader.appendChild(headerIcon);
+        
+        const headerText = document.createElement('span');
+        headerText.textContent = 'Header Style';
+        headerStyleHeader.appendChild(headerText);
+        
         popup.appendChild(headerStyleHeader);
 
-        // Create header style options
+        // Add header style options
         this.addHeaderStyleOptions(popup, currentHeaderStyle, onHeaderStyleChange);
     }
 
@@ -565,73 +575,69 @@ export class HeaderComponent {
         currentHeaderStyle: string,
         onHeaderStyleChange: (style: string) => void
     ): void {
-        const styleDisplayNames: Record<string, string> = {
-            'full': 'Full path',
-            'short': 'Filename',
-            'first-heading-short': 'Header full',
-            'first-heading-tidy': 'Header tidy',
-            'first-heading-tidy-bold': 'Header tidy bold caps'
-        };
-
-        HeaderStyleManager.styles.forEach(style => {
-            const styleItem = document.createElement('div');
-            styleItem.className = 'settings-item';
-
-            styleItem.innerHTML = `
-                <div class="setting-item-icon"></div>
-                <span class="setting-item-label">${styleDisplayNames[style as keyof typeof styleDisplayNames]}</span>
-                <div class="checkmark-container">
-                    <div class="checkmark" style="display: ${style === HeaderComponent.currentHeaderStyle ? 'block' : 'none'}">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                    </div>
-                </div>
-            `;
-
-            styleItem.addEventListener('click', () => {
-                if (style === HeaderComponent.currentHeaderStyle) return;
+        // Get available header styles dynamically from HeaderStyleFactory
+        const validStyles = HeaderStyleFactory.getValidStyles();
+        const styleLabels = HeaderStyleFactory.getStyleLabels();
+        
+        validStyles.forEach(style => {
+            const item = document.createElement('div');
+            item.classList.add('settings-item', 'settings-submenu-item');
+            item.setAttribute('data-style', style);
+            
+            // Add label
+            const itemLabel = document.createElement('span');
+            itemLabel.classList.add('setting-item-label');
+            itemLabel.textContent = styleLabels[style] || style;
+            
+            // Add checkmark container
+            const checkContainer = document.createElement('div');
+            checkContainer.classList.add('checkmark-container');
+            if (style === currentHeaderStyle) {
+                checkContainer.classList.add('is-checked');
+            }
+            
+            // Add checkmark
+            const checkElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            checkElement.classList.add('checkmark');
+            checkElement.setAttribute('viewBox', '0 0 24 24');
+            checkElement.innerHTML = '<path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
+            
+            checkContainer.appendChild(checkElement);
+            
+            item.appendChild(itemLabel);
+            item.appendChild(checkContainer);
+            
+            item.addEventListener('click', () => {
+                // Update all checkmarks in this section
+                popup.querySelectorAll('.settings-item[data-style]').forEach(el => {
+                    (el as HTMLElement).querySelector('.checkmark-container')?.classList.remove('is-checked');
+                });
+                checkContainer.classList.add('is-checked');
                 
+                // Set our internal tracking of current style
                 HeaderComponent.currentHeaderStyle = style;
                 
-                // Update all header style checkmarks first
-                popup.querySelectorAll('.settings-item .checkmark').forEach(check => {
-                    const checkElement = check as HTMLElement;
-                    const parentItem = checkElement.closest('.settings-item');
-                    const itemLabel = parentItem?.querySelector('.setting-item-label')?.textContent?.toLowerCase();
-                    checkElement.style.display = itemLabel === style ? 'block' : 'none';
-                });
-                
+                // Call the change handler with the new style
                 onHeaderStyleChange(style);
-                popup.remove();
             });
-
-            popup.appendChild(styleItem);
+            
+            popup.appendChild(item);
         });
     }
 
     private setupPopupClickOutsideHandler(popup: HTMLElement, settingsButton: HTMLElement): void {
-        // Use a reference to allow modification
-        const popupRef: { current: HTMLElement | null } = { current: popup };
-        
         const closePopup = (e: MouseEvent) => {
-            if (!popupRef.current) return;
-            
-            // Don't close if clicking on the settings button or inside the popup
-            if (e.target === settingsButton || settingsButton.contains(e.target as Node) || 
-                popupRef.current.contains(e.target as Node)) {
-                return;
+            const target = e.target as HTMLElement;
+            if (popup && !popup.contains(target) && target !== settingsButton) {
+                document.removeEventListener('click', closePopup);
+                popup.remove();
             }
-            
-            popupRef.current.remove();
-            popupRef.current = null;
-            document.removeEventListener('click', closePopup);
         };
         
-        // Delay adding the event listener to prevent immediate closing
+        // Use setTimeout to avoid closing immediately due to the click that opened it
         setTimeout(() => {
             document.addEventListener('click', closePopup);
-        }, 10);
+        }, 0);
     }
 
     /**
@@ -642,75 +648,94 @@ export class HeaderComponent {
         currentPosition: string,
         onPositionChange: (position: 'high' | 'low') => void
     ): void {
-        // Create position header
-        const positionHeader = document.createElement('div');
-        positionHeader.className = 'settings-item settings-header';
-        positionHeader.innerHTML = `
-            <div class="setting-item-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M4 12v8h16v-8"/>
-                    <path d="M4 4v8h16V4"/>
-                </svg>
-            </div>
-            <span class="setting-item-label">Position</span>
-        `;
-        popup.appendChild(positionHeader);
+        // Add settings header
+        const header = document.createElement('div');
+        header.classList.add('settings-item', 'settings-header');
         
-        // Add position high option
-        const positionHighItem = document.createElement('div');
-        positionHighItem.className = 'settings-item';
-        positionHighItem.innerHTML = `
-            <div class="setting-item-icon"></div>
-            <span class="setting-item-label">Position high</span>
-            <div class="checkmark-container">
-                <div class="checkmark position-high-check" style="display: ${currentPosition === 'high' ? 'block' : 'none'}">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                </div>
-            </div>
-        `;
-        positionHighItem.addEventListener('click', () => {
-            popup.querySelectorAll('.position-high-check, .position-low-check').forEach(el => {
-                (el as HTMLElement).style.display = 'none';
+        // Add header icon
+        const headerIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        headerIcon.classList.add('setting-item-icon');
+        headerIcon.setAttribute('viewBox', '0 0 24 24');
+        headerIcon.setAttribute('width', '16');
+        headerIcon.setAttribute('height', '16');
+        headerIcon.innerHTML = '<path fill="currentColor" d="M9 20.42L2.79 14.21L5.62 11.38L9 14.77L18.88 4.88L21.71 7.71L9 20.42Z"/>';
+        
+        header.appendChild(headerIcon);
+        
+        const headerText = document.createElement('span');
+        headerText.textContent = 'Position';
+        header.appendChild(headerText);
+        
+        popup.appendChild(header);
+        
+        // Add high option
+        const highItem = document.createElement('div');
+        highItem.classList.add('settings-item', 'settings-submenu-item');
+        highItem.setAttribute('data-position', 'high');
+        
+        const highLabel = document.createElement('span');
+        highLabel.classList.add('setting-item-label');
+        highLabel.textContent = 'Position high';
+        
+        const highCheckContainer = document.createElement('div');
+        highCheckContainer.classList.add('checkmark-container');
+        if (currentPosition === 'high') {
+            highCheckContainer.classList.add('is-checked');
+        }
+        
+        const highCheck = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        highCheck.classList.add('checkmark');
+        highCheck.setAttribute('viewBox', '0 0 24 24');
+        highCheck.innerHTML = '<path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
+        
+        highCheckContainer.appendChild(highCheck);
+        highItem.appendChild(highLabel);
+        highItem.appendChild(highCheckContainer);
+        
+        popup.appendChild(highItem);
+        
+        // Add low option
+        const lowItem = document.createElement('div');
+        lowItem.classList.add('settings-item', 'settings-submenu-item');
+        lowItem.setAttribute('data-position', 'low');
+        
+        const lowLabel = document.createElement('span');
+        lowLabel.classList.add('setting-item-label');
+        lowLabel.textContent = 'Position low';
+        
+        const lowCheckContainer = document.createElement('div');
+        lowCheckContainer.classList.add('checkmark-container');
+        if (currentPosition === 'low') {
+            lowCheckContainer.classList.add('is-checked');
+        }
+        
+        const lowCheck = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        lowCheck.classList.add('checkmark');
+        lowCheck.setAttribute('viewBox', '0 0 24 24');
+        lowCheck.innerHTML = '<path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
+        
+        lowCheckContainer.appendChild(lowCheck);
+        lowItem.appendChild(lowLabel);
+        lowItem.appendChild(lowCheckContainer);
+        
+        popup.appendChild(lowItem);
+        
+        // Add event listeners
+        highItem.addEventListener('click', () => {
+            popup.querySelectorAll('.settings-item[data-position]').forEach(el => {
+                (el as HTMLElement).querySelector('.checkmark-container')?.classList.remove('is-checked');
             });
-            const check = positionHighItem.querySelector('.position-high-check') as HTMLElement;
-            if (check) {
-                check.style.display = 'block';
-            }
-            // Call the actual position change handler
+            highCheckContainer.classList.add('is-checked');
             onPositionChange('high');
-            popup.remove();
         });
-        popup.appendChild(positionHighItem);
         
-        // Add position low option
-        const positionLowItem = document.createElement('div');
-        positionLowItem.className = 'settings-item';
-        positionLowItem.innerHTML = `
-            <div class="setting-item-icon"></div>
-            <span class="setting-item-label">Position low</span>
-            <div class="checkmark-container">
-                <div class="checkmark position-low-check" style="display: ${currentPosition === 'low' ? 'block' : 'none'}">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                </div>
-            </div>
-        `;
-        positionLowItem.addEventListener('click', () => {
-            popup.querySelectorAll('.position-high-check, .position-low-check').forEach(el => {
-                (el as HTMLElement).style.display = 'none';
+        lowItem.addEventListener('click', () => {
+            popup.querySelectorAll('.settings-item[data-position]').forEach(el => {
+                (el as HTMLElement).querySelector('.checkmark-container')?.classList.remove('is-checked');
             });
-            const check = positionLowItem.querySelector('.position-low-check') as HTMLElement;
-            if (check) {
-                check.style.display = 'block';
-            }
-            // Call the actual position change handler
+            lowCheckContainer.classList.add('is-checked');
             onPositionChange('low');
-            popup.remove();
         });
-        popup.appendChild(positionLowItem);
     }
     
     /**
@@ -721,52 +746,64 @@ export class HeaderComponent {
         currentStrategy: string,
         onStrategyChange: (strategy: string) => void
     ): void {
-        // Create block style header
-        const blockStyleHeader = document.createElement('div');
-        blockStyleHeader.className = 'settings-item settings-header';
-        blockStyleHeader.innerHTML = `
-            <div class="setting-item-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="3" y1="9" x2="21" y2="9"/>
-                </svg>
-            </div>
-            <span class="setting-item-label">Block Style</span>
-        `;
-        popup.appendChild(blockStyleHeader);
+        // Add settings header
+        const header = document.createElement('div');
+        header.classList.add('settings-item', 'settings-header');
         
-        // Add block style options
-        const styles = ['Default', 'Headers Only', 'Top Line'];
-        const styleValues = ['default', 'headers-only', 'top-line'];
+        // Add header icon
+        const headerIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        headerIcon.classList.add('setting-item-icon');
+        headerIcon.setAttribute('viewBox', '0 0 24 24');
+        headerIcon.setAttribute('width', '16');
+        headerIcon.setAttribute('height', '16');
+        headerIcon.innerHTML = '<path fill="currentColor" d="M3 5h18v4H3V5m0 10h18v4H3v-4z"/>';
         
-        styles.forEach((style, index) => {
-            const styleItem = document.createElement('div');
-            styleItem.className = 'settings-item';
-            styleItem.innerHTML = `
-                <div class="setting-item-icon"></div>
-                <span class="setting-item-label">${style}</span>
-                <div class="checkmark-container">
-                    <div class="checkmark block-style-check block-style-${styleValues[index]}" 
-                         style="display: ${currentStrategy === styleValues[index] ? 'block' : 'none'}">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                    </div>
-                </div>
-            `;
-            styleItem.addEventListener('click', () => {
-                popup.querySelectorAll('.block-style-check').forEach(el => {
-                    (el as HTMLElement).style.display = 'none';
+        header.appendChild(headerIcon);
+        
+        const headerText = document.createElement('span');
+        headerText.textContent = 'Block Style';
+        header.appendChild(headerText);
+        
+        popup.appendChild(header);
+        
+        // Get available block styles dynamically from BlockFinderFactory
+        const validStrategies = BlockFinderFactory.getValidStrategies();
+        const strategyLabels = BlockFinderFactory.getStrategyLabels();
+        
+        // Add each block style option
+        validStrategies.forEach(strategyId => {
+            const item = document.createElement('div');
+            item.classList.add('settings-item', 'settings-submenu-item');
+            item.setAttribute('data-strategy', strategyId);
+            
+            const label = document.createElement('span');
+            label.classList.add('setting-item-label');
+            label.textContent = strategyLabels[strategyId] || strategyId;
+            
+            const checkContainer = document.createElement('div');
+            checkContainer.classList.add('checkmark-container');
+            if (currentStrategy === strategyId) {
+                checkContainer.classList.add('is-checked');
+            }
+            
+            const check = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            check.classList.add('checkmark');
+            check.setAttribute('viewBox', '0 0 24 24');
+            check.innerHTML = '<path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
+            
+            checkContainer.appendChild(check);
+            item.appendChild(label);
+            item.appendChild(checkContainer);
+            
+            item.addEventListener('click', () => {
+                popup.querySelectorAll('.settings-item[data-strategy]').forEach(el => {
+                    (el as HTMLElement).querySelector('.checkmark-container')?.classList.remove('is-checked');
                 });
-                const check = styleItem.querySelector(`.block-style-${styleValues[index]}`) as HTMLElement;
-                if (check) {
-                    check.style.display = 'block';
-                }
-                // Call the actual strategy change handler
-                onStrategyChange(styleValues[index]);
-                popup.remove();
+                checkContainer.classList.add('is-checked');
+                onStrategyChange(strategyId);
             });
-            popup.appendChild(styleItem);
+            
+            popup.appendChild(item);
         });
     }
     
@@ -778,59 +815,68 @@ export class HeaderComponent {
         currentTheme: string,
         onThemeChange: (theme: string) => void
     ): void {
-        // Create theme header
-        const themeHeader = document.createElement('div');
-        themeHeader.className = 'settings-item settings-header';
-        themeHeader.innerHTML = `
-            <div class="setting-item-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="5"/>
-                    <line x1="12" y1="1" x2="12" y2="3"/>
-                    <line x1="12" y1="21" x2="12" y2="23"/>
-                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                    <line x1="1" y1="12" x2="3" y2="12"/>
-                    <line x1="21" y1="12" x2="23" y2="12"/>
-                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-                </svg>
-            </div>
-            <span class="setting-item-label">Theme</span>
-        `;
-        popup.appendChild(themeHeader);
+        // Add settings header
+        const header = document.createElement('div');
+        header.classList.add('settings-item', 'settings-header');
         
-        // Add theme options
-        const themes = ['Default', 'Modern', 'Minimal', 'Naked'];
-        const themeValues = ['default', 'modern', 'minimal', 'naked'];
+        // Add header icon
+        const headerIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        headerIcon.classList.add('setting-item-icon');
+        headerIcon.setAttribute('viewBox', '0 0 24 24');
+        headerIcon.setAttribute('width', '16');
+        headerIcon.setAttribute('height', '16');
+        headerIcon.innerHTML = '<path fill="currentColor" d="M17.5,12A1.5,1.5 0 0,1 16,10.5A1.5,1.5 0 0,1 17.5,9A1.5,1.5 0 0,1 19,10.5A1.5,1.5 0 0,1 17.5,12M14.5,8A1.5,1.5 0 0,1 13,6.5A1.5,1.5 0 0,1 14.5,5A1.5,1.5 0 0,1 16,6.5A1.5,1.5 0 0,1 14.5,8M9.5,8A1.5,1.5 0 0,1 8,6.5A1.5,1.5 0 0,1 9.5,5A1.5,1.5 0 0,1 11,6.5A1.5,1.5 0 0,1 9.5,8M6.5,12A1.5,1.5 0 0,1 5,10.5A1.5,1.5 0 0,1 6.5,9A1.5,1.5 0 0,1 8,10.5A1.5,1.5 0 0,1 6.5,12M12,3A9,9 0 0,0 3,12A9,9 0 0,0 12,21A9,9 0 0,0 21,12A9,9 0 0,0 12,3Z"/>';
         
-        themes.forEach((theme, index) => {
-            const themeItem = document.createElement('div');
-            themeItem.className = 'settings-item';
-            themeItem.innerHTML = `
-                <div class="setting-item-icon"></div>
-                <span class="setting-item-label">${theme}</span>
-                <div class="checkmark-container">
-                    <div class="checkmark theme-check theme-${themeValues[index]}"
-                         style="display: ${currentTheme === themeValues[index] ? 'block' : 'none'}">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                    </div>
-                </div>
-            `;
-            themeItem.addEventListener('click', () => {
-                popup.querySelectorAll('.theme-check').forEach(el => {
-                    (el as HTMLElement).style.display = 'none';
+        header.appendChild(headerIcon);
+        
+        const headerText = document.createElement('span');
+        headerText.textContent = 'Theme';
+        header.appendChild(headerText);
+        
+        popup.appendChild(header);
+        
+        // Define themes
+        const themes = [
+            { id: 'default', label: 'Default' },
+            { id: 'modern', label: 'Modern' },
+            { id: 'minimal', label: 'Minimal' },
+            { id: 'naked', label: 'Naked' }
+        ];
+        
+        // Add each theme option
+        themes.forEach(theme => {
+            const item = document.createElement('div');
+            item.classList.add('settings-item', 'settings-submenu-item');
+            item.setAttribute('data-theme', theme.id);
+            
+            const label = document.createElement('span');
+            label.classList.add('setting-item-label');
+            label.textContent = theme.label;
+            
+            const checkContainer = document.createElement('div');
+            checkContainer.classList.add('checkmark-container');
+            if (currentTheme === theme.id) {
+                checkContainer.classList.add('is-checked');
+            }
+            
+            const check = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            check.classList.add('checkmark');
+            check.setAttribute('viewBox', '0 0 24 24');
+            check.innerHTML = '<path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
+            
+            checkContainer.appendChild(check);
+            item.appendChild(label);
+            item.appendChild(checkContainer);
+            
+            item.addEventListener('click', () => {
+                popup.querySelectorAll('.settings-item[data-theme]').forEach(el => {
+                    (el as HTMLElement).querySelector('.checkmark-container')?.classList.remove('is-checked');
                 });
-                const check = themeItem.querySelector(`.theme-${themeValues[index]}`) as HTMLElement;
-                if (check) {
-                    check.style.display = 'block';
-                }
-                // Call the actual theme change handler
-                onThemeChange(themeValues[index]);
-                popup.remove();
+                checkContainer.classList.add('is-checked');
+                onThemeChange(theme.id);
             });
-            popup.appendChild(themeItem);
+            
+            popup.appendChild(item);
         });
     }
 }

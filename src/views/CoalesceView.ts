@@ -213,7 +213,13 @@ export class CoalesceView {
         if (header) {
             const sortButton = header.querySelector('.sort-button svg') as SVGElement;
             if (sortButton) {
-                sortButton.style.transform = this.sortDescending ? 'none' : 'rotate(180deg)';
+                if (this.sortDescending) {
+                    sortButton.classList.remove('sort-ascending');
+                    sortButton.classList.add('sort-descending');
+                } else {
+                    sortButton.classList.remove('sort-descending');
+                    sortButton.classList.add('sort-ascending');
+                }
             }
         }
     }
@@ -261,14 +267,17 @@ export class CoalesceView {
      */
     private async renderBlocks(linksContainer: HTMLElement, onLinkClick: (path: string) => void): Promise<void> {
         for (const { block } of this.allBlocks) {
-            await block.render(linksContainer, this.view, onLinkClick);
-            const blockContainer = block.getContainer();
-            if (blockContainer) {
-                const contentPreview = blockContainer.querySelector('.content-preview') as HTMLElement;
-                if (contentPreview) {
-                    contentPreview.style.display = this.blocksCollapsed ? 'none' : 'block';
+            try {
+                await block.render(linksContainer, this.view, onLinkClick);
+                
+                const blockContainer = block.getContainer();
+                if (blockContainer) {
+                    if (this.blocksCollapsed) {
+                        blockContainer.classList.add('is-collapsed');
+                    }
                 }
-                block.setCollapsed(!this.blocksCollapsed);
+            } catch (error) {
+                this.logger.error('Failed to render block:', error);
             }
         }
     }
@@ -300,10 +309,7 @@ export class CoalesceView {
             this.settingsManager.settings.onlyDailyNotes,
             async (show: boolean) => this.handleDailyNotesChange(show),
             this.aliases,
-            (alias: string | null) => {
-                this.currentAlias = alias;
-                this.filterBlocksByAlias();
-            },
+            async (alias: string | null) => this.handleAliasSelect(alias),
             this.currentAlias,
             unsavedAliases,
             this.settingsManager.settings.headerStyle,
@@ -385,13 +391,13 @@ export class CoalesceView {
      */
     private updateAllBlocksCollapsedState(): void {
         this.allBlocks.forEach(({ block }) => {
-            const blockContainer = block.getContainer();
-            if (blockContainer) {
-                const contentPreview = blockContainer.querySelector('.content-preview') as HTMLElement;
-                if (contentPreview) {
-                    contentPreview.style.display = this.blocksCollapsed ? 'none' : 'block';
+            const container = block.getContainer();
+            if (container) {
+                if (this.blocksCollapsed) {
+                    container.classList.add('is-collapsed');
+                } else {
+                    container.classList.remove('is-collapsed');
                 }
-                block.setCollapsed(!this.blocksCollapsed);
             }
         });
     }
@@ -421,7 +427,7 @@ export class CoalesceView {
     private countVisibleBlocks(): number {
         return this.allBlocks.filter(({ block }) => {
             const container = block.getContainer();
-            return container && container.style.display !== 'none';
+            return container && !container.classList.contains('no-alias');
         }).length;
     }
 
@@ -508,19 +514,24 @@ export class CoalesceView {
      * Updates block visibility based on current alias filter
      */
     private updateBlockVisibilityByAlias(): void {
-        // Show all blocks when no alias is selected
         if (!this.currentAlias) {
             this.showAllBlocks();
             return;
         }
         
-        // Filter blocks that contain the selected alias
         this.allBlocks.forEach(({ block }) => {
             const container = block.getContainer();
-            if (!container) return;
-
-            const hasAlias = this.blockContainsAlias(block);
-            container.style.display = hasAlias ? '' : 'none';
+            if (container) {
+                const hasAlias = this.blockContainsAlias(block);
+                
+                if (hasAlias) {
+                    container.classList.add('has-alias');
+                    container.classList.remove('no-alias');
+                } else {
+                    container.classList.add('no-alias');
+                    container.classList.remove('has-alias');
+                }
+            }
         });
     }
 
@@ -531,7 +542,8 @@ export class CoalesceView {
         this.allBlocks.forEach(({ block }) => {
             const container = block.getContainer();
             if (container) {
-                container.style.display = '';
+                container.classList.remove('no-alias');
+                container.classList.add('has-alias');
             }
         });
     }
@@ -592,11 +604,9 @@ export class CoalesceView {
                 this.allBlocks.forEach(({ block }) => {
                     const blockContainer = block.getContainer();
                     if (blockContainer) {
-                        const contentPreview = blockContainer.querySelector('.content-preview') as HTMLElement;
-                        if (contentPreview) {
-                            contentPreview.style.display = this.blocksCollapsed ? 'none' : 'block';
+                        if (this.blocksCollapsed) {
+                            blockContainer.classList.add('is-collapsed');
                         }
-                        block.setCollapsed(!this.blocksCollapsed);
                     }
                 });
             } else {
@@ -604,5 +614,12 @@ export class CoalesceView {
                 this.attachToDOM();
             }
         }
+    }
+
+    private async handleAliasSelect(alias: string | null): Promise<void> {
+        this.logger.debug("Alias selected:", { alias });
+        this.currentAlias = alias;
+        this.updateBlockVisibilityByAlias();
+        this.updateHeaderWithVisibleBlockCount();
     }
 }

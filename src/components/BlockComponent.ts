@@ -150,14 +150,14 @@ export class BlockComponent {
         const contentPreview = this.getContentPreviewElement();
         if (!contentPreview) return;
 
-        const isCollapsed = contentPreview.style.display === 'none';
+        const isCollapsed = this.mainContainer.classList.contains('is-collapsed');
         this.logger.debug('Toggling block', {
             filePath: this.filePath,
             isCollapsed,
             newState: !isCollapsed
         });
 
-        this.updateCollapsedState(contentPreview, !isCollapsed);
+        this.updateCollapsedState(!isCollapsed);
     }
 
     public setCollapsed(collapsed: boolean): void {
@@ -171,15 +171,19 @@ export class BlockComponent {
             collapsed
         });
 
-        this.updateCollapsedState(contentPreview, collapsed);
+        this.updateCollapsedState(collapsed);
     }
 
     private getContentPreviewElement(): HTMLDivElement | null {
         return this.mainContainer.querySelector('.content-preview') as HTMLDivElement;
     }
 
-    private updateCollapsedState(contentPreview: HTMLDivElement, collapsed: boolean): void {
-        contentPreview.style.display = collapsed ? 'none' : 'block';
+    private updateCollapsedState(collapsed: boolean): void {
+        if (collapsed) {
+            this.mainContainer.classList.add('is-collapsed');
+        } else {
+            this.mainContainer.classList.remove('is-collapsed');
+        }
         this.toggleButton.textContent = collapsed ? '▶' : '▼';
     }
 

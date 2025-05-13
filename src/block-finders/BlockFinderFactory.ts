@@ -8,6 +8,24 @@ export class BlockFinderFactory {
     private static readonly VALID_STRATEGIES = ['headers-only', 'top-line', 'default'] as const;
     private static logger: Logger = new Logger('BlockFinderFactory');
 
+    /**
+     * Returns the list of valid block finder strategies
+     */
+    static getValidStrategies(): ReadonlyArray<string> {
+        return this.VALID_STRATEGIES;
+    }
+
+    /**
+     * Returns a map of strategy IDs to their display labels
+     */
+    static getStrategyLabels(): Record<string, string> {
+        return {
+            'default': 'Default',
+            'headers-only': 'Headers Only',
+            'top-line': 'Top Line'
+        };
+    }
+
     static createBlockFinder(strategy: string, logger: Logger): AbstractBlockFinder {
         this.logger.debug('Creating block finder', { 
             requestedStrategy: strategy,
