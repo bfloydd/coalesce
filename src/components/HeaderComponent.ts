@@ -345,7 +345,7 @@ export class HeaderComponent {
                 <circle cx="12" cy="19" r="1"></circle>
             </svg>
         `;
-        
+
         settingsButton.addEventListener('click', (e) => {
             e.stopPropagation(); // Prevent body click from being triggered immediately
             
@@ -356,7 +356,7 @@ export class HeaderComponent {
                 existingPopup.remove();
                 return;
             }
-            
+
             // Create settings popup
             const popup = this.createSettingsPopup(
                 hideBacklinkLine,
@@ -452,7 +452,7 @@ export class HeaderComponent {
         this.addThemeSettings(popup, currentTheme, onThemeChange);
         
         this.setupPopupClickOutsideHandler(popup, settingsButton);
-        
+
         return popup;
     }
 
@@ -498,7 +498,7 @@ export class HeaderComponent {
             checkmarkContainer.classList.toggle('is-checked');
             onHideBacklinkLineChange(newValue);
         });
-        
+
         return item;
     }
 
@@ -544,7 +544,7 @@ export class HeaderComponent {
             checkmarkContainer.classList.toggle('is-checked');
             onOnlyDailyNotesChange(newState);
         });
-        
+
         return item;
     }
 
@@ -627,7 +627,7 @@ export class HeaderComponent {
                 // Call the change handler with the new style
                 onHeaderStyleChange(style);
             });
-            
+
             popup.appendChild(item);
         });
     }
@@ -637,7 +637,7 @@ export class HeaderComponent {
             const target = e.target as HTMLElement;
             // Only close if clicking outside both popup and settings button
             if (!popup.contains(target) && target !== settingsButton && !settingsButton.contains(target)) {
-                document.removeEventListener('click', closePopup);
+            document.removeEventListener('click', closePopup);
                 popup.remove();
             }
         };

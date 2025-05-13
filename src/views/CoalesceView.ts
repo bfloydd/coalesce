@@ -270,16 +270,15 @@ export class CoalesceView {
             try {
                 await block.render(linksContainer, this.view, onLinkClick);
                 
-                const blockContainer = block.getContainer();
-                if (blockContainer) {
-                    if (this.blocksCollapsed) {
-                        blockContainer.classList.add('is-collapsed');
-                    }
-                }
+                // Set the initial collapsed state using the block's method
+                block.setCollapsed(this.blocksCollapsed);
             } catch (error) {
                 this.logger.error('Failed to render block:', error);
             }
         }
+        
+        // Update the header collapse button state after rendering all blocks
+        this.updateCollapseButtonState();
     }
 
     /**
@@ -391,15 +390,29 @@ export class CoalesceView {
      */
     private updateAllBlocksCollapsedState(): void {
         this.allBlocks.forEach(({ block }) => {
-            const container = block.getContainer();
-            if (container) {
+            // Use setCollapsed method to update both the container class and the toggle icon
+            block.setCollapsed(this.blocksCollapsed);
+        });
+        
+        // Also update the header collapse button state
+        this.updateCollapseButtonState();
+    }
+    
+    /**
+     * Updates the collapse button icon in the header
+     */
+    private updateCollapseButtonState(): void {
+        const header = this.container.querySelector('.backlinks-header');
+        if (header) {
+            const collapseButton = header.querySelector('.collapse-button svg') as SVGElement;
+            if (collapseButton) {
                 if (this.blocksCollapsed) {
-                    container.classList.add('is-collapsed');
+                    collapseButton.classList.add('is-collapsed');
                 } else {
-                    container.classList.remove('is-collapsed');
+                    collapseButton.classList.remove('is-collapsed');
                 }
             }
-        });
+        }
     }
 
     /**
@@ -527,21 +540,14 @@ export class CoalesceView {
                 // Re-render existing blocks to the new location
                 await this.renderBlocks(linksContainer, this.currentOnLinkClick);
                 
-                // Ensure blocks maintain their current collapsed state
-                this.allBlocks.forEach(({ block }) => {
-                    const blockContainer = block.getContainer();
-                    if (blockContainer) {
-                        if (this.blocksCollapsed) {
-                            blockContainer.classList.add('is-collapsed');
-                        }
-                    }
-                });
-                
                 // Update block visibility based on current alias filter
                 this.updateBlockVisibilityByAlias();
                 
                 // Update the header with the correct block count
                 this.updateHeaderWithVisibleBlockCount();
+                
+                // Update the header collapse button state
+                this.updateCollapseButtonState();
             }
         }
     }
