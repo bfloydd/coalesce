@@ -157,7 +157,11 @@ export class HeaderComponent {
         svg.setAttribute("width", "18");
         svg.setAttribute("height", "18");
         svg.setAttribute("fill", "currentColor");
-        svg.innerHTML = `<path d="M85 40.5C85 22.5 70.5 10 52.5 10c-27.6 0-43.1 24.5-43.1 40 0 21.7 16.8 40 42.6 40 11.3 0 21.1-2.8 27.4-6.5 2.2-1.3 3.6-2.8 3.6-4.4 0-1.3-0.9-2.4-2.2-2.4-0.6 0-1.2 0.2-2 0.7-6.8 4.8-15.9 7.1-26.8 7.1-22.3 0-36.2-15.4-36.2-34.5 0-19.1 13.9-34.5 36.2-34.5 15.4 0 27.5 10.3 27.5 24.5 0 11.8-7.8 19.5-16.8 19.5-4.9 0-7.8-2.5-7.8-6.7 0-1.1 0.2-2.3 0.5-3.4l4.1-16.8c0.9-3.7-1.1-5.6-4-5.6-4.9 0-9.6 5-9.6 12.3 0 5.6 3.1 9.5 9.3 9.5 4.7 0 9.1-1.9 12.4-5.4 3.3 3.5 8.2 5.4 14.3 5.4C73.2 60 85 51.5 85 40.5z"/>`;
+        
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", "M85 40.5C85 22.5 70.5 10 52.5 10c-27.6 0-43.1 24.5-43.1 40 0 21.7 16.8 40 42.6 40 11.3 0 21.1-2.8 27.4-6.5 2.2-1.3 3.6-2.8 3.6-4.4 0-1.3-0.9-2.4-2.2-2.4-0.6 0-1.2 0.2-2 0.7-6.8 4.8-15.9 7.1-26.8 7.1-22.3 0-36.2-15.4-36.2-34.5 0-19.1 13.9-34.5 36.2-34.5 15.4 0 27.5 10.3 27.5 24.5 0 11.8-7.8 19.5-16.8 19.5-4.9 0-7.8-2.5-7.8-6.7 0-1.1 0.2-2.3 0.5-3.4l4.1-16.8c0.9-3.7-1.1-5.6-4-5.6-4.9 0-9.6 5-9.6 12.3 0 5.6 3.1 9.5 9.3 9.5 4.7 0 9.1-1.9 12.4-5.4 3.3 3.5 8.2 5.4 14.3 5.4C73.2 60 85 51.5 85 40.5z");
+        
+        svg.appendChild(path);
         return svg;
     }
 
@@ -254,12 +258,18 @@ export class HeaderComponent {
         sortButton.classList.add('sort-button');
         sortButton.setAttribute('aria-label', sortDescending ? 'Sort ascending' : 'Sort descending');
         
-        const svgClass = sortDescending ? 'sort-descending' : 'sort-ascending';
-        sortButton.innerHTML = `
-            <svg width="20" height="20" viewBox="0 0 16 16" class="${svgClass}">
-                <path fill="currentColor" d="M4 4l4 4 4-4H4z"/>
-            </svg>
-        `;
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("width", "20");
+        svg.setAttribute("height", "20");
+        svg.setAttribute("viewBox", "0 0 16 16");
+        svg.classList.add(sortDescending ? 'sort-descending' : 'sort-ascending');
+        
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("fill", "currentColor");
+        path.setAttribute("d", "M4 4l4 4 4-4H4z");
+        
+        svg.appendChild(path);
+        sortButton.appendChild(svg);
         
         sortButton.addEventListener('click', onSortToggle);
         
@@ -271,12 +281,20 @@ export class HeaderComponent {
         collapseButton.classList.add('collapse-button');
         collapseButton.setAttribute('aria-label', isCollapsed ? 'Expand all' : 'Collapse all');
         
-        const svgClass = isCollapsed ? 'is-collapsed' : '';
-        collapseButton.innerHTML = `
-            <svg width="20" height="20" viewBox="0 0 16 16" class="${svgClass}">
-                <path fill="currentColor" d="M4 4l4 4 4-4H4z"/>
-            </svg>
-        `;
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("width", "20");
+        svg.setAttribute("height", "20");
+        svg.setAttribute("viewBox", "0 0 16 16");
+        if (isCollapsed) {
+            svg.classList.add('is-collapsed');
+        }
+        
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("fill", "currentColor");
+        path.setAttribute("d", "M4 4l4 4 4-4H4z");
+        
+        svg.appendChild(path);
+        collapseButton.appendChild(svg);
         
         collapseButton.addEventListener('click', onCollapseToggle);
         
@@ -338,13 +356,38 @@ export class HeaderComponent {
         const settingsButton = document.createElement('button');
         settingsButton.classList.add('settings-button');
         settingsButton.setAttribute('aria-label', 'Settings');
-        settingsButton.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="1"></circle>
-                <circle cx="12" cy="5" r="1"></circle>
-                <circle cx="12" cy="19" r="1"></circle>
-            </svg>
-        `;
+        
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        svg.setAttribute("width", "16");
+        svg.setAttribute("height", "16");
+        svg.setAttribute("viewBox", "0 0 24 24");
+        svg.setAttribute("fill", "none");
+        svg.setAttribute("stroke", "currentColor");
+        svg.setAttribute("stroke-width", "2");
+        svg.setAttribute("stroke-linecap", "round");
+        svg.setAttribute("stroke-linejoin", "round");
+        
+        const circle1 = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle1.setAttribute("cx", "12");
+        circle1.setAttribute("cy", "12");
+        circle1.setAttribute("r", "1");
+        
+        const circle2 = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle2.setAttribute("cx", "12");
+        circle2.setAttribute("cy", "5");
+        circle2.setAttribute("r", "1");
+        
+        const circle3 = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle3.setAttribute("cx", "12");
+        circle3.setAttribute("cy", "19");
+        circle3.setAttribute("r", "1");
+        
+        svg.appendChild(circle1);
+        svg.appendChild(circle2);
+        svg.appendChild(circle3);
+        
+        settingsButton.appendChild(svg);
 
         settingsButton.addEventListener('click', (e) => {
             e.stopPropagation(); // Prevent body click from being triggered immediately
@@ -470,7 +513,12 @@ export class HeaderComponent {
         icon.setAttribute('viewBox', '0 0 24 24');
         icon.setAttribute('width', '16');
         icon.setAttribute('height', '16');
-        icon.innerHTML = '<path fill="currentColor" d="M12.968 16L10 20H3l4-6H3l3-4h6l-3 4h3.968zm5.991-7.474a.997.997 0 0 1-.028 1.136l-7.99 11.985a1 1 0 0 1-1.664-1.11l7.99-11.987a1 1 0 0 1 1.692-.024z"/>';
+        
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('fill', 'currentColor');
+        path.setAttribute('d', 'M12.968 16L10 20H3l4-6H3l3-4h6l-3 4h3.968zm5.991-7.474a.997.997 0 0 1-.028 1.136l-7.99 11.985a1 1 0 0 1-1.664-1.11l7.99-11.987a1 1 0 0 1 1.692-.024z');
+        
+        icon.appendChild(path);
         
         const label = document.createElement('span');
         label.classList.add('setting-item-label');
@@ -485,7 +533,12 @@ export class HeaderComponent {
         const hideBacklinkLineCheckmark = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         hideBacklinkLineCheckmark.classList.add('checkmark');
         hideBacklinkLineCheckmark.setAttribute('viewBox', '0 0 24 24');
-        hideBacklinkLineCheckmark.innerHTML = '<path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
+        
+        const checkmarkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        checkmarkPath.setAttribute('fill', 'currentColor');
+        checkmarkPath.setAttribute('d', 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z');
+        
+        hideBacklinkLineCheckmark.appendChild(checkmarkPath);
         
         checkmarkContainer.appendChild(hideBacklinkLineCheckmark);
         
@@ -522,7 +575,12 @@ export class HeaderComponent {
         icon.setAttribute('viewBox', '0 0 24 24');
         icon.setAttribute('width', '16');
         icon.setAttribute('height', '16');
-        icon.innerHTML = '<path fill="currentColor" d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5v-5z"/>';
+        
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('fill', 'currentColor');
+        path.setAttribute('d', 'M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5v-5z');
+        
+        icon.appendChild(path);
         
         const label = document.createElement('span');
         label.classList.add('setting-item-label');
@@ -537,7 +595,12 @@ export class HeaderComponent {
         const dailyNotesCheckmark = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         dailyNotesCheckmark.classList.add('checkmark');
         dailyNotesCheckmark.setAttribute('viewBox', '0 0 24 24');
-        dailyNotesCheckmark.innerHTML = '<path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
+        
+        const checkmarkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        checkmarkPath.setAttribute('fill', 'currentColor');
+        checkmarkPath.setAttribute('d', 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z');
+        
+        dailyNotesCheckmark.appendChild(checkmarkPath);
         
         checkmarkContainer.appendChild(dailyNotesCheckmark);
         
@@ -575,7 +638,12 @@ export class HeaderComponent {
         headerIcon.setAttribute('viewBox', '0 0 24 24');
         headerIcon.setAttribute('width', '16');
         headerIcon.setAttribute('height', '16');
-        headerIcon.innerHTML = '<path fill="currentColor" d="M3 7h6v6H3V7m0 10h6v-2H3v2m8 0h10v-2H11v2m0-4h10v-2H11v2m0-4h10V7H11v2z"/>';
+        
+        const iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        iconPath.setAttribute('fill', 'currentColor');
+        iconPath.setAttribute('d', 'M3 7h6v6H3V7m0 10h6v-2H3v2m8 0h10v-2H11v2m0-4h10v-2H11v2m0-4h10V7H11v2z');
+        
+        headerIcon.appendChild(iconPath);
         
         headerStyleHeader.appendChild(headerIcon);
         
@@ -619,8 +687,12 @@ export class HeaderComponent {
             const checkElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             checkElement.classList.add('checkmark');
             checkElement.setAttribute('viewBox', '0 0 24 24');
-            checkElement.innerHTML = '<path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
             
+            const checkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            checkPath.setAttribute('fill', 'currentColor');
+            checkPath.setAttribute('d', 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z');
+            
+            checkElement.appendChild(checkPath);
             checkContainer.appendChild(checkElement);
             
             item.appendChild(itemLabel);
@@ -678,7 +750,12 @@ export class HeaderComponent {
         headerIcon.setAttribute('viewBox', '0 0 24 24');
         headerIcon.setAttribute('width', '16');
         headerIcon.setAttribute('height', '16');
-        headerIcon.innerHTML = '<path fill="currentColor" d="M9 20.42L2.79 14.21L5.62 11.38L9 14.77L18.88 4.88L21.71 7.71L9 20.42Z"/>';
+        
+        const iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        iconPath.setAttribute('fill', 'currentColor');
+        iconPath.setAttribute('d', 'M9 20.42L2.79 14.21L5.62 11.38L9 14.77L18.88 4.88L21.71 7.71L9 20.42Z');
+        
+        headerIcon.appendChild(iconPath);
         
         header.appendChild(headerIcon);
         
@@ -706,8 +783,12 @@ export class HeaderComponent {
         const highCheck = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         highCheck.classList.add('checkmark');
         highCheck.setAttribute('viewBox', '0 0 24 24');
-        highCheck.innerHTML = '<path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
         
+        const highCheckPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        highCheckPath.setAttribute('fill', 'currentColor');
+        highCheckPath.setAttribute('d', 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z');
+        
+        highCheck.appendChild(highCheckPath);
         highCheckContainer.appendChild(highCheck);
         highItem.appendChild(highLabel);
         highItem.appendChild(highCheckContainer);
@@ -732,8 +813,12 @@ export class HeaderComponent {
         const lowCheck = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         lowCheck.classList.add('checkmark');
         lowCheck.setAttribute('viewBox', '0 0 24 24');
-        lowCheck.innerHTML = '<path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
         
+        const lowCheckPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        lowCheckPath.setAttribute('fill', 'currentColor');
+        lowCheckPath.setAttribute('d', 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z');
+        
+        lowCheck.appendChild(lowCheckPath);
         lowCheckContainer.appendChild(lowCheck);
         lowItem.appendChild(lowLabel);
         lowItem.appendChild(lowCheckContainer);
@@ -776,9 +861,12 @@ export class HeaderComponent {
         headerIcon.setAttribute('viewBox', '0 0 24 24');
         headerIcon.setAttribute('width', '16');
         headerIcon.setAttribute('height', '16');
-        headerIcon.innerHTML = '<path fill="currentColor" d="M3 5h18v4H3V5m0 10h18v4H3v-4z"/>';
         
-        header.appendChild(headerIcon);
+        const iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        iconPath.setAttribute('fill', 'currentColor');
+        iconPath.setAttribute('d', 'M3 5h18v4H3V5m0 10h18v4H3v-4z');
+        
+        headerIcon.appendChild(iconPath);
         
         const headerText = document.createElement('span');
         headerText.textContent = 'Block Style';
@@ -809,8 +897,12 @@ export class HeaderComponent {
             const check = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             check.classList.add('checkmark');
             check.setAttribute('viewBox', '0 0 24 24');
-            check.innerHTML = '<path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
             
+            const checkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            checkPath.setAttribute('fill', 'currentColor');
+            checkPath.setAttribute('d', 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z');
+            
+            check.appendChild(checkPath);
             checkContainer.appendChild(check);
             item.appendChild(label);
             item.appendChild(checkContainer);
@@ -845,9 +937,12 @@ export class HeaderComponent {
         headerIcon.setAttribute('viewBox', '0 0 24 24');
         headerIcon.setAttribute('width', '16');
         headerIcon.setAttribute('height', '16');
-        headerIcon.innerHTML = '<path fill="currentColor" d="M17.5,12A1.5,1.5 0 0,1 16,10.5A1.5,1.5 0 0,1 17.5,9A1.5,1.5 0 0,1 19,10.5A1.5,1.5 0 0,1 17.5,12M14.5,8A1.5,1.5 0 0,1 13,6.5A1.5,1.5 0 0,1 14.5,5A1.5,1.5 0 0,1 16,6.5A1.5,1.5 0 0,1 14.5,8M9.5,8A1.5,1.5 0 0,1 8,6.5A1.5,1.5 0 0,1 9.5,5A1.5,1.5 0 0,1 11,6.5A1.5,1.5 0 0,1 9.5,8M6.5,12A1.5,1.5 0 0,1 5,10.5A1.5,1.5 0 0,1 6.5,9A1.5,1.5 0 0,1 8,10.5A1.5,1.5 0 0,1 6.5,12M12,3A9,9 0 0,0 3,12A9,9 0 0,0 12,21A9,9 0 0,0 21,12A9,9 0 0,0 12,3Z"/>';
         
-        header.appendChild(headerIcon);
+        const iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        iconPath.setAttribute('fill', 'currentColor');
+        iconPath.setAttribute('d', 'M17.5,12A1.5,1.5 0 0,1 16,10.5A1.5,1.5 0 0,1 17.5,9A1.5,1.5 0 0,1 19,10.5A1.5,1.5 0 0,1 17.5,12M14.5,8A1.5,1.5 0 0,1 13,6.5A1.5,1.5 0 0,1 14.5,5A1.5,1.5 0 0,1 16,6.5A1.5,1.5 0 0,1 14.5,8M9.5,8A1.5,1.5 0 0,1 8,6.5A1.5,1.5 0 0,1 9.5,5A1.5,1.5 0 0,1 11,6.5A1.5,1.5 0 0,1 9.5,8M6.5,12A1.5,1.5 0 0,1 5,10.5A1.5,1.5 0 0,1 6.5,9A1.5,1.5 0 0,1 8,10.5A1.5,1.5 0 0,1 6.5,12M12,3A9,9 0 0,0 3,12A9,9 0 0,0 12,21A9,9 0 0,0 21,12A9,9 0 0,0 12,3Z');
+        
+        headerIcon.appendChild(iconPath);
         
         const headerText = document.createElement('span');
         headerText.textContent = 'Theme';
@@ -882,8 +977,12 @@ export class HeaderComponent {
             const check = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             check.classList.add('checkmark');
             check.setAttribute('viewBox', '0 0 24 24');
-            check.innerHTML = '<path fill="currentColor" d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>';
             
+            const checkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            checkPath.setAttribute('fill', 'currentColor');
+            checkPath.setAttribute('d', 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z');
+            
+            check.appendChild(checkPath);
             checkContainer.appendChild(check);
             item.appendChild(label);
             item.appendChild(checkContainer);
