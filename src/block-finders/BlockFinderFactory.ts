@@ -10,9 +10,20 @@ export class BlockFinderFactory {
 
     /**
      * Returns the list of valid block finder strategies
+     * with 'default' always at the top
      */
     static getValidStrategies(): ReadonlyArray<string> {
-        return this.VALID_STRATEGIES;
+        // Create a sorted array with 'default' first, then others in original order
+        const strategies = Array.from(this.VALID_STRATEGIES);
+        
+        // If 'default' exists in the array, move it to the front
+        const defaultIndex = strategies.indexOf('default');
+        if (defaultIndex > 0) {
+            strategies.splice(defaultIndex, 1);
+            strategies.unshift('default');
+        }
+        
+        return strategies;
     }
 
     /**
