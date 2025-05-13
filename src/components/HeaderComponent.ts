@@ -256,7 +256,7 @@ export class HeaderComponent {
         
         const svgClass = sortDescending ? 'sort-descending' : 'sort-ascending';
         sortButton.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 16 16" class="${svgClass}">
+            <svg width="20" height="20" viewBox="0 0 16 16" class="${svgClass}">
                 <path fill="currentColor" d="M4 4l4 4 4-4H4z"/>
             </svg>
         `;
@@ -273,7 +273,7 @@ export class HeaderComponent {
         
         const svgClass = isCollapsed ? 'is-collapsed' : '';
         collapseButton.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 16 16" class="${svgClass}">
+            <svg width="20" height="20" viewBox="0 0 16 16" class="${svgClass}">
                 <path fill="currentColor" d="M4 4l4 4 4-4H4z"/>
             </svg>
         `;
@@ -494,8 +494,14 @@ export class HeaderComponent {
         item.appendChild(checkmarkContainer);
         
         item.addEventListener('click', () => {
-            const newValue = !hideBacklinkLine;
+            // Get current state from the DOM instead of the closure variable
+            const isCurrentlyChecked = checkmarkContainer.classList.contains('is-checked');
+            const newValue = !isCurrentlyChecked;
+            
+            // Toggle the visual state
             checkmarkContainer.classList.toggle('is-checked');
+            
+            // Call handler with new value
             onHideBacklinkLineChange(newValue);
         });
 
@@ -540,8 +546,14 @@ export class HeaderComponent {
         item.appendChild(checkmarkContainer);
         
         item.addEventListener('click', () => {
-            const newState = !onlyDailyNotes;
+            // Get current state from the DOM instead of the closure variable
+            const isCurrentlyChecked = checkmarkContainer.classList.contains('is-checked');
+            const newState = !isCurrentlyChecked;
+            
+            // Toggle the visual state
             checkmarkContainer.classList.toggle('is-checked');
+            
+            // Call handler with new value
             onOnlyDailyNotesChange(newState);
         });
 
