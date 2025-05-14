@@ -51,6 +51,15 @@ export class BlockComponent {
     private createContainers(container: HTMLElement): void {
         this.mainContainer = container.createDiv({ cls: 'backlink-item' });
         this.headerContainer = this.mainContainer.createDiv({ cls: 'block-header' });
+        
+        // Make the entire header clickable for toggling
+        this.headerContainer.addEventListener('click', (event) => {
+            // Only toggle if the click wasn't on a child element with its own click handler
+            if (event.target === this.headerContainer) {
+                this.logger.debug('Header container clicked');
+                this.toggle();
+            }
+        });
     }
 
     private createToggleButton(): void {
@@ -59,8 +68,9 @@ export class BlockComponent {
             text: '▼',
         });
 
-        this.toggleButton.addEventListener('click', () => {
+        this.toggleButton.addEventListener('click', (event) => {
             this.logger.debug('Toggle button clicked');
+            event.stopPropagation(); // Prevent header click from also triggering
             this.toggle();
         });
     }
@@ -74,6 +84,7 @@ export class BlockComponent {
         
         blockTitle.addEventListener('click', (event) => {
             event.preventDefault();
+            event.stopPropagation(); // Prevent header click from also triggering
             this.logger.debug('Block title clicked', {
                 filePath: this.filePath
             });

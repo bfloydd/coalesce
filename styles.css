@@ -5,6 +5,12 @@
 .block-header {
     display: flex;
     align-items: center;
+    cursor: pointer; /* Make entire header look clickable */
+}
+
+/* Optional hover effect for the header */
+.block-header:hover {
+    background-color: var(--background-modifier-hover);
 }
 
 .header-title {
