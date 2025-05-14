@@ -5,10 +5,9 @@
 .block-header {
     display: flex;
     align-items: center;
-    cursor: pointer; /* Make entire header look clickable */
+    cursor: pointer;
 }
 
-/* Optional hover effect for the header */
 .block-header:hover {
     background-color: var(--background-modifier-hover);
 }
@@ -21,6 +20,8 @@
     cursor: pointer;
     margin-right: 5px;
     transition: transform 0.2s ease;
+    font-size: 11px;
+    line-height: 1;
 }
 
 .backlinks-header {
@@ -67,10 +68,7 @@
     color: var(--text-normal);
 }
 
-.sort-button svg, .collapse-button svg {
-    width: 20px;
-    height: 20px;
-}
+
 
 .collapse-button svg:not(.is-collapsed) {
     transform: none;
@@ -597,4 +595,14 @@
 
 .settings-submenu-item {
     padding-left: 24px;
+}
+
+.backlinks-header .button-group .sort-button svg, 
+.backlinks-header .button-group .collapse-button svg,
+html body .is-mobile .backlinks-header .button-group .sort-button svg, 
+html body .is-phone .backlinks-header .button-group .sort-button svg,
+html body .is-mobile .backlinks-header .button-group .collapse-button svg, 
+html body .is-phone .backlinks-header .button-group .collapse-button svg {
+    width: 21px;
+    height: 21px;
 }
