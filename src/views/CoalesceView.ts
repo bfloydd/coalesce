@@ -7,6 +7,7 @@ import { ThemeManager } from '../ThemeManager';
 import { AbstractBlockFinder } from '../block-finders/base/AbstractBlockFinder';
 import { BlockFinderFactory } from '../block-finders/BlockFinderFactory';
 import { DailyNote } from '../utils/DailyNote';
+import { AppWithInternalPlugins } from '../types';
 
 /** 
  * Handles backlink UI representation, DOM management, user interactions, and coordination between block finders and UI 
@@ -67,8 +68,9 @@ export class CoalesceView {
     }
 
     private createBacklinksContainer(): HTMLElement {
-        const container = document.createElement('div');
-        container.classList.add('custom-backlinks-container');
+        // Create a temporary container to use Obsidian's helper methods
+        const tempContainer = document.createElement('div');
+        const container = tempContainer.createDiv({ cls: 'custom-backlinks-container' });
         return container;
     }
 
@@ -230,7 +232,7 @@ export class CoalesceView {
         this.logger.debug("Updating backlinks", { count: filesLinkingToThis.length, files: filesLinkingToThis });
         this.container.empty();
 
-        const linksContainer = this.container.createDiv('backlinks-list');
+        const linksContainer = this.container.createDiv({ cls: 'backlinks-list' });
         this.allBlocks = [];
         
         await this.collectBlocksFromFiles(filesLinkingToThis);
@@ -475,7 +477,7 @@ export class CoalesceView {
         // Check if we should hide in daily notes 
         if (this.settingsManager.settings.onlyDailyNotes && 
             this.view.file && 
-            DailyNote.isDaily(this.view.app, this.view.file.path)) {
+            DailyNote.isDaily(this.view.app as AppWithInternalPlugins, this.view.file.path)) {
             // Do not attach if we're in a daily note and setting is enabled
             this.logger.debug("Skipping Coalesce attachment in daily note (Hide in Daily Notes enabled)");
             return;
@@ -483,9 +485,7 @@ export class CoalesceView {
 
         // Only create backlinks list if it doesn't exist and we're not handling this in updatePosition
         if (!this.container.querySelector('.backlinks-list') && this.allBlocks.length === 0) {
-            const linksContainer = document.createElement('div');
-            linksContainer.addClass('backlinks-list');
-            this.container.appendChild(linksContainer);
+            const linksContainer = this.container.createDiv({ cls: 'backlinks-list' });
         }
 
         if (this.settingsManager.settings.position === 'high') {
@@ -519,9 +519,7 @@ export class CoalesceView {
         this.container.empty();
         
         // Create a new backlinks list container
-        const linksContainer = document.createElement('div');
-        linksContainer.addClass('backlinks-list');
-        this.container.appendChild(linksContainer);
+        const linksContainer = this.container.createDiv({ cls: 'backlinks-list' });
         
         // Attach to new position in DOM
         this.attachToDOM();

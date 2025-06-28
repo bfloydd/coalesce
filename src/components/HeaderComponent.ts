@@ -87,8 +87,7 @@ export class HeaderComponent {
 
         this.logger.debug("HeaderComponent aliases:", { count: aliases.length, aliases });
 
-        const header = document.createElement('div');
-        header.classList.add('backlinks-header');
+        const header = container.createDiv({ cls: 'backlinks-header' });
 
         const leftContainer = this.createLeftContainer(blockCount, aliases, unsavedAliases, currentAlias, onAliasSelect, sortDescending, onSortToggle, isCollapsed, onCollapseToggle);
         const rightContainer = this.createRightContainer(
@@ -125,16 +124,15 @@ export class HeaderComponent {
         isCollapsed: boolean,
         onCollapseToggle: () => void
     ): HTMLElement {
-        const leftContainer = document.createElement('div');
-        leftContainer.classList.add('backlinks-header-left');
+        // Create a temporary container to use createDiv
+        const tempContainer = document.createElement('div');
+        const leftContainer = tempContainer.createDiv({ cls: 'backlinks-header-left' });
 
         // Create and add coalesce icon
         const svg = this.createCoalesceIcon();
         
         // Create title
-        const title = document.createElement('span');
-        title.classList.add('header-title');
-        title.textContent = `${blockCount} ${blockCount === 1 ? 'Block' : 'Blocks'}`;
+        const title = leftContainer.createSpan({ cls: 'header-title', text: `${blockCount} ${blockCount === 1 ? 'Block' : 'Blocks'}` });
 
         // Create alias dropdown
         const aliasDropdown = this.createAliasDropdown(aliases, unsavedAliases, currentAlias, onAliasSelect);
@@ -152,14 +150,22 @@ export class HeaderComponent {
     }
 
     private createCoalesceIcon(): SVGSVGElement {
-        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.setAttribute("viewBox", "0 0 100 100");
-        svg.setAttribute("width", "18");
-        svg.setAttribute("height", "18");
-        svg.setAttribute("fill", "currentColor");
+        // Create a temporary container to use createSvg
+        const tempContainer = document.createElement('div');
+        const svg = tempContainer.createSvg('svg', {
+            attr: {
+                viewBox: "0 0 100 100",
+                width: "18",
+                height: "18",
+                fill: "currentColor"
+            }
+        });
         
-        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute("d", "M85 40.5C85 22.5 70.5 10 52.5 10c-27.6 0-43.1 24.5-43.1 40 0 21.7 16.8 40 42.6 40 11.3 0 21.1-2.8 27.4-6.5 2.2-1.3 3.6-2.8 3.6-4.4 0-1.3-0.9-2.4-2.2-2.4-0.6 0-1.2 0.2-2 0.7-6.8 4.8-15.9 7.1-26.8 7.1-22.3 0-36.2-15.4-36.2-34.5 0-19.1 13.9-34.5 36.2-34.5 15.4 0 27.5 10.3 27.5 24.5 0 11.8-7.8 19.5-16.8 19.5-4.9 0-7.8-2.5-7.8-6.7 0-1.1 0.2-2.3 0.5-3.4l4.1-16.8c0.9-3.7-1.1-5.6-4-5.6-4.9 0-9.6 5-9.6 12.3 0 5.6 3.1 9.5 9.3 9.5 4.7 0 9.1-1.9 12.4-5.4 3.3 3.5 8.2 5.4 14.3 5.4C73.2 60 85 51.5 85 40.5z");
+        const path = tempContainer.createSvg('path', {
+            attr: {
+                d: "M85 40.5C85 22.5 70.5 10 52.5 10c-27.6 0-43.1 24.5-43.1 40 0 21.7 16.8 40 42.6 40 11.3 0 21.1-2.8 27.4-6.5 2.2-1.3 3.6-2.8 3.6-4.4 0-1.3-0.9-2.4-2.2-2.4-0.6 0-1.2 0.2-2 0.7-6.8 4.8-15.9 7.1-26.8 7.1-22.3 0-36.2-15.4-36.2-34.5 0-19.1 13.9-34.5 36.2-34.5 15.4 0 27.5 10.3 27.5 24.5 0 11.8-7.8 19.5-16.8 19.5-4.9 0-7.8-2.5-7.8-6.7 0-1.1 0.2-2.3 0.5-3.4l4.1-16.8c0.9-3.7-1.1-5.6-4-5.6-4.9 0-9.6 5-9.6 12.3 0 5.6 3.1 9.5 9.3 9.5 4.7 0 9.1-1.9 12.4-5.4 3.3 3.5 8.2 5.4 14.3 5.4C73.2 60 85 51.5 85 40.5z"
+            }
+        });
         
         svg.appendChild(path);
         return svg;
@@ -238,8 +244,9 @@ export class HeaderComponent {
         isCollapsed: boolean,
         onCollapseToggle: () => void
     ): HTMLElement {
-        const buttonGroup = document.createElement('div');
-        buttonGroup.classList.add('button-group');
+        // Create a temporary container to use createDiv
+        const tempContainer = document.createElement('div');
+        const buttonGroup = tempContainer.createDiv({ cls: 'button-group' });
         
         // Create sort button
         const sortButton = this.createSortButton(sortDescending, onSortToggle);
@@ -254,17 +261,26 @@ export class HeaderComponent {
     }
 
     private createSortButton(sortDescending: boolean, onSortToggle: () => void): HTMLButtonElement {
-        const sortButton = document.createElement('button');
-        sortButton.classList.add('sort-button');
-        sortButton.setAttribute('aria-label', sortDescending ? 'Sort ascending' : 'Sort descending');
+        // Create a temporary container to use createEl
+        const tempContainer = document.createElement('div');
+        const sortButton = tempContainer.createEl('button', {
+            cls: 'sort-button',
+            attr: { 'aria-label': sortDescending ? 'Sort ascending' : 'Sort descending' }
+        });
         
-        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.setAttribute("viewBox", "0 0 16 16");
-        svg.classList.add(sortDescending ? 'sort-descending' : 'sort-ascending');
+        const svg = tempContainer.createSvg('svg', {
+            attr: {
+                viewBox: "0 0 16 16"
+            },
+            cls: sortDescending ? 'sort-descending' : 'sort-ascending'
+        });
         
-        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute("fill", "currentColor");
-        path.setAttribute("d", "M4 4l4 4 4-4H4z");
+        const path = tempContainer.createSvg('path', {
+            attr: {
+                fill: "currentColor",
+                d: "M4 4l4 4 4-4H4z"
+            }
+        });
         
         svg.appendChild(path);
         sortButton.appendChild(svg);
@@ -275,19 +291,26 @@ export class HeaderComponent {
     }
 
     private createCollapseButton(isCollapsed: boolean, onCollapseToggle: () => void): HTMLButtonElement {
-        const collapseButton = document.createElement('button');
-        collapseButton.classList.add('collapse-button');
-        collapseButton.setAttribute('aria-label', isCollapsed ? 'Expand all' : 'Collapse all');
+        // Create a temporary container to use createEl
+        const tempContainer = document.createElement('div');
+        const collapseButton = tempContainer.createEl('button', {
+            cls: 'collapse-button',
+            attr: { 'aria-label': isCollapsed ? 'Expand all' : 'Collapse all' }
+        });
         
-        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.setAttribute("viewBox", "0 0 16 16");
-        if (isCollapsed) {
-            svg.classList.add('is-collapsed');
-        }
+        const svg = tempContainer.createSvg('svg', {
+            attr: {
+                viewBox: "0 0 16 16"
+            },
+            cls: isCollapsed ? 'is-collapsed' : ''
+        });
         
-        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        path.setAttribute("fill", "currentColor");
-        path.setAttribute("d", "M4 4l4 4 4-4H4z");
+        const path = tempContainer.createSvg('path', {
+            attr: {
+                fill: "currentColor",
+                d: "M4 4l4 4 4-4H4z"
+            }
+        });
         
         svg.appendChild(path);
         collapseButton.appendChild(svg);
@@ -311,8 +334,9 @@ export class HeaderComponent {
         currentTheme: string = 'default',
         onThemeChange: (theme: string) => void = () => {}
     ): HTMLElement {
-        const rightContainer = document.createElement('div');
-        rightContainer.classList.add('backlinks-header-right');
+        // Create a temporary container to use createDiv
+        const tempContainer = document.createElement('div');
+        const rightContainer = tempContainer.createDiv({ cls: 'backlinks-header-right' });
 
         // Add settings button to right container
         const settingsButton = this.createSettingsButton(
@@ -349,35 +373,50 @@ export class HeaderComponent {
         currentTheme: string = 'default',
         onThemeChange: (theme: string) => void = () => {}
     ): HTMLButtonElement {
-        const settingsButton = document.createElement('button');
-        settingsButton.classList.add('settings-button');
-        settingsButton.setAttribute('aria-label', 'Settings');
+        // Create a temporary container to use createEl
+        const tempContainer = document.createElement('div');
+        const settingsButton = tempContainer.createEl('button', {
+            cls: 'settings-button',
+            attr: { 'aria-label': 'Settings' }
+        });
         
-        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-        svg.setAttribute("width", "16");
-        svg.setAttribute("height", "16");
-        svg.setAttribute("viewBox", "0 0 24 24");
-        svg.setAttribute("fill", "none");
-        svg.setAttribute("stroke", "currentColor");
-        svg.setAttribute("stroke-width", "2");
-        svg.setAttribute("stroke-linecap", "round");
-        svg.setAttribute("stroke-linejoin", "round");
+        const svg = tempContainer.createSvg('svg', {
+            attr: {
+                xmlns: "http://www.w3.org/2000/svg",
+                width: "16",
+                height: "16",
+                viewBox: "0 0 24 24",
+                fill: "none",
+                stroke: "currentColor",
+                "stroke-width": "2",
+                "stroke-linecap": "round",
+                "stroke-linejoin": "round"
+            }
+        });
         
-        const circle1 = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circle1.setAttribute("cx", "12");
-        circle1.setAttribute("cy", "12");
-        circle1.setAttribute("r", "1");
+        const circle1 = tempContainer.createSvg('circle', {
+            attr: {
+                cx: "12",
+                cy: "12",
+                r: "1"
+            }
+        });
         
-        const circle2 = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circle2.setAttribute("cx", "12");
-        circle2.setAttribute("cy", "5");
-        circle2.setAttribute("r", "1");
+        const circle2 = tempContainer.createSvg('circle', {
+            attr: {
+                cx: "12",
+                cy: "5",
+                r: "1"
+            }
+        });
         
-        const circle3 = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circle3.setAttribute("cx", "12");
-        circle3.setAttribute("cy", "19");
-        circle3.setAttribute("r", "1");
+        const circle3 = tempContainer.createSvg('circle', {
+            attr: {
+                cx: "12",
+                cy: "19",
+                r: "1"
+            }
+        });
         
         svg.appendChild(circle1);
         svg.appendChild(circle2);
@@ -445,8 +484,9 @@ export class HeaderComponent {
         currentTheme: string = 'default',
         onThemeChange: (theme: string) => void = () => {}
     ): HTMLElement {
-        const popup = document.createElement('div');
-        popup.classList.add('settings-popup');
+        // Create a temporary container to use createDiv
+        const tempContainer = document.createElement('div');
+        const popup = tempContainer.createDiv({ cls: 'settings-popup' });
         
         // Set position values with custom attributes to be used by CSS via attr()
         // We use setCssStyles for dynamic positioning as it's more type-safe and readable
@@ -467,30 +507,22 @@ export class HeaderComponent {
         popup.appendChild(onlyDailyNotesSetting);
         
         // Add separator after top options
-        const separator1 = document.createElement('div');
-        separator1.classList.add('menu-separator');
-        popup.appendChild(separator1);
+        const separator1 = popup.createDiv({ cls: 'menu-separator' });
         
         this.addHeaderStyleSettings(popup, currentHeaderStyle, onHeaderStyleChange);
         
         // Add separator after header style
-        const separator2 = document.createElement('div');
-        separator2.classList.add('menu-separator');
-        popup.appendChild(separator2);
+        const separator2 = popup.createDiv({ cls: 'menu-separator' });
         
         this.addPositionSettings(popup, currentPosition, onPositionChange);
         
         // Add separator after position
-        const separator3 = document.createElement('div');
-        separator3.classList.add('menu-separator');
-        popup.appendChild(separator3);
+        const separator3 = popup.createDiv({ cls: 'menu-separator' });
         
         this.addBlockStyleSettings(popup, currentStrategy, onStrategyChange);
         
         // Add separator after block style
-        const separator4 = document.createElement('div');
-        separator4.classList.add('menu-separator');
-        popup.appendChild(separator4);
+        const separator4 = popup.createDiv({ cls: 'menu-separator' });
         
         this.addThemeSettings(popup, currentTheme, onThemeChange);
         
@@ -504,39 +536,49 @@ export class HeaderComponent {
         onHideBacklinkLineChange: (hide: boolean) => void,
         popup: HTMLElement
     ): HTMLElement {
-        const item = document.createElement('div');
-        item.classList.add('settings-item');
+        // Create a temporary container to use createSvg
+        const tempContainer = document.createElement('div');
+        const item = popup.createDiv({ cls: 'settings-item' });
         
         // Add icon
-        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        icon.classList.add('setting-item-icon');
-        icon.setAttribute('viewBox', '0 0 24 24');
-        icon.setAttribute('width', '16');
-        icon.setAttribute('height', '16');
+        const icon = tempContainer.createSvg('svg', {
+            cls: 'setting-item-icon',
+            attr: {
+                viewBox: '0 0 24 24',
+                width: '16',
+                height: '16'
+            }
+        });
         
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('fill', 'currentColor');
-        path.setAttribute('d', 'M12.968 16L10 20H3l4-6H3l3-4h6l-3 4h3.968zm5.991-7.474a.997.997 0 0 1-.028 1.136l-7.99 11.985a1 1 0 0 1-1.664-1.11l7.99-11.987a1 1 0 0 1 1.692-.024z');
+        const path = tempContainer.createSvg('path', {
+            attr: {
+                fill: 'currentColor',
+                d: 'M12.968 16L10 20H3l4-6H3l3-4h6l-3 4h3.968zm5.991-7.474a.997.997 0 0 1-.028 1.136l-7.99 11.985a1 1 0 0 1-1.664-1.11l7.99-11.987a1 1 0 0 1 1.692-.024z'
+            }
+        });
         
         icon.appendChild(path);
         
-        const label = document.createElement('span');
-        label.classList.add('setting-item-label');
-        label.textContent = 'Hide Backlink Line';
+        const label = item.createSpan({ cls: 'setting-item-label', text: 'Hide Backlink Line' });
         
-        const checkmarkContainer = document.createElement('div');
-        checkmarkContainer.classList.add('checkmark-container');
+        const checkmarkContainer = item.createDiv({ cls: 'checkmark-container' });
         if (hideBacklinkLine) {
             checkmarkContainer.classList.add('is-checked');
         }
         
-        const hideBacklinkLineCheckmark = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        hideBacklinkLineCheckmark.classList.add('checkmark');
-        hideBacklinkLineCheckmark.setAttribute('viewBox', '0 0 24 24');
+        const hideBacklinkLineCheckmark = tempContainer.createSvg('svg', {
+            cls: 'checkmark',
+            attr: {
+                viewBox: '0 0 24 24'
+            }
+        });
         
-        const checkmarkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        checkmarkPath.setAttribute('fill', 'currentColor');
-        checkmarkPath.setAttribute('d', 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z');
+        const checkmarkPath = tempContainer.createSvg('path', {
+            attr: {
+                fill: 'currentColor',
+                d: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z'
+            }
+        });
         
         hideBacklinkLineCheckmark.appendChild(checkmarkPath);
         
@@ -566,39 +608,49 @@ export class HeaderComponent {
         onOnlyDailyNotesChange: (show: boolean) => void,
         popup: HTMLElement
     ): HTMLElement {
-        const item = document.createElement('div');
-        item.classList.add('settings-item');
+        // Create a temporary container to use createSvg
+        const tempContainer = document.createElement('div');
+        const item = popup.createDiv({ cls: 'settings-item' });
         
         // Add icon
-        const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        icon.classList.add('setting-item-icon');
-        icon.setAttribute('viewBox', '0 0 24 24');
-        icon.setAttribute('width', '16');
-        icon.setAttribute('height', '16');
+        const icon = tempContainer.createSvg('svg', {
+            cls: 'setting-item-icon',
+            attr: {
+                viewBox: '0 0 24 24',
+                width: '16',
+                height: '16'
+            }
+        });
         
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('fill', 'currentColor');
-        path.setAttribute('d', 'M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5v-5z');
+        const path = tempContainer.createSvg('path', {
+            attr: {
+                fill: 'currentColor',
+                d: 'M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5v-5z'
+            }
+        });
         
         icon.appendChild(path);
         
-        const label = document.createElement('span');
-        label.classList.add('setting-item-label');
-        label.textContent = 'Hide in Daily Notes';
+        const label = item.createSpan({ cls: 'setting-item-label', text: 'Hide in Daily Notes' });
         
-        const checkmarkContainer = document.createElement('div');
-        checkmarkContainer.classList.add('checkmark-container');
+        const checkmarkContainer = item.createDiv({ cls: 'checkmark-container' });
         if (onlyDailyNotes) {
             checkmarkContainer.classList.add('is-checked');
         }
         
-        const dailyNotesCheckmark = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        dailyNotesCheckmark.classList.add('checkmark');
-        dailyNotesCheckmark.setAttribute('viewBox', '0 0 24 24');
+        const dailyNotesCheckmark = tempContainer.createSvg('svg', {
+            cls: 'checkmark',
+            attr: {
+                viewBox: '0 0 24 24'
+            }
+        });
         
-        const checkmarkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        checkmarkPath.setAttribute('fill', 'currentColor');
-        checkmarkPath.setAttribute('d', 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z');
+        const checkmarkPath = tempContainer.createSvg('path', {
+            attr: {
+                fill: 'currentColor',
+                d: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z'
+            }
+        });
         
         dailyNotesCheckmark.appendChild(checkmarkPath);
         
@@ -628,28 +680,34 @@ export class HeaderComponent {
         currentHeaderStyle: string,
         onHeaderStyleChange: (style: string) => void
     ): void {
+        // Create a temporary container to use createSvg
+        const tempContainer = document.createElement('div');
+        
         // Create header style settings header
-        const headerStyleHeader = document.createElement('div');
-        headerStyleHeader.classList.add('settings-item', 'settings-header');
+        const headerStyleHeader = popup.createDiv({ cls: 'settings-item settings-header' });
         
         // Add header icon
-        const headerIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        headerIcon.classList.add('setting-item-icon');
-        headerIcon.setAttribute('viewBox', '0 0 24 24');
-        headerIcon.setAttribute('width', '16');
-        headerIcon.setAttribute('height', '16');
+        const headerIcon = tempContainer.createSvg('svg', {
+            cls: 'setting-item-icon',
+            attr: {
+                viewBox: '0 0 24 24',
+                width: '16',
+                height: '16'
+            }
+        });
         
-        const iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        iconPath.setAttribute('fill', 'currentColor');
-        iconPath.setAttribute('d', 'M3 7h6v6H3V7m0 10h6v-2H3v2m8 0h10v-2H11v2m0-4h10v-2H11v2m0-4h10V7H11v2z');
+        const iconPath = tempContainer.createSvg('path', {
+            attr: {
+                fill: 'currentColor',
+                d: 'M3 7h6v6H3V7m0 10h6v-2H3v2m8 0h10v-2H11v2m0-4h10v-2H11v2m0-4h10V7H11v2z'
+            }
+        });
         
         headerIcon.appendChild(iconPath);
         
         headerStyleHeader.appendChild(headerIcon);
         
-        const headerText = document.createElement('span');
-        headerText.textContent = 'Header Style';
-        headerStyleHeader.appendChild(headerText);
+        const headerText = headerStyleHeader.createSpan({ text: 'Header Style' });
         
         popup.appendChild(headerStyleHeader);
 
@@ -662,35 +720,40 @@ export class HeaderComponent {
         currentHeaderStyle: string,
         onHeaderStyleChange: (style: string) => void
     ): void {
+        // Create a temporary container to use createSvg
+        const tempContainer = document.createElement('div');
+        
         // Get available header styles dynamically from HeaderStyleFactory
         const validStyles = HeaderStyleFactory.getValidStyles();
         const styleLabels = HeaderStyleFactory.getStyleLabels();
         
         validStyles.forEach(style => {
-            const item = document.createElement('div');
-            item.classList.add('settings-item', 'settings-submenu-item');
+            const item = popup.createDiv({ cls: 'settings-item settings-submenu-item' });
             item.setAttribute('data-style', style);
             
             // Add label
-            const itemLabel = document.createElement('span');
-            itemLabel.classList.add('setting-item-label');
-            itemLabel.textContent = styleLabels[style] || style;
+            const itemLabel = item.createSpan({ cls: 'setting-item-label', text: styleLabels[style] || style });
             
             // Add checkmark container
-            const checkContainer = document.createElement('div');
-            checkContainer.classList.add('checkmark-container');
+            const checkContainer = item.createDiv({ cls: 'checkmark-container' });
             if (style === currentHeaderStyle) {
                 checkContainer.classList.add('is-checked');
             }
             
             // Add checkmark
-            const checkElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            checkElement.classList.add('checkmark');
-            checkElement.setAttribute('viewBox', '0 0 24 24');
+            const checkElement = tempContainer.createSvg('svg', {
+                cls: 'checkmark',
+                attr: {
+                    viewBox: '0 0 24 24'
+                }
+            });
             
-            const checkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            checkPath.setAttribute('fill', 'currentColor');
-            checkPath.setAttribute('d', 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z');
+            const checkPath = tempContainer.createSvg('path', {
+                attr: {
+                    fill: 'currentColor',
+                    d: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z'
+                }
+            });
             
             checkElement.appendChild(checkPath);
             checkContainer.appendChild(checkElement);
@@ -740,53 +803,61 @@ export class HeaderComponent {
         currentPosition: string,
         onPositionChange: (position: 'high' | 'low') => void
     ): void {
+        // Create a temporary container to use createSvg
+        const tempContainer = document.createElement('div');
+        
         // Add settings header
-        const header = document.createElement('div');
-        header.classList.add('settings-item', 'settings-header');
+        const header = popup.createDiv({ cls: 'settings-item settings-header' });
         
         // Add header icon
-        const headerIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        headerIcon.classList.add('setting-item-icon');
-        headerIcon.setAttribute('viewBox', '0 0 24 24');
-        headerIcon.setAttribute('width', '16');
-        headerIcon.setAttribute('height', '16');
+        const headerIcon = tempContainer.createSvg('svg', {
+            cls: 'setting-item-icon',
+            attr: {
+                viewBox: '0 0 24 24',
+                width: '16',
+                height: '16'
+            }
+        });
         
-        const iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        iconPath.setAttribute('fill', 'currentColor');
-        iconPath.setAttribute('d', 'M9 20.42L2.79 14.21L5.62 11.38L9 14.77L18.88 4.88L21.71 7.71L9 20.42Z');
+        const iconPath = tempContainer.createSvg('path', {
+            attr: {
+                fill: 'currentColor',
+                d: 'M9 20.42L2.79 14.21L5.62 11.38L9 14.77L18.88 4.88L21.71 7.71L9 20.42Z'
+            }
+        });
         
         headerIcon.appendChild(iconPath);
         
         header.appendChild(headerIcon);
         
-        const headerText = document.createElement('span');
-        headerText.textContent = 'Position';
-        header.appendChild(headerText);
+        const headerText = header.createSpan({ text: 'Position' });
         
         popup.appendChild(header);
         
         // Add high option
-        const highItem = document.createElement('div');
-        highItem.classList.add('settings-item', 'settings-submenu-item');
+        const highItem = popup.createDiv({ cls: 'settings-item settings-submenu-item' });
         highItem.setAttribute('data-position', 'high');
         
-        const highLabel = document.createElement('span');
-        highLabel.classList.add('setting-item-label');
-        highLabel.textContent = 'Position high';
+        const highLabel = highItem.createSpan({ cls: 'setting-item-label', text: 'Position high' });
         
-        const highCheckContainer = document.createElement('div');
-        highCheckContainer.classList.add('checkmark-container');
+        const highCheckContainer = highItem.createDiv({ cls: 'checkmark-container' });
         if (currentPosition === 'high') {
             highCheckContainer.classList.add('is-checked');
         }
         
-        const highCheck = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        highCheck.classList.add('checkmark');
-        highCheck.setAttribute('viewBox', '0 0 24 24');
+        const highCheck = tempContainer.createSvg('svg', {
+            cls: 'checkmark',
+            attr: {
+                viewBox: '0 0 24 24'
+            }
+        });
         
-        const highCheckPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        highCheckPath.setAttribute('fill', 'currentColor');
-        highCheckPath.setAttribute('d', 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z');
+        const highCheckPath = tempContainer.createSvg('path', {
+            attr: {
+                fill: 'currentColor',
+                d: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z'
+            }
+        });
         
         highCheck.appendChild(highCheckPath);
         highCheckContainer.appendChild(highCheck);
@@ -796,27 +867,29 @@ export class HeaderComponent {
         popup.appendChild(highItem);
         
         // Add low option
-        const lowItem = document.createElement('div');
-        lowItem.classList.add('settings-item', 'settings-submenu-item');
+        const lowItem = popup.createDiv({ cls: 'settings-item settings-submenu-item' });
         lowItem.setAttribute('data-position', 'low');
         
-        const lowLabel = document.createElement('span');
-        lowLabel.classList.add('setting-item-label');
-        lowLabel.textContent = 'Position low';
+        const lowLabel = lowItem.createSpan({ cls: 'setting-item-label', text: 'Position low' });
         
-        const lowCheckContainer = document.createElement('div');
-        lowCheckContainer.classList.add('checkmark-container');
+        const lowCheckContainer = lowItem.createDiv({ cls: 'checkmark-container' });
         if (currentPosition === 'low') {
             lowCheckContainer.classList.add('is-checked');
         }
         
-        const lowCheck = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        lowCheck.classList.add('checkmark');
-        lowCheck.setAttribute('viewBox', '0 0 24 24');
+        const lowCheck = tempContainer.createSvg('svg', {
+            cls: 'checkmark',
+            attr: {
+                viewBox: '0 0 24 24'
+            }
+        });
         
-        const lowCheckPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        lowCheckPath.setAttribute('fill', 'currentColor');
-        lowCheckPath.setAttribute('d', 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z');
+        const lowCheckPath = tempContainer.createSvg('path', {
+            attr: {
+                fill: 'currentColor',
+                d: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z'
+            }
+        });
         
         lowCheck.appendChild(lowCheckPath);
         lowCheckContainer.appendChild(lowCheck);
@@ -851,26 +924,32 @@ export class HeaderComponent {
         currentStrategy: string,
         onStrategyChange: (strategy: string) => void
     ): void {
+        // Create a temporary container to use createSvg
+        const tempContainer = document.createElement('div');
+        
         // Add settings header
-        const header = document.createElement('div');
-        header.classList.add('settings-item', 'settings-header');
+        const header = popup.createDiv({ cls: 'settings-item settings-header' });
         
         // Add header icon
-        const headerIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        headerIcon.classList.add('setting-item-icon');
-        headerIcon.setAttribute('viewBox', '0 0 24 24');
-        headerIcon.setAttribute('width', '16');
-        headerIcon.setAttribute('height', '16');
+        const headerIcon = tempContainer.createSvg('svg', {
+            cls: 'setting-item-icon',
+            attr: {
+                viewBox: '0 0 24 24',
+                width: '16',
+                height: '16'
+            }
+        });
         
-        const iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        iconPath.setAttribute('fill', 'currentColor');
-        iconPath.setAttribute('d', 'M3 5h18v4H3V5m0 10h18v4H3v-4z');
+        const iconPath = tempContainer.createSvg('path', {
+            attr: {
+                fill: 'currentColor',
+                d: 'M3 5h18v4H3V5m0 10h18v4H3v-4z'
+            }
+        });
         
         headerIcon.appendChild(iconPath);
         
-        const headerText = document.createElement('span');
-        headerText.textContent = 'Block Style';
-        header.appendChild(headerText);
+        const headerText = header.createSpan({ text: 'Block Style' });
         
         popup.appendChild(header);
         
@@ -880,27 +959,29 @@ export class HeaderComponent {
         
         // Add each block style option
         validStrategies.forEach(strategyId => {
-            const item = document.createElement('div');
-            item.classList.add('settings-item', 'settings-submenu-item');
+            const item = popup.createDiv({ cls: 'settings-item settings-submenu-item' });
             item.setAttribute('data-strategy', strategyId);
             
-            const label = document.createElement('span');
-            label.classList.add('setting-item-label');
-            label.textContent = strategyLabels[strategyId] || strategyId;
+            const label = item.createSpan({ cls: 'setting-item-label', text: strategyLabels[strategyId] || strategyId });
             
-            const checkContainer = document.createElement('div');
-            checkContainer.classList.add('checkmark-container');
+            const checkContainer = item.createDiv({ cls: 'checkmark-container' });
             if (currentStrategy === strategyId) {
                 checkContainer.classList.add('is-checked');
             }
             
-            const check = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            check.classList.add('checkmark');
-            check.setAttribute('viewBox', '0 0 24 24');
+            const check = tempContainer.createSvg('svg', {
+                cls: 'checkmark',
+                attr: {
+                    viewBox: '0 0 24 24'
+                }
+            });
             
-            const checkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            checkPath.setAttribute('fill', 'currentColor');
-            checkPath.setAttribute('d', 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z');
+            const checkPath = tempContainer.createSvg('path', {
+                attr: {
+                    fill: 'currentColor',
+                    d: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z'
+                }
+            });
             
             check.appendChild(checkPath);
             checkContainer.appendChild(check);
@@ -927,26 +1008,32 @@ export class HeaderComponent {
         currentTheme: string,
         onThemeChange: (theme: string) => void
     ): void {
+        // Create a temporary container to use createSvg
+        const tempContainer = document.createElement('div');
+        
         // Add settings header
-        const header = document.createElement('div');
-        header.classList.add('settings-item', 'settings-header');
+        const header = popup.createDiv({ cls: 'settings-item settings-header' });
         
         // Add header icon
-        const headerIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        headerIcon.classList.add('setting-item-icon');
-        headerIcon.setAttribute('viewBox', '0 0 24 24');
-        headerIcon.setAttribute('width', '16');
-        headerIcon.setAttribute('height', '16');
+        const headerIcon = tempContainer.createSvg('svg', {
+            cls: 'setting-item-icon',
+            attr: {
+                viewBox: '0 0 24 24',
+                width: '16',
+                height: '16'
+            }
+        });
         
-        const iconPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        iconPath.setAttribute('fill', 'currentColor');
-        iconPath.setAttribute('d', 'M17.5,12A1.5,1.5 0 0,1 16,10.5A1.5,1.5 0 0,1 17.5,9A1.5,1.5 0 0,1 19,10.5A1.5,1.5 0 0,1 17.5,12M14.5,8A1.5,1.5 0 0,1 13,6.5A1.5,1.5 0 0,1 14.5,5A1.5,1.5 0 0,1 16,6.5A1.5,1.5 0 0,1 14.5,8M9.5,8A1.5,1.5 0 0,1 8,6.5A1.5,1.5 0 0,1 9.5,5A1.5,1.5 0 0,1 11,6.5A1.5,1.5 0 0,1 9.5,8M6.5,12A1.5,1.5 0 0,1 5,10.5A1.5,1.5 0 0,1 6.5,9A1.5,1.5 0 0,1 8,10.5A1.5,1.5 0 0,1 6.5,12M12,3A9,9 0 0,0 3,12A9,9 0 0,0 12,21A9,9 0 0,0 21,12A9,9 0 0,0 12,3Z');
+        const iconPath = tempContainer.createSvg('path', {
+            attr: {
+                fill: 'currentColor',
+                d: 'M17.5,12A1.5,1.5 0 0,1 16,10.5A1.5,1.5 0 0,1 17.5,9A1.5,1.5 0 0,1 19,10.5A1.5,1.5 0 0,1 17.5,12M14.5,8A1.5,1.5 0 0,1 13,6.5A1.5,1.5 0 0,1 14.5,5A1.5,1.5 0 0,1 16,6.5A1.5,1.5 0 0,1 14.5,8M9.5,8A1.5,1.5 0 0,1 8,6.5A1.5,1.5 0 0,1 9.5,5A1.5,1.5 0 0,1 11,6.5A1.5,1.5 0 0,1 9.5,8M6.5,12A1.5,1.5 0 0,1 5,10.5A1.5,1.5 0 0,1 6.5,9A1.5,1.5 0 0,1 8,10.5A1.5,1.5 0 0,1 6.5,12M12,3A9,9 0 0,0 3,12A9,9 0 0,0 12,21A9,9 0 0,0 21,12A9,9 0 0,0 12,3Z'
+            }
+        });
         
         headerIcon.appendChild(iconPath);
         
-        const headerText = document.createElement('span');
-        headerText.textContent = 'Theme';
-        header.appendChild(headerText);
+        const headerText = header.createSpan({ text: 'Theme' });
         
         popup.appendChild(header);
         
@@ -960,27 +1047,29 @@ export class HeaderComponent {
         
         // Add each theme option
         themes.forEach(theme => {
-            const item = document.createElement('div');
-            item.classList.add('settings-item', 'settings-submenu-item');
+            const item = popup.createDiv({ cls: 'settings-item settings-submenu-item' });
             item.setAttribute('data-theme', theme.id);
             
-            const label = document.createElement('span');
-            label.classList.add('setting-item-label');
-            label.textContent = theme.label;
+            const label = item.createSpan({ cls: 'setting-item-label', text: theme.label });
             
-            const checkContainer = document.createElement('div');
-            checkContainer.classList.add('checkmark-container');
+            const checkContainer = item.createDiv({ cls: 'checkmark-container' });
             if (currentTheme === theme.id) {
                 checkContainer.classList.add('is-checked');
             }
             
-            const check = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            check.classList.add('checkmark');
-            check.setAttribute('viewBox', '0 0 24 24');
+            const check = tempContainer.createSvg('svg', {
+                cls: 'checkmark',
+                attr: {
+                    viewBox: '0 0 24 24'
+                }
+            });
             
-            const checkPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            checkPath.setAttribute('fill', 'currentColor');
-            checkPath.setAttribute('d', 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z');
+            const checkPath = tempContainer.createSvg('path', {
+                attr: {
+                    fill: 'currentColor',
+                    d: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z'
+                }
+            });
             
             check.appendChild(checkPath);
             checkContainer.appendChild(check);

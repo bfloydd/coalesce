@@ -5,6 +5,7 @@ import { SettingsManager } from './SettingsManager';
 import { AbstractBlockFinder } from './block-finders/base/AbstractBlockFinder';
 import { BlockFinderFactory } from './block-finders/BlockFinderFactory';
 import { DailyNote } from './utils/DailyNote';
+import { AppWithInternalPlugins } from './types';
 
 // Interface to extend WorkspaceLeaf with the id property
 interface WorkspaceLeafWithID extends WorkspaceLeaf {
@@ -99,7 +100,7 @@ export class CoalesceManager {
     
     private shouldSkipDailyNote(filePath: string): boolean {
         const shouldSkip = this.settingsManager.settings.onlyDailyNotes && 
-                         DailyNote.isDaily(this.app, filePath);
+                         DailyNote.isDaily(this.app as AppWithInternalPlugins, filePath);
                          
         if (shouldSkip) {
             this.logger.debug("Skipping Coalesce view creation", {
