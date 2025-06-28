@@ -1,33 +1,10 @@
 import { Logger } from './Logger';
-import { App } from 'obsidian';
-
-// Define types for the daily notes plugin
-interface DailyNotesPlugin {
-    enabled: boolean;
-    instance: {
-        options: {
-            folder: string;
-        };
-    };
-}
-
-// Define types for the internal plugins
-interface InternalPlugins {
-    plugins: {
-        'daily-notes': DailyNotesPlugin;
-        [key: string]: unknown;
-    };
-}
-
-// Define the extended App interface
-interface ExtendedApp extends App {
-    internalPlugins: InternalPlugins;
-}
+import { AppWithInternalPlugins, DailyNotesPlugin } from '../types';
 
 export class DailyNote {
     private static logger: Logger = new Logger('DailyNote');
 
-    static isDaily(app: ExtendedApp, filePath: string): boolean {
+    static isDaily(app: AppWithInternalPlugins, filePath: string): boolean {
         const dailyNotesPlugin = app.internalPlugins.plugins['daily-notes'];
         
         this.logger.debug('Checking if file is a daily note', { filePath });

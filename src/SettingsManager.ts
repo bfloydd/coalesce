@@ -1,18 +1,5 @@
 import { Logger } from './utils/Logger';
-
-interface CoalescePluginSettings {
-    mySetting: string;
-    sortDescending: boolean;
-    blocksCollapsed: boolean;
-    showInDailyNotes: boolean;
-    blockBoundaryStrategy: string;
-    theme: string;
-    showFullPathTitle: boolean;
-    position: 'high' | 'low';
-    onlyDailyNotes: boolean; // When true, hide Coalesce in daily notes
-    headerStyle: string;
-    hideBacklinkLine: boolean; // When true, hide the line containing the backlink
-}
+import { CoalescePluginSettings, PluginInterface } from './types';
 
 const DEFAULT_SETTINGS: CoalescePluginSettings = {
     mySetting: 'default',
@@ -28,26 +15,12 @@ const DEFAULT_SETTINGS: CoalescePluginSettings = {
     hideBacklinkLine: false
 };
 
-interface Plugin {
-    loadData(): Promise<Partial<CoalescePluginSettings>>;
-    saveData(settings: CoalescePluginSettings): Promise<void>;
-}
-
-class Plugin {
-    async loadData(): Promise<Partial<CoalescePluginSettings>> {
-        return {};
-    }
-
-    async saveData(settings: CoalescePluginSettings): Promise<void> {
-    }
-}
-
 export class SettingsManager {
-    private plugin: Plugin;
+    private plugin: PluginInterface;
     settings: CoalescePluginSettings;
     private logger: Logger;
 
-    constructor(plugin: Plugin) {
+    constructor(plugin: PluginInterface) {
         this.plugin = plugin;
         this.logger = new Logger('SettingsManager');
     }

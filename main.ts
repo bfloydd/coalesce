@@ -4,28 +4,11 @@ import { CoalesceManager } from './src/CoalesceManager';
 import { Logger, LogLevel } from './src/utils/Logger';
 import { ObsidianSettingsComponent } from './src/components/ObsidianSettingsComponent';
 import { MarkdownView } from 'obsidian';
-
-// Define proper types for the Obsidian plugin instance
-interface CoalescePluginInstance {
-	log?: {
-		on: (level?: LogLevel | keyof typeof LogLevel | number) => void;
-		off: () => void;
-		isEnabled: () => boolean;
-	};
-}
-
-// Type for the plugins container
-interface ObsidianPlugins {
-	plugins: {
-		coalesce: CoalescePluginInstance;
-		[key: string]: unknown;
-	};
-}
-
-// Type for the extended App with plugins
-interface ExtendedApp extends App {
-	plugins: ObsidianPlugins;
-}
+import { 
+	CoalescePluginInstance, 
+	ObsidianPlugins, 
+	ExtendedApp 
+} from './src/types';
 
 export default class CoalescePlugin extends Plugin {
 	private settingsManager: SettingsManager;

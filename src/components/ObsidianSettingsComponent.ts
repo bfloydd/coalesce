@@ -1,13 +1,7 @@
-import { App, PluginSettingTab, Setting, Plugin } from 'obsidian';
+import { App, PluginSettingTab, Setting } from 'obsidian';
 import { SettingsManager } from '../SettingsManager';
 import { Logger } from '../utils/Logger';
-
-// Define the plugin interface that includes coalesceManager
-interface CoalescePlugin extends Plugin {
-    coalesceManager?: {
-        refreshActiveViews(): void;
-    };
-}
+import { CoalescePlugin } from '../types';
 
 export class ObsidianSettingsComponent extends PluginSettingTab {
     private logger: Logger;
