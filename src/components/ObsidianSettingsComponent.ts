@@ -20,8 +20,6 @@ export class ObsidianSettingsComponent extends PluginSettingTab {
 
         this.logger.debug("Displaying settings tab");
 
-        containerEl.createEl('h2', { text: 'Coalesce Settings' });
-        
         const settingsContainer = containerEl.createDiv('coalesce-settings');
 
         this.addDailyNotesToggle(settingsContainer);
