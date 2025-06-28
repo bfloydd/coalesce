@@ -723,7 +723,7 @@ export class HeaderComponent {
         };
         
         // Use setTimeout to avoid closing immediately due to the click that opened it
-        setTimeout(() => {
+        window.setTimeout(() => {
             document.addEventListener('click', closePopup);
         }, 10);
     }
