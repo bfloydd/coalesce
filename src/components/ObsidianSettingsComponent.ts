@@ -1,13 +1,20 @@
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, PluginSettingTab, Setting, Plugin } from 'obsidian';
 import { SettingsManager } from '../SettingsManager';
 import { Logger } from '../utils/Logger';
+
+// Define the plugin interface that includes coalesceManager
+interface CoalescePlugin extends Plugin {
+    coalesceManager?: {
+        refreshActiveViews(): void;
+    };
+}
 
 export class ObsidianSettingsComponent extends PluginSettingTab {
     private logger: Logger;
 
     constructor(
         app: App,
-        private plugin: any,
+        private plugin: CoalescePlugin,
         private settingsManager: SettingsManager
     ) {
         super(app, plugin);
@@ -53,7 +60,7 @@ export class ObsidianSettingsComponent extends PluginSettingTab {
                 }));
     }
     
-    private logSettingChange(settingName: string, value: any): void {
+    private logSettingChange(settingName: string, value: unknown): void {
         this.logger.debug("Setting changed", {
             setting: settingName,
             value: value

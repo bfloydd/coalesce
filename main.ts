@@ -5,7 +5,7 @@ import { Logger, LogLevel } from './src/utils/Logger';
 import { ObsidianSettingsComponent } from './src/components/ObsidianSettingsComponent';
 import { MarkdownView } from 'obsidian';
 
-// Define a type for the Obsidian plugin instance with log
+// Define proper types for the Obsidian plugin instance
 interface CoalescePluginInstance {
 	log?: {
 		on: (level?: LogLevel | keyof typeof LogLevel | number) => void;
@@ -18,8 +18,13 @@ interface CoalescePluginInstance {
 interface ObsidianPlugins {
 	plugins: {
 		coalesce: CoalescePluginInstance;
-		[key: string]: any;
+		[key: string]: unknown;
 	};
+}
+
+// Type for the extended App with plugins
+interface ExtendedApp extends App {
+	plugins: ObsidianPlugins;
 }
 
 export default class CoalescePlugin extends Plugin {
@@ -55,9 +60,9 @@ export default class CoalescePlugin extends Plugin {
 	private initializeLogger() {
 		this.logger = new Logger('Coalesce');
 		
-		const obsidianApp = this.app as unknown as App & { plugins: ObsidianPlugins };
+		const obsidianApp = this.app as ExtendedApp;
 		
-		if (obsidianApp.plugins && obsidianApp.plugins.plugins && obsidianApp.plugins.plugins.coalesce) {
+		if (obsidianApp.plugins?.plugins?.coalesce) {
 			obsidianApp.plugins.plugins.coalesce.log = {
 				on: (level?: LogLevel | keyof typeof LogLevel | number) => this.logger.on(level),
 				off: () => this.logger.off(),
@@ -92,9 +97,9 @@ export default class CoalescePlugin extends Plugin {
 	onunload() {
 		this.logger.debug("Unloading plugin");
 		
-		const obsidianApp = this.app as unknown as App & { plugins: ObsidianPlugins };
+		const obsidianApp = this.app as ExtendedApp;
 		
-		if (obsidianApp.plugins && obsidianApp.plugins.plugins && obsidianApp.plugins.plugins.coalesce && obsidianApp.plugins.plugins.coalesce.log) {
+		if (obsidianApp.plugins?.plugins?.coalesce?.log) {
 			obsidianApp.plugins.plugins.coalesce.log = undefined;
 		}
 		

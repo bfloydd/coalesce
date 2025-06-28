@@ -1,9 +1,33 @@
 import { Logger } from './Logger';
+import { App } from 'obsidian';
+
+// Define types for the daily notes plugin
+interface DailyNotesPlugin {
+    enabled: boolean;
+    instance: {
+        options: {
+            folder: string;
+        };
+    };
+}
+
+// Define types for the internal plugins
+interface InternalPlugins {
+    plugins: {
+        'daily-notes': DailyNotesPlugin;
+        [key: string]: unknown;
+    };
+}
+
+// Define the extended App interface
+interface ExtendedApp extends App {
+    internalPlugins: InternalPlugins;
+}
 
 export class DailyNote {
     private static logger: Logger = new Logger('DailyNote');
 
-    static isDaily(app: any, filePath: string): boolean {
+    static isDaily(app: ExtendedApp, filePath: string): boolean {
         const dailyNotesPlugin = app.internalPlugins.plugins['daily-notes'];
         
         this.logger.debug('Checking if file is a daily note', { filePath });
@@ -23,7 +47,7 @@ export class DailyNote {
         return isInDailyFolder && matchesPattern;
     }
     
-    private static isDailyNotesPluginEnabled(plugin: any): boolean {
+    private static isDailyNotesPluginEnabled(plugin: DailyNotesPlugin | undefined): boolean {
         const isEnabled = !!plugin && plugin.enabled;
         
         if (!isEnabled) {
@@ -36,7 +60,7 @@ export class DailyNote {
         return isEnabled;
     }
     
-    private static getDailyNotesFolder(plugin: any): string {
+    private static getDailyNotesFolder(plugin: DailyNotesPlugin): string {
         return plugin.instance.options.folder || '';
     }
     

@@ -81,7 +81,7 @@ export class SettingsManager {
         }
     }
 
-    private handleSaveError(error: any) {
+    private handleSaveError(error: unknown) {
         this.logger.error('Failed to save settings:', error);
         throw error;
     }

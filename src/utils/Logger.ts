@@ -112,22 +112,22 @@ export class Logger {
      * Primary debug levels
      *********************************************************/
 
-    debug(message?: any, ...optionalParams: any[]): void {
+    debug(message?: unknown, ...optionalParams: unknown[]): void {
         if (!this.shouldLog(LogLevel.DEBUG)) return;
         console.debug(this.prefix + message, ...optionalParams);
     }
 
-    info(message?: any, ...optionalParams: any[]): void {
+    info(message?: unknown, ...optionalParams: unknown[]): void {
         if (!this.shouldLog(LogLevel.INFO)) return;
         console.log(this.prefix + message, ...optionalParams);
     }
 
-    warn(message?: any, ...optionalParams: any[]): void {
+    warn(message?: unknown, ...optionalParams: unknown[]): void {
         if (!this.shouldLog(LogLevel.WARN)) return;
         console.warn(this.prefix + message, ...optionalParams);
     }
 
-    error(message?: any, ...optionalParams: any[]): void {
+    error(message?: unknown, ...optionalParams: unknown[]): void {
         if (!this.shouldLog(LogLevel.ERROR)) return;
         console.error(this.prefix + message, ...optionalParams);
     }
@@ -140,7 +140,7 @@ export class Logger {
      * Extras
      *********************************************************/
 
-    trace(message?: any, ...optionalParams: any[]): void {
+    trace(message?: unknown, ...optionalParams: unknown[]): void {
         if (this.enabled) {
             console.trace(this.prefix + message, ...optionalParams);
         }
@@ -158,7 +158,7 @@ export class Logger {
         }
     }
 
-    table(tabularData: any, properties?: string[]): void {
+    table(tabularData: unknown, properties?: string[]): void {
         if (this.enabled) {
             console.table(tabularData, properties);
         }
