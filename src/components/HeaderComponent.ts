@@ -418,8 +418,11 @@ export class HeaderComponent {
             // Calculate popup position relative to button
             const buttonRect = settingsButton.getBoundingClientRect();
             
-            // Position the popup below the button using setAttribute instead of direct style access
-            popup.setAttribute('style', `top: ${buttonRect.bottom}px; right: ${window.innerWidth - buttonRect.right}px;`);
+            // Position the popup below the button using setCssStyles
+            popup.setCssStyles({
+                top: `${buttonRect.bottom}px`,
+                right: `${window.innerWidth - buttonRect.right}px`
+            });
             
             // Close popup when clicking outside
             this.setupPopupClickOutsideHandler(popup, settingsButton);
@@ -446,13 +449,14 @@ export class HeaderComponent {
         popup.classList.add('settings-popup');
         
         // Set position values with custom attributes to be used by CSS via attr()
-        // Unfortunately we still need to use inline styles for positioning as CSS can't
-        // dynamically position like this without CSS-in-JS, but we're using setAttribute
-        // to make it more explicit that we're applying custom styles
+        // We use setCssStyles for dynamic positioning as it's more type-safe and readable
         const settingsButton = document.querySelector('.settings-button') as HTMLElement;
         if (settingsButton) {
             const buttonRect = settingsButton.getBoundingClientRect();
-            popup.setAttribute('style', `top: ${buttonRect.bottom}px; right: ${window.innerWidth - buttonRect.right}px;`);
+            popup.setCssStyles({
+                top: `${buttonRect.bottom}px`,
+                right: `${window.innerWidth - buttonRect.right}px`
+            });
         }
 
         // Add sections to the popup
