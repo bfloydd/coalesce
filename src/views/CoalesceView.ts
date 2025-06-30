@@ -176,12 +176,20 @@ export class CoalesceView {
     }
     
     private compareBlocks(a: { block: BlockComponent; sourcePath: string }, b: { block: BlockComponent; sourcePath: string }): number {
-        const pathCompare = this.sortDescending 
-            ? b.sourcePath.localeCompare(a.sourcePath)
-            : a.sourcePath.localeCompare(b.sourcePath);
-        
-        if (pathCompare !== 0) return pathCompare;
-
+        const sortByFullPath = this.settingsManager.settings.sortByFullPath;
+        let aKey: string, bKey: string;
+        if (sortByFullPath) {
+            aKey = a.sourcePath;
+            bKey = b.sourcePath;
+        } else {
+            aKey = a.sourcePath.split(/[/\\]/).pop() || a.sourcePath;
+            bKey = b.sourcePath.split(/[/\\]/).pop() || b.sourcePath;
+        }
+        const keyCompare = this.sortDescending 
+            ? bKey.localeCompare(aKey)
+            : aKey.localeCompare(bKey);
+        if (keyCompare !== 0) return keyCompare;
+        // If keys are equal, compare block content
         const aContent = a.block.contents;
         const bContent = b.block.contents;
         return this.sortDescending 

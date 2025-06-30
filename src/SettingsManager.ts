@@ -12,7 +12,8 @@ const DEFAULT_SETTINGS: CoalescePluginSettings = {
     position: 'low',
     onlyDailyNotes: false,
     headerStyle: 'full',
-    hideBacklinkLine: false
+    hideBacklinkLine: false,
+    sortByFullPath: false
 };
 
 export class SettingsManager {
