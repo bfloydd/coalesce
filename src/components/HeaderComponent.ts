@@ -1041,7 +1041,7 @@ export class HeaderComponent {
         const themes = [
             { id: 'default', label: 'Default' },
             { id: 'modern', label: 'Modern' },
-            { id: 'minimal', label: 'Minimal' },
+            { id: 'compact', label: 'Compact' },
             { id: 'naked', label: 'Naked' }
         ];
         

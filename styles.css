@@ -327,19 +327,19 @@
 }
 
 /* ============================
-   Minimal theme
+   Compact theme
    ============================ */
-.theme-minimal .backlinks-header {
+.theme-compact .backlinks-header {
     padding: 4px;
     border: none;
 }
 
-.theme-minimal .header-title {
+.theme-compact .header-title {
     margin-left: 4px;
     font-weight: normal;
 }
 
-.theme-minimal .block-header {
+.theme-compact .block-header {
     padding: 2px 4px;
     background: transparent;
 }

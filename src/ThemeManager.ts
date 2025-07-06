@@ -1,7 +1,7 @@
 import { Logger } from './utils/Logger';
 
 export class ThemeManager {
-    private static readonly THEMES = ['default', 'modern', 'minimal', 'naked'] as const;
+    private static readonly THEMES = ['default', 'modern', 'compact', 'naked'] as const;
     private static logger: Logger = new Logger('ThemeManager');
     
     public static get themes(): readonly string[] {
