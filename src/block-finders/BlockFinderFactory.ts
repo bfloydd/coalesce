@@ -32,8 +32,8 @@ export class BlockFinderFactory {
     static getStrategyLabels(): Record<string, string> {
         return {
             'default': 'Default',
-            'headers-only': 'Headers Only',
-            'top-line': 'Top Line'
+            'headers-only': 'Headers only',
+            'top-line': 'Top line'
         };
     }
 

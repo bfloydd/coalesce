@@ -559,7 +559,7 @@ export class HeaderComponent {
         
         icon.appendChild(path);
         
-        const label = item.createSpan({ cls: 'setting-item-label', text: 'Hide Backlink Line' });
+        const label = item.createSpan({ cls: 'setting-item-label', text: 'Hide backlink line' });
         
         const checkmarkContainer = item.createDiv({ cls: 'checkmark-container' });
         if (hideBacklinkLine) {
@@ -631,7 +631,7 @@ export class HeaderComponent {
         
         icon.appendChild(path);
         
-        const label = item.createSpan({ cls: 'setting-item-label', text: 'Hide in Daily Notes' });
+        const label = item.createSpan({ cls: 'setting-item-label', text: 'Hide in daily notes' });
         
         const checkmarkContainer = item.createDiv({ cls: 'checkmark-container' });
         if (onlyDailyNotes) {
@@ -707,7 +707,7 @@ export class HeaderComponent {
         
         headerStyleHeader.appendChild(headerIcon);
         
-        const headerText = headerStyleHeader.createSpan({ text: 'Header Style' });
+        const headerText = headerStyleHeader.createSpan({ text: 'Header style' });
         
         popup.appendChild(headerStyleHeader);
 
@@ -949,7 +949,7 @@ export class HeaderComponent {
         
         headerIcon.appendChild(iconPath);
         
-        const headerText = header.createSpan({ text: 'Block Style' });
+        const headerText = header.createSpan({ text: 'Block style' });
         
         popup.appendChild(header);
         

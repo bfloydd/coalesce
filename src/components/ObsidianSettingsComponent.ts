@@ -29,12 +29,12 @@ export class ObsidianSettingsComponent extends PluginSettingTab {
     
     private addDailyNotesToggle(container: HTMLElement): void {
         new Setting(container)
-            .setName('Hide in Daily Notes')
+            .setName('Hide in daily notes')
             .setDesc('Hide Coalesce view in daily notes')
             .addToggle(toggle => toggle
                 .setValue(this.settingsManager.settings.onlyDailyNotes)
                 .onChange(async (value) => {
-                    this.logSettingChange("Hide in Daily Notes", value);
+                    this.logSettingChange("Hide in daily notes", value);
                     this.settingsManager.settings.onlyDailyNotes = value;
                     await this.settingsManager.saveSettings();
                 }));
@@ -42,12 +42,12 @@ export class ObsidianSettingsComponent extends PluginSettingTab {
     
     private addHideBacklinkLineToggle(container: HTMLElement): void {
         new Setting(container)
-            .setName('Hide Backlink Line')
+            .setName('Hide backlink line')
             .setDesc('Hide the line containing the backlink in blocks')
             .addToggle(toggle => toggle
                 .setValue(this.settingsManager.settings.hideBacklinkLine)
                 .onChange(async (value) => {
-                    this.logSettingChange("Hide Backlink Line", value);
+                    this.logSettingChange("Hide backlink line", value);
                     this.settingsManager.settings.hideBacklinkLine = value;
                     await this.settingsManager.saveSettings();
                     this.refreshViewsIfNeeded();

@@ -28,11 +28,11 @@ export class HeaderStyleFactory {
      */
     static getStyleLabels(): Record<string, string> {
         return {
-            'full': 'Full Path',
+            'full': 'Full path',
             'short': 'Filename',
-            'first-heading-short': 'First Heading',
-            'first-heading-tidy': 'Heading Tidy',
-            'first-heading-tidy-bold': 'Heading Tidy Bold'
+            'first-heading-short': 'First heading',
+            'first-heading-tidy': 'Heading tidy',
+            'first-heading-tidy-bold': 'Heading tidy bold'
         };
     }
 
