@@ -25,6 +25,7 @@ export class ObsidianSettingsComponent extends PluginSettingTab {
 
         this.addDailyNotesToggle(settingsContainer);
         this.addHideBacklinkLineToggle(settingsContainer);
+        this.addSortByFullPathToggle(settingsContainer);
     }
     
     private addDailyNotesToggle(container: HTMLElement): void {
@@ -51,6 +52,19 @@ export class ObsidianSettingsComponent extends PluginSettingTab {
                     this.settingsManager.settings.hideBacklinkLine = value;
                     await this.settingsManager.saveSettings();
                     this.refreshViewsIfNeeded();
+                }));
+    }
+    
+    private addSortByFullPathToggle(container: HTMLElement): void {
+        new Setting(container)
+            .setName('Sort by full path')
+            .setDesc('Sort blocks by full path')
+            .addToggle(toggle => toggle
+                .setValue(this.settingsManager.settings.sortByFullPath)
+                .onChange(async (value) => {
+                    this.logSettingChange("Sort by full path", value);
+                    this.settingsManager.settings.sortByFullPath = value;
+                    await this.settingsManager.saveSettings();
                 }));
     }
     
