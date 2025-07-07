@@ -103,7 +103,8 @@ export class CoalesceView {
                 this.settingsManager.settings.headerStyle,
                 this.logger,
                 this.settingsManager.settings.blockBoundaryStrategy,
-                this.settingsManager.settings.hideBacklinkLine
+                this.settingsManager.settings.hideBacklinkLine,
+                this.settingsManager.settings.hideFirstHeader
             );
             blocks.push(block);
         }

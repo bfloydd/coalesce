@@ -17,6 +17,7 @@ export interface CoalescePluginSettings {
     onlyDailyNotes: boolean;
     headerStyle: string;
     hideBacklinkLine: boolean;
+    hideFirstHeader: boolean;
     sortByFullPath: boolean; // If true, sort by full path; if false, sort by filename
 }
 

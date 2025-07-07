@@ -26,7 +26,9 @@ export default class CoalescePlugin extends Plugin {
 			blockBoundaryStrategy: this.settingsManager.settings.blockBoundaryStrategy,
 			theme: this.settingsManager.settings.theme,
 			position: this.settingsManager.settings.position,
-			headerStyle: this.settingsManager.settings.headerStyle
+			headerStyle: this.settingsManager.settings.headerStyle,
+			hideBacklinkLine: this.settingsManager.settings.hideBacklinkLine,
+			hideFirstHeader: this.settingsManager.settings.hideFirstHeader
 		});
 
 		this.coalesceManager = new CoalesceManager(

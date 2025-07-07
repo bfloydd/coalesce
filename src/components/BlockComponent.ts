@@ -19,7 +19,8 @@ export class BlockComponent {
         private headerStyle: string,
         private logger: Logger,
         private strategy: string = 'default',
-        private hideBacklinkLine: boolean = false
+        private hideBacklinkLine: boolean = false,
+        private hideFirstHeader: boolean = false
     ) {
         this.logger.debug('Creating block component', {
             filePath,
@@ -27,6 +28,7 @@ export class BlockComponent {
             headerStyle,
             strategy,
             hideBacklinkLine,
+            hideFirstHeader,
             contentLength: contents.length
         });
 
@@ -122,7 +124,7 @@ export class BlockComponent {
 
     private filterHeadersOnly(): string {
         const lines = this.contents.split('\n');
-        const headerLines = lines.filter(line => /^#{1,5}\s/.test(line));
+        const headerLines = lines.filter(line => /^\s*#{1,5}\s/.test(line));
         
         this.logger.debug('Filtered content for headers only', {
             totalLines: lines.length,
@@ -137,12 +139,32 @@ export class BlockComponent {
         const escapedNoteName = this.escapeRegexChars(this.noteName);
         const backlinkRegex = new RegExp(`\\[\\[(?:[^\\]|]*?/)?${escapedNoteName}(?:\\|[^\\]]*)?\\]\\]`);
         
-        const filteredLines = lines.filter(line => !backlinkRegex.test(line));
+        let filteredLines = lines.filter(line => !backlinkRegex.test(line));
+        
+        // If hideFirstHeader is enabled, also hide the first header line
+        if (this.hideFirstHeader && filteredLines.length > 0) {
+            const content = filteredLines.join('\n');
+            const headingMatch = content.match(/^#{1,5}\s+(.+?)$/m);
+            if (headingMatch) {
+                // Find the line index of the first header
+                const contentLines = content.split('\n');
+                const headerLineIndex = contentLines.findIndex(line => /^#{1,5}\s+(.+?)$/.test(line));
+                if (headerLineIndex !== -1) {
+                    // Remove the header line from filteredLines
+                    const removedLine = filteredLines.splice(headerLineIndex, 1)[0];
+                    this.logger.debug('Filtered out first header line', {
+                        headerLine: removedLine,
+                        lineIndex: headerLineIndex
+                    });
+                }
+            }
+        }
         
         this.logger.debug('Filtered out backlink line', {
             totalLines: lines.length,
             filteredLines: filteredLines.length,
-            noteName: this.noteName
+            noteName: this.noteName,
+            hideFirstHeader: this.hideFirstHeader
         });
         
         return filteredLines.join('\n');
@@ -230,7 +252,5 @@ export class BlockComponent {
         return title;
     }
 
-    private getFileName(path: string): string {
-        return path.split('/').pop()?.replace('.md', '') || path;
-    }
+
 }
