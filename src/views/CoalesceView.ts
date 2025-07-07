@@ -20,7 +20,7 @@ export class CoalesceView {
     private currentAlias: string | null = null;
     private aliases: string[] = [];
     private currentFilesLinkingToThis: string[] = [];
-    private currentOnLinkClick: ((path: string) => void) | null = null;
+    private currentOnLinkClick: ((path: string, openInNewTab?: boolean) => void) | null = null;
     private blockFinder: AbstractBlockFinder;
     private sortDescending: boolean;
     private blocksCollapsed: boolean;
@@ -103,7 +103,8 @@ export class CoalesceView {
                 this.settingsManager.settings.headerStyle,
                 this.logger,
                 this.settingsManager.settings.blockBoundaryStrategy,
-                this.settingsManager.settings.hideBacklinkLine
+                this.settingsManager.settings.hideBacklinkLine,
+                this.settingsManager.settings.hideFirstHeader
             );
             blocks.push(block);
         }
@@ -234,7 +235,7 @@ export class CoalesceView {
         }
     }
 
-    public async updateBacklinks(filesLinkingToThis: string[], onLinkClick: (path: string) => void): Promise<void> {
+    public async updateBacklinks(filesLinkingToThis: string[], onLinkClick: (path: string, openInNewTab?: boolean) => void): Promise<void> {
         this.currentFilesLinkingToThis = filesLinkingToThis;
         this.currentOnLinkClick = onLinkClick;
         this.logger.debug("Updating backlinks", { count: filesLinkingToThis.length, files: filesLinkingToThis });
@@ -275,7 +276,7 @@ export class CoalesceView {
     /**
      * Renders all blocks into the provided container
      */
-    private async renderBlocks(linksContainer: HTMLElement, onLinkClick: (path: string) => void): Promise<void> {
+    private async renderBlocks(linksContainer: HTMLElement, onLinkClick: (path: string, openInNewTab?: boolean) => void): Promise<void> {
         for (const { block } of this.allBlocks) {
             try {
                 await block.render(linksContainer, this.view, onLinkClick);
@@ -297,7 +298,7 @@ export class CoalesceView {
     private createBacklinksHeader(
         unsavedAliases: string[], 
         filesLinkingToThis: string[], 
-        onLinkClick: (path: string) => void
+        onLinkClick: (path: string, openInNewTab?: boolean) => void
     ): HTMLElement {
         return this.headerComponent.createHeader(
             this.container, 
@@ -315,16 +316,12 @@ export class CoalesceView {
             async (show) => this.handleFullPathTitleChange(show),
             this.settingsManager.settings.position,
             async (position) => this.handlePositionChange(position),
-            this.settingsManager.settings.onlyDailyNotes,
-            async (show: boolean) => this.handleDailyNotesChange(show),
             this.aliases,
             async (alias: string | null) => this.handleAliasSelect(alias),
             this.currentAlias,
             unsavedAliases,
             this.settingsManager.settings.headerStyle,
-            async (style: string) => this.handleHeaderStyleChange(style),
-            this.settingsManager.settings.hideBacklinkLine,
-            async (hide: boolean) => this.handleHideBacklinkLineChange(hide)
+            async (style: string) => this.handleHeaderStyleChange(style)
         );
     }
 

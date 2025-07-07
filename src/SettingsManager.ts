@@ -13,6 +13,7 @@ const DEFAULT_SETTINGS: CoalescePluginSettings = {
     onlyDailyNotes: false,
     headerStyle: 'full',
     hideBacklinkLine: false,
+    hideFirstHeader: false,
     sortByFullPath: false
 };
 

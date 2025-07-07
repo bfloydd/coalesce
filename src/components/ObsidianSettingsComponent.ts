@@ -25,6 +25,7 @@ export class ObsidianSettingsComponent extends PluginSettingTab {
 
         this.addDailyNotesToggle(settingsContainer);
         this.addHideBacklinkLineToggle(settingsContainer);
+        this.addHideFirstHeaderToggle(settingsContainer);
         this.addSortByFullPathToggle(settingsContainer);
     }
     
@@ -50,6 +51,20 @@ export class ObsidianSettingsComponent extends PluginSettingTab {
                 .onChange(async (value) => {
                     this.logSettingChange("Hide backlink line", value);
                     this.settingsManager.settings.hideBacklinkLine = value;
+                    await this.settingsManager.saveSettings();
+                    this.refreshViewsIfNeeded();
+                }));
+    }
+    
+    private addHideFirstHeaderToggle(container: HTMLElement): void {
+        new Setting(container)
+            .setName('Hide first header')
+            .setDesc('Hide the first header line when "Hide backlink line" is enabled')
+            .addToggle(toggle => toggle
+                .setValue(this.settingsManager.settings.hideFirstHeader)
+                .onChange(async (value) => {
+                    this.logSettingChange("Hide first header", value);
+                    this.settingsManager.settings.hideFirstHeader = value;
                     await this.settingsManager.saveSettings();
                     this.refreshViewsIfNeeded();
                 }));
