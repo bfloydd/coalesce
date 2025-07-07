@@ -315,8 +315,6 @@ export class CoalesceView {
             async (show) => this.handleFullPathTitleChange(show),
             this.settingsManager.settings.position,
             async (position) => this.handlePositionChange(position),
-            this.settingsManager.settings.onlyDailyNotes,
-            async (show: boolean) => this.handleDailyNotesChange(show),
             this.aliases,
             async (alias: string | null) => this.handleAliasSelect(alias),
             this.currentAlias,

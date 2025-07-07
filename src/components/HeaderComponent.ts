@@ -72,8 +72,6 @@ export class HeaderComponent {
         onFullPathTitleChange: (show: boolean) => void,
         currentPosition: string,
         onPositionChange: (position: 'high' | 'low') => void,
-        onlyDailyNotes: boolean,
-        onOnlyDailyNotesChange: (show: boolean) => void,
         aliases: string[] = [],
         onAliasSelect: (alias: string | null) => void,
         currentAlias: string | null = null,
@@ -93,8 +91,6 @@ export class HeaderComponent {
         const rightContainer = this.createRightContainer(
             hideBacklinkLine, 
             onHideBacklinkLineChange, 
-            onlyDailyNotes, 
-            onOnlyDailyNotesChange, 
             currentHeaderStyle, 
             onHeaderStyleChange,
             currentPosition,
@@ -323,8 +319,6 @@ export class HeaderComponent {
     private createRightContainer(
         hideBacklinkLine: boolean,
         onHideBacklinkLineChange: (hide: boolean) => void,
-        onlyDailyNotes: boolean,
-        onOnlyDailyNotesChange: (show: boolean) => void,
         currentHeaderStyle: string,
         onHeaderStyleChange: (style: string) => void,
         currentPosition: string = 'high',
@@ -342,8 +336,6 @@ export class HeaderComponent {
         const settingsButton = this.createSettingsButton(
             hideBacklinkLine,
             onHideBacklinkLineChange,
-            onlyDailyNotes,
-            onOnlyDailyNotesChange,
             currentHeaderStyle,
             onHeaderStyleChange,
             currentPosition,
@@ -362,8 +354,6 @@ export class HeaderComponent {
     private createSettingsButton(
         hideBacklinkLine: boolean,
         onHideBacklinkLineChange: (hide: boolean) => void,
-        onlyDailyNotes: boolean,
-        onOnlyDailyNotesChange: (show: boolean) => void,
         currentHeaderStyle: string,
         onHeaderStyleChange: (style: string) => void,
         currentPosition: string = 'high',
@@ -439,8 +429,6 @@ export class HeaderComponent {
             const popup = this.createSettingsPopup(
                 hideBacklinkLine,
                 onHideBacklinkLineChange,
-                onlyDailyNotes,
-                onOnlyDailyNotesChange,
                 currentHeaderStyle,
                 onHeaderStyleChange,
                 currentPosition,
@@ -473,8 +461,6 @@ export class HeaderComponent {
     private createSettingsPopup(
         hideBacklinkLine: boolean,
         onHideBacklinkLineChange: (hide: boolean) => void,
-        onlyDailyNotes: boolean,
-        onOnlyDailyNotesChange: (show: boolean) => void,
         currentHeaderStyle: string,
         onHeaderStyleChange: (style: string) => void,
         currentPosition: string = 'high',
@@ -502,9 +488,6 @@ export class HeaderComponent {
         // Add sections to the popup
         const hideBacklinkLineSetting = this.createHideBacklinkLineSetting(hideBacklinkLine, onHideBacklinkLineChange, popup);
         popup.appendChild(hideBacklinkLineSetting);
-        
-        const onlyDailyNotesSetting = this.createOnlyDailyNotesSetting(onlyDailyNotes, onOnlyDailyNotesChange, popup);
-        popup.appendChild(onlyDailyNotesSetting);
         
         // Add separator after top options
         const separator1 = popup.createDiv({ cls: 'menu-separator' });
@@ -603,77 +586,7 @@ export class HeaderComponent {
         return item;
     }
 
-    private createOnlyDailyNotesSetting(
-        onlyDailyNotes: boolean,
-        onOnlyDailyNotesChange: (show: boolean) => void,
-        popup: HTMLElement
-    ): HTMLElement {
-        // Create a temporary container to use createSvg
-        const tempContainer = document.createElement('div');
-        const item = popup.createDiv({ cls: 'settings-item' });
-        
-        // Add icon
-        const icon = tempContainer.createSvg('svg', {
-            cls: 'setting-item-icon',
-            attr: {
-                viewBox: '0 0 24 24',
-                width: '16',
-                height: '16'
-            }
-        });
-        
-        const path = tempContainer.createSvg('path', {
-            attr: {
-                fill: 'currentColor',
-                d: 'M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5v-5z'
-            }
-        });
-        
-        icon.appendChild(path);
-        
-        const label = item.createSpan({ cls: 'setting-item-label', text: 'Hide in daily notes' });
-        
-        const checkmarkContainer = item.createDiv({ cls: 'checkmark-container' });
-        if (onlyDailyNotes) {
-            checkmarkContainer.classList.add('is-checked');
-        }
-        
-        const dailyNotesCheckmark = tempContainer.createSvg('svg', {
-            cls: 'checkmark',
-            attr: {
-                viewBox: '0 0 24 24'
-            }
-        });
-        
-        const checkmarkPath = tempContainer.createSvg('path', {
-            attr: {
-                fill: 'currentColor',
-                d: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z'
-            }
-        });
-        
-        dailyNotesCheckmark.appendChild(checkmarkPath);
-        
-        checkmarkContainer.appendChild(dailyNotesCheckmark);
-        
-        item.appendChild(icon);
-        item.appendChild(label);
-        item.appendChild(checkmarkContainer);
-        
-        item.addEventListener('click', () => {
-            // Get current state from the DOM instead of the closure variable
-            const isCurrentlyChecked = checkmarkContainer.classList.contains('is-checked');
-            const newState = !isCurrentlyChecked;
-            
-            // Toggle the visual state
-            checkmarkContainer.classList.toggle('is-checked');
-            
-            // Call handler with new value
-            onOnlyDailyNotesChange(newState);
-        });
 
-        return item;
-    }
 
     private addHeaderStyleSettings(
         popup: HTMLElement,
