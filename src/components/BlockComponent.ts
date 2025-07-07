@@ -11,6 +11,11 @@ export class BlockComponent {
     private toggleButton: HTMLElement;
     private blockFinder: AbstractBlockFinder;
     private headerStyleInstance: AbstractHeaderStyle;
+    
+    // Compiled regex patterns for better performance
+    private static readonly HEADER_PATTERN = /^\s*#{1,5}\s/;
+    private static readonly HEADER_WITH_CONTENT_PATTERN = /^#{1,5}\s+(.+?)$/m;
+    private cachedBacklinkRegex: RegExp | null = null;
 
     constructor(
         public contents: string,
@@ -124,7 +129,7 @@ export class BlockComponent {
 
     private filterHeadersOnly(): string {
         const lines = this.contents.split('\n');
-        const headerLines = lines.filter(line => /^\s*#{1,5}\s/.test(line));
+        const headerLines = lines.filter(line => BlockComponent.HEADER_PATTERN.test(line));
         
         this.logger.debug('Filtered content for headers only', {
             totalLines: lines.length,
@@ -136,25 +141,30 @@ export class BlockComponent {
 
     private filterBacklinkLines(): string {
         const lines = this.contents.split('\n');
-        const escapedNoteName = this.escapeRegexChars(this.noteName);
-        const backlinkRegex = new RegExp(`\\[\\[(?:[^\\]|]*?/)?${escapedNoteName}(?:\\|[^\\]]*)?\\]\\]`);
         
-        let filteredLines = lines.filter(line => !backlinkRegex.test(line));
+        // Use cached regex or create new one
+        if (!this.cachedBacklinkRegex) {
+            const escapedNoteName = this.escapeRegexChars(this.noteName);
+            this.cachedBacklinkRegex = new RegExp(`\\[\\[(?:[^\\]|]*?/)?${escapedNoteName}(?:\\|[^\\]]*)?\\]\\]`);
+        }
+        
+        let filteredLines = lines.filter(line => !this.cachedBacklinkRegex!.test(line));
         
         // If hideFirstHeader is enabled, also hide the first header line
         if (this.hideFirstHeader && filteredLines.length > 0) {
             const content = filteredLines.join('\n');
-            const headingMatch = content.match(/^#{1,5}\s+(.+?)$/m);
+            const headingMatch = content.match(BlockComponent.HEADER_WITH_CONTENT_PATTERN);
             if (headingMatch) {
                 // Find the line index of the first header
                 const contentLines = content.split('\n');
-                const headerLineIndex = contentLines.findIndex(line => /^#{1,5}\s+(.+?)$/.test(line));
+                const headerLineIndex = contentLines.findIndex(line => BlockComponent.HEADER_WITH_CONTENT_PATTERN.test(line));
                 if (headerLineIndex !== -1) {
                     // Remove the header line from filteredLines
                     const removedLine = filteredLines.splice(headerLineIndex, 1)[0];
                     this.logger.debug('Filtered out first header line', {
                         headerLine: removedLine,
-                        lineIndex: headerLineIndex
+                        lineIndex: headerLineIndex,
+                        headerContent: headingMatch[1]
                     });
                 }
             }
@@ -181,9 +191,6 @@ export class BlockComponent {
     public toggle(): void {
         if (!this.mainContainer) return;
 
-        const contentPreview = this.getContentPreviewElement();
-        if (!contentPreview) return;
-
         const isCollapsed = this.mainContainer.classList.contains('is-collapsed');
         this.logger.debug('Toggling block', {
             filePath: this.filePath,
@@ -196,9 +203,6 @@ export class BlockComponent {
 
     public setCollapsed(collapsed: boolean): void {
         if (!this.mainContainer) return;
-
-        const contentPreview = this.getContentPreviewElement();
-        if (!contentPreview) return;
 
         this.logger.debug('Setting block collapse state', {
             filePath: this.filePath,
@@ -240,7 +244,12 @@ export class BlockComponent {
             headerStyle
         });
 
-        this.headerStyleInstance = HeaderStyleFactory.createHeaderStyle(headerStyle, this.contents);
+        // Only recreate header style instance if the style has changed
+        if (this.headerStyle !== headerStyle) {
+            this.headerStyle = headerStyle;
+            this.headerStyleInstance = HeaderStyleFactory.createHeaderStyle(headerStyle, this.contents);
+        }
+        
         const title = this.headerStyleInstance.getDisplayTitle(filePath);
 
         this.logger.debug('Display title generated', {
