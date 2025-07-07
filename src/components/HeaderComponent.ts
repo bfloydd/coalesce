@@ -77,9 +77,7 @@ export class HeaderComponent {
         currentAlias: string | null = null,
         unsavedAliases: string[] = [],
         currentHeaderStyle: string,
-        onHeaderStyleChange: (style: string) => void,
-        hideBacklinkLine: boolean = false,
-        onHideBacklinkLineChange: (hide: boolean) => void
+        onHeaderStyleChange: (style: string) => void
     ): HTMLElement {
         HeaderComponent.currentHeaderStyle = currentHeaderStyle;
 
@@ -89,8 +87,6 @@ export class HeaderComponent {
 
         const leftContainer = this.createLeftContainer(blockCount, aliases, unsavedAliases, currentAlias, onAliasSelect, sortDescending, onSortToggle, isCollapsed, onCollapseToggle);
         const rightContainer = this.createRightContainer(
-            hideBacklinkLine, 
-            onHideBacklinkLineChange, 
             currentHeaderStyle, 
             onHeaderStyleChange,
             currentPosition,
@@ -317,8 +313,6 @@ export class HeaderComponent {
     }
 
     private createRightContainer(
-        hideBacklinkLine: boolean,
-        onHideBacklinkLineChange: (hide: boolean) => void,
         currentHeaderStyle: string,
         onHeaderStyleChange: (style: string) => void,
         currentPosition: string = 'high',
@@ -334,8 +328,6 @@ export class HeaderComponent {
 
         // Add settings button to right container
         const settingsButton = this.createSettingsButton(
-            hideBacklinkLine,
-            onHideBacklinkLineChange,
             currentHeaderStyle,
             onHeaderStyleChange,
             currentPosition,
@@ -352,8 +344,6 @@ export class HeaderComponent {
     }
 
     private createSettingsButton(
-        hideBacklinkLine: boolean,
-        onHideBacklinkLineChange: (hide: boolean) => void,
         currentHeaderStyle: string,
         onHeaderStyleChange: (style: string) => void,
         currentPosition: string = 'high',
@@ -427,8 +417,6 @@ export class HeaderComponent {
 
             // Create settings popup
             const popup = this.createSettingsPopup(
-                hideBacklinkLine,
-                onHideBacklinkLineChange,
                 currentHeaderStyle,
                 onHeaderStyleChange,
                 currentPosition,
@@ -459,8 +447,6 @@ export class HeaderComponent {
     }
 
     private createSettingsPopup(
-        hideBacklinkLine: boolean,
-        onHideBacklinkLineChange: (hide: boolean) => void,
         currentHeaderStyle: string,
         onHeaderStyleChange: (style: string) => void,
         currentPosition: string = 'high',
@@ -486,8 +472,6 @@ export class HeaderComponent {
         }
 
         // Add sections to the popup
-        const hideBacklinkLineSetting = this.createHideBacklinkLineSetting(hideBacklinkLine, onHideBacklinkLineChange, popup);
-        popup.appendChild(hideBacklinkLineSetting);
         
         // Add separator after top options
         const separator1 = popup.createDiv({ cls: 'menu-separator' });
@@ -514,77 +498,7 @@ export class HeaderComponent {
         return popup;
     }
 
-    private createHideBacklinkLineSetting(
-        hideBacklinkLine: boolean, 
-        onHideBacklinkLineChange: (hide: boolean) => void,
-        popup: HTMLElement
-    ): HTMLElement {
-        // Create a temporary container to use createSvg
-        const tempContainer = document.createElement('div');
-        const item = popup.createDiv({ cls: 'settings-item' });
-        
-        // Add icon
-        const icon = tempContainer.createSvg('svg', {
-            cls: 'setting-item-icon',
-            attr: {
-                viewBox: '0 0 24 24',
-                width: '16',
-                height: '16'
-            }
-        });
-        
-        const path = tempContainer.createSvg('path', {
-            attr: {
-                fill: 'currentColor',
-                d: 'M12.968 16L10 20H3l4-6H3l3-4h6l-3 4h3.968zm5.991-7.474a.997.997 0 0 1-.028 1.136l-7.99 11.985a1 1 0 0 1-1.664-1.11l7.99-11.987a1 1 0 0 1 1.692-.024z'
-            }
-        });
-        
-        icon.appendChild(path);
-        
-        const label = item.createSpan({ cls: 'setting-item-label', text: 'Hide backlink line' });
-        
-        const checkmarkContainer = item.createDiv({ cls: 'checkmark-container' });
-        if (hideBacklinkLine) {
-            checkmarkContainer.classList.add('is-checked');
-        }
-        
-        const hideBacklinkLineCheckmark = tempContainer.createSvg('svg', {
-            cls: 'checkmark',
-            attr: {
-                viewBox: '0 0 24 24'
-            }
-        });
-        
-        const checkmarkPath = tempContainer.createSvg('path', {
-            attr: {
-                fill: 'currentColor',
-                d: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z'
-            }
-        });
-        
-        hideBacklinkLineCheckmark.appendChild(checkmarkPath);
-        
-        checkmarkContainer.appendChild(hideBacklinkLineCheckmark);
-        
-        item.appendChild(icon);
-        item.appendChild(label);
-        item.appendChild(checkmarkContainer);
-        
-        item.addEventListener('click', () => {
-            // Get current state from the DOM instead of the closure variable
-            const isCurrentlyChecked = checkmarkContainer.classList.contains('is-checked');
-            const newValue = !isCurrentlyChecked;
-            
-            // Toggle the visual state
-            checkmarkContainer.classList.toggle('is-checked');
-            
-            // Call handler with new value
-            onHideBacklinkLineChange(newValue);
-        });
 
-        return item;
-    }
 
 
 

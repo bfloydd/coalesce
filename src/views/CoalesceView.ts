@@ -320,9 +320,7 @@ export class CoalesceView {
             this.currentAlias,
             unsavedAliases,
             this.settingsManager.settings.headerStyle,
-            async (style: string) => this.handleHeaderStyleChange(style),
-            this.settingsManager.settings.hideBacklinkLine,
-            async (hide: boolean) => this.handleHideBacklinkLineChange(hide)
+            async (style: string) => this.handleHeaderStyleChange(style)
         );
     }
 
