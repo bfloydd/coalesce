@@ -20,7 +20,7 @@ export class CoalesceView {
     private currentAlias: string | null = null;
     private aliases: string[] = [];
     private currentFilesLinkingToThis: string[] = [];
-    private currentOnLinkClick: ((path: string) => void) | null = null;
+    private currentOnLinkClick: ((path: string, openInNewTab?: boolean) => void) | null = null;
     private blockFinder: AbstractBlockFinder;
     private sortDescending: boolean;
     private blocksCollapsed: boolean;
@@ -234,7 +234,7 @@ export class CoalesceView {
         }
     }
 
-    public async updateBacklinks(filesLinkingToThis: string[], onLinkClick: (path: string) => void): Promise<void> {
+    public async updateBacklinks(filesLinkingToThis: string[], onLinkClick: (path: string, openInNewTab?: boolean) => void): Promise<void> {
         this.currentFilesLinkingToThis = filesLinkingToThis;
         this.currentOnLinkClick = onLinkClick;
         this.logger.debug("Updating backlinks", { count: filesLinkingToThis.length, files: filesLinkingToThis });
@@ -275,7 +275,7 @@ export class CoalesceView {
     /**
      * Renders all blocks into the provided container
      */
-    private async renderBlocks(linksContainer: HTMLElement, onLinkClick: (path: string) => void): Promise<void> {
+    private async renderBlocks(linksContainer: HTMLElement, onLinkClick: (path: string, openInNewTab?: boolean) => void): Promise<void> {
         for (const { block } of this.allBlocks) {
             try {
                 await block.render(linksContainer, this.view, onLinkClick);
@@ -297,7 +297,7 @@ export class CoalesceView {
     private createBacklinksHeader(
         unsavedAliases: string[], 
         filesLinkingToThis: string[], 
-        onLinkClick: (path: string) => void
+        onLinkClick: (path: string, openInNewTab?: boolean) => void
     ): HTMLElement {
         return this.headerComponent.createHeader(
             this.container, 

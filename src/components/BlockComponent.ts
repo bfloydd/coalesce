@@ -34,7 +34,7 @@ export class BlockComponent {
         this.headerStyleInstance = HeaderStyleFactory.createHeaderStyle(headerStyle, contents);
     }
 
-    async render(container: HTMLElement, view: MarkdownView, onLinkClick: (path: string) => void): Promise<void> {
+    async render(container: HTMLElement, view: MarkdownView, onLinkClick: (path: string, openInNewTab?: boolean) => void): Promise<void> {
         this.logger.debug('Rendering block component', {
             filePath: this.filePath,
             noteName: this.noteName,
@@ -75,7 +75,7 @@ export class BlockComponent {
         });
     }
 
-    private createBlockTitle(onLinkClick: (path: string) => void): void {
+    private createBlockTitle(onLinkClick: (path: string, openInNewTab?: boolean) => void): void {
         const blockTitle = this.headerContainer.createEl('a', {
             text: this.getDisplayTitle(this.filePath, this.headerStyle),
             cls: 'block-title',
@@ -86,9 +86,10 @@ export class BlockComponent {
             event.preventDefault();
             event.stopPropagation(); // Prevent header click from also triggering
             this.logger.debug('Block title clicked', {
-                filePath: this.filePath
+                filePath: this.filePath,
+                ctrlKey: event.ctrlKey
             });
-            onLinkClick(this.filePath);
+            onLinkClick(this.filePath, event.ctrlKey);
         });
     }
 

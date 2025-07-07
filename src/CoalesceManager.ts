@@ -124,8 +124,8 @@ export class CoalesceManager {
             backlinksCount: filesLinkingToThis.length
         });
 
-        coalesceView.updateBacklinks(filesLinkingToThis, (path) => {
-            this.app.workspace.openLinkText(path, '', false);
+        coalesceView.updateBacklinks(filesLinkingToThis, (path: string, openInNewTab: boolean = false) => {
+            this.app.workspace.openLinkText(path, '', openInNewTab);
         });
     }
 

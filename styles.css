@@ -276,6 +276,16 @@
     margin-bottom: 0px;
     text-decoration: none;
     color: var(--text-normal);
+    transition: color 0.2s ease;
+}
+
+.block-title:hover {
+    color: var(--interactive-accent);
+    text-decoration: underline;
+}
+
+.block-title:active {
+    color: var(--interactive-accent-hover);
 }
 
 /* ============================
