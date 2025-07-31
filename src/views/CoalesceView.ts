@@ -279,11 +279,7 @@ export class CoalesceView {
                 this.allBlocks.push({ block, sourcePath });
             });
         }
-        
-
     }
-
-
 
     /**
      * Renders all blocks into the provided container
@@ -543,6 +539,7 @@ export class CoalesceView {
             // Position 2 (low)
             const markdownSection = this.view.containerEl.querySelector('.markdown-preview-section') as HTMLElement;
             if (markdownSection) {
+                // Insert after the markdown section
                 markdownSection.insertAdjacentElement('afterend', this.container);
             } else {
                 this.logger.error("Failed to attach Coalesce: markdown preview section not found");
@@ -797,6 +794,4 @@ export class CoalesceView {
             }
         });
     }
-
-
 }
