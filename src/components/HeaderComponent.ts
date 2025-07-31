@@ -70,8 +70,6 @@ export class HeaderComponent {
         onThemeChange: (theme: string) => void,
         showFullPathTitle: boolean,
         onFullPathTitleChange: (show: boolean) => void,
-        currentPosition: string,
-        onPositionChange: (position: 'high' | 'low') => void,
         aliases: string[] = [],
         onAliasSelect: (alias: string | null) => void,
         currentAlias: string | null = null,
@@ -91,8 +89,6 @@ export class HeaderComponent {
         const rightContainer = this.createRightContainer(
             currentHeaderStyle, 
             onHeaderStyleChange,
-            currentPosition,
-            onPositionChange,
             currentStrategy,
             onStrategyChange,
             currentTheme,
@@ -323,7 +319,7 @@ export class HeaderComponent {
     private createFilterInput(onFilterChange: (filterText: string) => void, initialValue: string = ''): HTMLInputElement {
         const filterInput = document.createElement('input');
         filterInput.type = 'text';
-        filterInput.placeholder = 'Filter blocks...';
+        filterInput.placeholder = 'Filter...';
         filterInput.classList.add('filter-input');
         
         // Set initial value if provided
@@ -359,8 +355,6 @@ export class HeaderComponent {
     private createRightContainer(
         currentHeaderStyle: string,
         onHeaderStyleChange: (style: string) => void,
-        currentPosition: string = 'high',
-        onPositionChange: (position: 'high' | 'low') => void = () => {},
         currentStrategy: string = 'default',
         onStrategyChange: (strategy: string) => void = () => {},
         currentTheme: string = 'default',
@@ -374,8 +368,6 @@ export class HeaderComponent {
         const settingsButton = this.createSettingsButton(
             currentHeaderStyle,
             onHeaderStyleChange,
-            currentPosition,
-            onPositionChange,
             currentStrategy,
             onStrategyChange,
             currentTheme,
@@ -390,8 +382,6 @@ export class HeaderComponent {
     private createSettingsButton(
         currentHeaderStyle: string,
         onHeaderStyleChange: (style: string) => void,
-        currentPosition: string = 'high',
-        onPositionChange: (position: 'high' | 'low') => void = () => {},
         currentStrategy: string = 'default',
         onStrategyChange: (strategy: string) => void = () => {},
         currentTheme: string = 'default',
@@ -460,16 +450,14 @@ export class HeaderComponent {
             }
 
             // Create settings popup
-            const popup = this.createSettingsPopup(
-                currentHeaderStyle,
-                onHeaderStyleChange,
-                currentPosition,
-                onPositionChange,
-                currentStrategy,
-                onStrategyChange,
-                currentTheme,
-                onThemeChange
-            );
+                    const popup = this.createSettingsPopup(
+            currentHeaderStyle,
+            onHeaderStyleChange,
+            currentStrategy,
+            onStrategyChange,
+            currentTheme,
+            onThemeChange
+        );
 
             // Add the popup to the document body for proper positioning
             document.body.appendChild(popup);
@@ -493,8 +481,6 @@ export class HeaderComponent {
     private createSettingsPopup(
         currentHeaderStyle: string,
         onHeaderStyleChange: (style: string) => void,
-        currentPosition: string = 'high',
-        onPositionChange: (position: 'high' | 'low') => void = () => {},
         currentStrategy: string = 'default',
         onStrategyChange: (strategy: string) => void = () => {},
         currentTheme: string = 'default',
@@ -524,9 +510,7 @@ export class HeaderComponent {
         
         // Add separator after header style
         const separator2 = popup.createDiv({ cls: 'menu-separator' });
-        
-        this.addPositionSettings(popup, currentPosition, onPositionChange);
-        
+
         // Add separator after position
         const separator3 = popup.createDiv({ cls: 'menu-separator' });
         
@@ -666,127 +650,6 @@ export class HeaderComponent {
         }, 10);
     }
 
-    /**
-     * Adds position settings section to the popup
-     */
-    private addPositionSettings(
-        popup: HTMLElement,
-        currentPosition: string,
-        onPositionChange: (position: 'high' | 'low') => void
-    ): void {
-        // Create a temporary container to use createSvg
-        const tempContainer = document.createElement('div');
-        
-        // Add settings header
-        const header = popup.createDiv({ cls: 'settings-item settings-header' });
-        
-        // Add header icon
-        const headerIcon = tempContainer.createSvg('svg', {
-            cls: 'setting-item-icon',
-            attr: {
-                viewBox: '0 0 24 24',
-                width: '16',
-                height: '16'
-            }
-        });
-        
-        const iconPath = tempContainer.createSvg('path', {
-            attr: {
-                fill: 'currentColor',
-                d: 'M9 20.42L2.79 14.21L5.62 11.38L9 14.77L18.88 4.88L21.71 7.71L9 20.42Z'
-            }
-        });
-        
-        headerIcon.appendChild(iconPath);
-        
-        header.appendChild(headerIcon);
-        
-        const headerText = header.createSpan({ text: 'Position' });
-        
-        popup.appendChild(header);
-        
-        // Add high option
-        const highItem = popup.createDiv({ cls: 'settings-item settings-submenu-item' });
-        highItem.setAttribute('data-position', 'high');
-        
-        const highLabel = highItem.createSpan({ cls: 'setting-item-label', text: 'Position high' });
-        
-        const highCheckContainer = highItem.createDiv({ cls: 'checkmark-container' });
-        if (currentPosition === 'high') {
-            highCheckContainer.classList.add('is-checked');
-        }
-        
-        const highCheck = tempContainer.createSvg('svg', {
-            cls: 'checkmark',
-            attr: {
-                viewBox: '0 0 24 24'
-            }
-        });
-        
-        const highCheckPath = tempContainer.createSvg('path', {
-            attr: {
-                fill: 'currentColor',
-                d: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z'
-            }
-        });
-        
-        highCheck.appendChild(highCheckPath);
-        highCheckContainer.appendChild(highCheck);
-        highItem.appendChild(highLabel);
-        highItem.appendChild(highCheckContainer);
-        
-        popup.appendChild(highItem);
-        
-        // Add low option
-        const lowItem = popup.createDiv({ cls: 'settings-item settings-submenu-item' });
-        lowItem.setAttribute('data-position', 'low');
-        
-        const lowLabel = lowItem.createSpan({ cls: 'setting-item-label', text: 'Position low' });
-        
-        const lowCheckContainer = lowItem.createDiv({ cls: 'checkmark-container' });
-        if (currentPosition === 'low') {
-            lowCheckContainer.classList.add('is-checked');
-        }
-        
-        const lowCheck = tempContainer.createSvg('svg', {
-            cls: 'checkmark',
-            attr: {
-                viewBox: '0 0 24 24'
-            }
-        });
-        
-        const lowCheckPath = tempContainer.createSvg('path', {
-            attr: {
-                fill: 'currentColor',
-                d: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z'
-            }
-        });
-        
-        lowCheck.appendChild(lowCheckPath);
-        lowCheckContainer.appendChild(lowCheck);
-        lowItem.appendChild(lowLabel);
-        lowItem.appendChild(lowCheckContainer);
-        
-        popup.appendChild(lowItem);
-        
-        // Add event listeners
-        highItem.addEventListener('click', () => {
-            popup.querySelectorAll('.settings-item[data-position]').forEach(el => {
-                (el as HTMLElement).querySelector('.checkmark-container')?.classList.remove('is-checked');
-            });
-            highCheckContainer.classList.add('is-checked');
-            onPositionChange('high');
-        });
-        
-        lowItem.addEventListener('click', () => {
-            popup.querySelectorAll('.settings-item[data-position]').forEach(el => {
-                (el as HTMLElement).querySelector('.checkmark-container')?.classList.remove('is-checked');
-            });
-            lowCheckContainer.classList.add('is-checked');
-            onPositionChange('low');
-        });
-    }
-    
     /**
      * Adds block style settings section to the popup
      */

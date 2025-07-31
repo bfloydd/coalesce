@@ -76,6 +76,7 @@ export class CoalesceView {
         // Create a temporary container to use Obsidian's helper methods
         const tempContainer = document.createElement('div');
         const container = tempContainer.createDiv({ cls: 'custom-backlinks-container' });
+        this.logger.debug("Created backlinks container", { container: container });
         return container;
     }
 
@@ -322,8 +323,6 @@ export class CoalesceView {
             async (theme) => this.handleThemeChange(theme),
             this.settingsManager.settings.showFullPathTitle,
             async (show) => this.handleFullPathTitleChange(show),
-            this.settingsManager.settings.position,
-            async (position) => this.handlePositionChange(position),
             this.aliases,
             async (alias: string | null) => this.handleAliasSelect(alias),
             this.currentAlias,
@@ -354,14 +353,7 @@ export class CoalesceView {
         await this.updateBlockTitles(show ? 'full' : 'short');
     }
 
-    /**
-     * Handles the change of position setting
-     */
-    private async handlePositionChange(position: 'high' | 'low'): Promise<void> {
-        this.settingsManager.settings.position = position;
-        await this.settingsManager.saveSettings();
-        this.updatePosition();
-    }
+
 
     /**
      * Handles the change of daily notes setting
@@ -524,72 +516,18 @@ export class CoalesceView {
         // Only create backlinks list if it doesn't exist and we're not handling this in updatePosition
         if (!this.container.querySelector('.backlinks-list') && this.allBlocks.length === 0) {
             const linksContainer = this.container.createDiv({ cls: 'backlinks-list' });
+            // Add a placeholder to make it visible
+            linksContainer.createDiv({ text: 'Coalesce loaded - waiting for backlinks...' });
         }
 
-        if (this.settingsManager.settings.position === 'high') {
-            // Position 1 (high)
-            const markdownContent = this.view.containerEl.querySelector('.markdown-preview-section .mod-footer') as HTMLElement;
-            if (markdownContent) {
-                markdownContent.classList.add('markdown-content');
-                markdownContent.appendChild(this.container);
-            } else {
-                this.logger.error("Failed to attach Coalesce: markdown content area not found");
-            }
+        // Always place below content
+        const markdownSection = this.view.containerEl.querySelector('.markdown-preview-section') as HTMLElement;
+        if (markdownSection) {
+            // Insert after the markdown section
+            markdownSection.insertAdjacentElement('afterend', this.container);
+            this.logger.debug("Coalesce container attached successfully");
         } else {
-            // Position 2 (low)
-            const markdownSection = this.view.containerEl.querySelector('.markdown-preview-section') as HTMLElement;
-            if (markdownSection) {
-                // Insert after the markdown section
-                markdownSection.insertAdjacentElement('afterend', this.container);
-            } else {
-                this.logger.error("Failed to attach Coalesce: markdown preview section not found");
-            }
-        }
-    }
-
-    // Add method to handle position changes
-    public async updatePosition() {
-        // Remove from current position in the DOM
-        if (this.container.parentElement) {
-            this.container.parentElement.removeChild(this.container);
-        }
-        
-        // Clear the container but keep our data
-        this.container.empty();
-        
-        // Create a new backlinks list container
-        const linksContainer = this.container.createDiv({ cls: 'backlinks-list' });
-        
-        // Attach to new position in DOM
-        this.attachToDOM();
-        
-        // Restore backlinks if we had any
-        if (this.allBlocks.length > 0 && this.currentFilesLinkingToThis.length > 0 && this.currentOnLinkClick) {
-            // Recreate the header with the current settings
-            const unsavedAliases = this.extractUnsavedAliases(this.currentFilesLinkingToThis);
-            const header = this.createBacklinksHeader(unsavedAliases, this.currentFilesLinkingToThis, this.currentOnLinkClick);
-            
-            // Add the header to the container (no need to replace since we emptied it)
-            this.container.insertBefore(header, this.container.firstChild);
-            
-            // Get the links container we just created
-            if (linksContainer) {
-                // Re-render existing blocks to the new location
-                await this.renderBlocks(linksContainer, this.currentOnLinkClick);
-                
-                // Update block visibility based on current alias and filter
-                if (this.currentFilter) {
-                    this.updateBlockVisibilityByFilter();
-                } else {
-                    this.updateBlockVisibilityByAlias();
-                }
-                
-                // Update the header with the correct block count
-                this.updateHeaderWithVisibleBlockCount();
-                
-                // Update the header collapse button state
-                this.updateCollapseButtonState();
-            }
+            this.logger.error("Failed to attach Coalesce: markdown preview section not found");
         }
     }
 

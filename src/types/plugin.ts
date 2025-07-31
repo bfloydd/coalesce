@@ -13,7 +13,6 @@ export interface CoalescePluginSettings {
     blockBoundaryStrategy: string;
     theme: string;
     showFullPathTitle: boolean;
-    position: 'high' | 'low';
     onlyDailyNotes: boolean;
     headerStyle: string;
     hideBacklinkLine: boolean;

@@ -9,7 +9,6 @@ const DEFAULT_SETTINGS: CoalescePluginSettings = {
     blockBoundaryStrategy: 'default',
     theme: 'default',
     showFullPathTitle: false,
-    position: 'low',
     onlyDailyNotes: false,
     headerStyle: 'full',
     hideBacklinkLine: false,

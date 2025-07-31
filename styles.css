@@ -307,6 +307,11 @@
     margin-right: auto;
 }
 
+/* Reduce the large padding-bottom on markdown-preview-section when Coalesce is present */
+.markdown-preview-section {
+    padding-bottom: 150px !important;
+}
+
 .is-readable-line-width .custom-backlinks-container,
 .is-readable-line-width .markdown-content,
 .is-readable-line-width .backlinks-header {
