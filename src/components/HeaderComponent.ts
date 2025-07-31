@@ -352,6 +352,43 @@ export class HeaderComponent {
         return filterInput;
     }
 
+    /**
+     * Focuses the filter input if it exists in the header
+     * @param header The header element containing the filter input
+     * @returns true if focus was successful, false otherwise
+     */
+    public focusFilterInput(header: HTMLElement): boolean {
+        const filterInput = header.querySelector('.filter-input') as HTMLInputElement;
+        
+        this.logger.debug("Focusing filter input", {
+            hasHeader: !!header,
+            hasFilterInput: !!filterInput,
+            filterInputVisible: filterInput ? filterInput.offsetParent !== null : false,
+            filterInputValue: filterInput ? filterInput.value : null
+        });
+        
+        if (filterInput && filterInput.offsetParent !== null) {
+            // Additional check to ensure the input is fully rendered
+            if (filterInput.offsetWidth > 0 && filterInput.offsetHeight > 0) {
+                filterInput.focus();
+                this.logger.debug("Filter input focused successfully");
+                return true;
+            } else {
+                this.logger.debug("Filter input exists but has no dimensions", {
+                    offsetWidth: filterInput.offsetWidth,
+                    offsetHeight: filterInput.offsetHeight
+                });
+                return false;
+            }
+        } else {
+            this.logger.debug("Filter input not found or not visible", {
+                filterInputExists: !!filterInput,
+                offsetParent: filterInput ? filterInput.offsetParent : null
+            });
+            return false;
+        }
+    }
+
     private createRightContainer(
         currentHeaderStyle: string,
         onHeaderStyleChange: (style: string) => void,

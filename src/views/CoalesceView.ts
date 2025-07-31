@@ -25,6 +25,8 @@ export class CoalesceView {
     private sortDescending: boolean;
     private blocksCollapsed: boolean;
     private currentFilter: string = '';
+    private currentHeader: HTMLElement | null = null;
+    private headerObserver: MutationObserver | null = null;
     
     // Performance optimizations
     private filterDebounceTimeout: NodeJS.Timeout | null = null;
@@ -309,7 +311,7 @@ export class CoalesceView {
         filesLinkingToThis: string[], 
         onLinkClick: (path: string, openInNewTab?: boolean) => void
     ): HTMLElement {
-        return this.headerComponent.createHeader(
+        const header = this.headerComponent.createHeader(
             this.container, 
             0,
             this.allBlocks.length,
@@ -332,6 +334,9 @@ export class CoalesceView {
             (filterText: string) => this.handleFilterChange(filterText),
             this.currentFilter
         );
+        
+        this.currentHeader = header;
+        return header;
     }
 
     /**
@@ -446,6 +451,9 @@ export class CoalesceView {
             
             this.container.replaceChild(newHeader, oldHeader);
             
+            // Update the current header reference
+            this.currentHeader = newHeader;
+            
             // Restore the filter input value and focus
             const newFilterInput = newHeader.querySelector('.filter-input') as HTMLInputElement;
             if (newFilterInput && filterValue) {
@@ -482,6 +490,12 @@ export class CoalesceView {
             this.filterDebounceTimeout = null;
         }
         
+        // Clean up observer
+        if (this.headerObserver) {
+            this.headerObserver.disconnect();
+            this.headerObserver = null;
+        }
+        
         // Clear caches and data
         this.allBlocks = [];
         this.currentFilesLinkingToThis = [];
@@ -500,6 +514,10 @@ export class CoalesceView {
             }
             this.container.empty();
         }
+        
+        // Clear header reference
+        this.currentHeader = null;
+        
         this.logger.debug("Cleared backlinks view");
     }
 
@@ -701,6 +719,85 @@ export class CoalesceView {
 
     public getCurrentFilter(): string {
         return this.currentFilter;
+    }
+
+    /**
+     * Focuses the filter input if the header exists
+     * @returns true if focus was successful, false otherwise
+     */
+    public focusFilterInput(): boolean {
+        this.logger.debug("Attempting to focus filter input", {
+            hasHeader: !!this.currentHeader,
+            headerElement: this.currentHeader,
+            headerInDOM: this.currentHeader ? this.container.contains(this.currentHeader) : false
+        });
+        
+        let headerToUse = this.currentHeader;
+        
+        // If current header reference is stale, try to find it in the DOM
+        if (!headerToUse || !this.container.contains(headerToUse)) {
+            headerToUse = this.container.querySelector('.backlinks-header') as HTMLElement;
+            this.logger.debug("Found header in DOM", { foundHeader: !!headerToUse });
+        }
+        
+        if (headerToUse && this.container.contains(headerToUse)) {
+            this.currentHeader = headerToUse; // Update the reference
+            return this.headerComponent.focusFilterInput(headerToUse);
+        } else {
+            this.logger.debug("No current header found or header not in DOM");
+            return false;
+        }
+    }
+
+    /**
+     * Waits for the header to be available and then focuses the filter input
+     * @param maxAttempts Maximum number of attempts to wait for header
+     * @param intervalMs Interval between attempts in milliseconds
+     * @returns Promise that resolves when focus is successful or max attempts reached
+     */
+    public async waitAndFocusFilterInput(maxAttempts: number = 10, intervalMs: number = 100): Promise<boolean> {
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            this.logger.debug(`Focus attempt ${attempt}/${maxAttempts}`);
+            
+            // Check if the view is ready for focusing
+            if (!this.isViewReadyForFocus()) {
+                this.logger.debug("View not ready for focus, waiting...");
+                if (attempt < maxAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, intervalMs));
+                    continue;
+                }
+            }
+            
+            if (this.focusFilterInput()) {
+                this.logger.debug("Focus successful on attempt", { attempt });
+                return true;
+            }
+            
+            if (attempt < maxAttempts) {
+                this.logger.debug(`Waiting ${intervalMs}ms before next attempt`);
+                await new Promise(resolve => setTimeout(resolve, intervalMs));
+            }
+        }
+        
+        this.logger.debug("Failed to focus after all attempts");
+        return false;
+    }
+
+    /**
+     * Checks if the view is ready for focusing (has content and is attached)
+     */
+    private isViewReadyForFocus(): boolean {
+        const hasContent = this.allBlocks.length > 0;
+        const isAttached = this.container.parentElement !== null;
+        const hasHeader = this.container.querySelector('.backlinks-header') !== null;
+        
+        this.logger.debug("View readiness check", {
+            hasContent,
+            isAttached,
+            hasHeader
+        });
+        
+        return hasContent && isAttached && hasHeader;
     }
 
     private updateBlockVisibilityByFilter(): void {

@@ -32,6 +32,12 @@ export class CoalesceManager {
 
         this.processMarkdownViews(allMarkdownViews, viewsToKeep);
         this.cleanupUnusedViews(viewsToKeep);
+        
+        // Check if we should auto-focus the filter input for the active view
+        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (activeView && activeView.file?.path === file.path) {
+            this.checkAndFocusFilterInput(activeView);
+        }
     }
 
     private getAllMarkdownViews(): MarkdownView[] {
@@ -162,6 +168,58 @@ export class CoalesceManager {
         if (this.activeViews.has(leafId)) {
             this.initializeView(file, view);
         }
+        
+        // Check if we should auto-focus the filter input
+        this.checkAndFocusFilterInput(view);
+    }
+
+    /**
+     * Checks if the view is in preview mode and focused, then focuses the filter input
+     */
+    private checkAndFocusFilterInput(view: MarkdownView): void {
+        const leafId = (view.leaf as WorkspaceLeafWithID).id;
+        const coalesceView = this.activeViews.get(leafId);
+        
+        this.logger.debug("Checking filter focus conditions", {
+            leafId,
+            hasCoalesceView: !!coalesceView,
+            activeViewsCount: this.activeViews.size,
+            viewMode: view.getMode(),
+            isActiveLeaf: this.app.workspace.activeLeaf === view.leaf,
+            activeLeafId: this.app.workspace.activeLeaf ? (this.app.workspace.activeLeaf as WorkspaceLeafWithID).id : null
+        });
+        
+        if (!coalesceView) {
+            this.logger.debug("No coalesce view found for leaf", { leafId });
+            return;
+        }
+        
+        // Check if the view is in preview mode (not edit mode)
+        const isPreviewMode = view.getMode() === 'preview';
+        
+        // Check if the view is focused (active)
+        const isFocused = this.app.workspace.activeLeaf === view.leaf;
+        
+        this.logger.debug("Filter focus conditions", {
+            leafId,
+            isPreviewMode,
+            isFocused,
+            willFocus: isPreviewMode && isFocused
+        });
+        
+        if (isPreviewMode && isFocused) {
+            this.logger.debug("Attempting to focus filter input", { leafId });
+            
+            // Use the new async method with better retry logic
+            setTimeout(async () => {
+                // Check if the view is still attached to the DOM
+                if (coalesceView.getView().containerEl.parentElement) {
+                    await coalesceView.waitAndFocusFilterInput(15, 150);
+                } else {
+                    this.logger.debug("View not attached to DOM, skipping focus");
+                }
+            }, 300);
+        }
     }
     
     private clearDailyNoteView(leafId: string, filePath: string) {
@@ -185,5 +243,16 @@ export class CoalesceManager {
                 this.initializeView(view.file, view);
             }
         });
+    }
+
+    /**
+     * Manually trigger focus for testing purposes
+     */
+    public testFocusFilterInput(): void {
+        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (activeView?.file) {
+            this.logger.debug("Manual focus test triggered", { path: activeView.file.path });
+            this.checkAndFocusFilterInput(activeView);
+        }
     }
 }

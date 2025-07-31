@@ -25,7 +25,6 @@ export default class CoalescePlugin extends Plugin {
 			onlyDailyNotes: this.settingsManager.settings.onlyDailyNotes,
 			blockBoundaryStrategy: this.settingsManager.settings.blockBoundaryStrategy,
 			theme: this.settingsManager.settings.theme,
-			position: this.settingsManager.settings.position,
 			headerStyle: this.settingsManager.settings.headerStyle,
 			hideBacklinkLine: this.settingsManager.settings.hideBacklinkLine,
 			hideFirstHeader: this.settingsManager.settings.hideFirstHeader
@@ -36,6 +35,11 @@ export default class CoalescePlugin extends Plugin {
 			this.settingsManager,
 			this.logger
 		);
+
+		// Expose test method for debugging
+		(this.app as any).coalesceTestFocus = () => {
+			this.coalesceManager.testFocusFilterInput();
+		};
 
 		this.registerEventHandlers();
 		this.addSettingTab(new ObsidianSettingsComponent(this.app, this, this.settingsManager));
@@ -73,6 +77,16 @@ export default class CoalescePlugin extends Plugin {
 				const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 				if (activeView?.file) {
 					this.logger.debug("Layout change event", { path: activeView.file.path });
+					this.coalesceManager.handleModeSwitch(activeView.file, activeView);
+				}
+			})
+		);
+
+		this.registerEvent(
+			this.app.workspace.on('active-leaf-change', () => {
+				const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+				if (activeView?.file) {
+					this.logger.debug("Active leaf change event", { path: activeView.file.path });
 					this.coalesceManager.handleModeSwitch(activeView.file, activeView);
 				}
 			})
