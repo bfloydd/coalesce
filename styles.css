@@ -6,6 +6,9 @@
     display: flex;
     align-items: center;
     cursor: pointer;
+    /* Performance optimization */
+    will-change: transform;
+    transform: translateZ(0);
 }
 
 .block-header:hover {
@@ -33,6 +36,9 @@
     flex-wrap: wrap;
     width: 100%;
     box-sizing: border-box;
+    /* Performance optimization */
+    will-change: transform;
+    transform: translateZ(0);
 }
 
 .backlinks-header-left {
@@ -229,6 +235,49 @@
 }
 
 /* ============================
+   Filter Input Styles
+   ============================ */
+
+.filter-input {
+    margin: 0 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--background-modifier-border);
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    font-size: var(--font-ui-smaller);
+    min-width: 120px;
+    height: 24px;
+    flex-shrink: 1;
+    text-overflow: ellipsis;
+    transition: border-color 0.15s ease-out;
+    /* Performance optimization */
+    will-change: border-color;
+    transform: translateZ(0);
+}
+
+.filter-input::placeholder {
+    color: var(--text-muted);
+}
+
+.filter-input:hover {
+    border-color: var(--background-modifier-border-hover);
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+}
+
+.is-mobile .filter-input,
+.is-phone .filter-input {
+    min-width: 100px;
+    font-size: var(--font-ui-smallest);
+    padding: 2px 4px;
+    height: 20px;
+}
+
+/* ============================
    CoalesceView Styles
    ============================ */
 
@@ -236,6 +285,9 @@
     color: var(--text-muted);
     font-size: 0.9em;
     padding: 5px;
+    /* Performance optimization */
+    will-change: transform;
+    transform: translateZ(0);
 }
 
 .content-preview p {
@@ -452,6 +504,15 @@
     height: 24px;
 }
 
+.is-phone .filter-input,
+.is-mobile .filter-input {
+    min-width: 80px;
+    max-width: 120px;
+    font-size: var(--font-ui-smaller);
+    padding: 2px 4px;
+    height: 24px;
+}
+
 /* Compact mobile button styles */
 .is-mobile .sort-button,
 .is-phone .sort-button,
@@ -498,6 +559,12 @@
         margin: 0 4px;
     }
     
+    .filter-input {
+        min-width: 80px;
+        max-width: 120px;
+        margin: 0 4px;
+    }
+    
     .header-title {
         flex-shrink: 1;
         white-space: nowrap;
@@ -510,6 +577,11 @@
         margin-left: 4px;
         display: flex;
         gap: 2px;
+    }
+    
+    /* Hide title on very small screens to make room for filter */
+    .backlinks-header.compact .header-title {
+        display: none;
     }
 }
 
@@ -567,12 +639,23 @@
 }
 
 /* Block states */
+.backlink-item {
+    /* Performance optimization */
+    will-change: transform;
+    transform: translateZ(0);
+    transition: opacity 0.15s ease-out;
+}
+
 .backlink-item.has-alias {
     display: block;
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .backlink-item.no-alias {
     display: none;
+    opacity: 0.3;
+    pointer-events: none;
 }
 
 .backlinks-header-left svg {

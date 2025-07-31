@@ -77,7 +77,9 @@ export class HeaderComponent {
         currentAlias: string | null = null,
         unsavedAliases: string[] = [],
         currentHeaderStyle: string,
-        onHeaderStyleChange: (style: string) => void
+        onHeaderStyleChange: (style: string) => void,
+        onFilterChange: (filterText: string) => void = () => {},
+        currentFilter: string = ''
     ): HTMLElement {
         HeaderComponent.currentHeaderStyle = currentHeaderStyle;
 
@@ -85,7 +87,7 @@ export class HeaderComponent {
 
         const header = container.createDiv({ cls: 'backlinks-header' });
 
-        const leftContainer = this.createLeftContainer(blockCount, aliases, unsavedAliases, currentAlias, onAliasSelect, sortDescending, onSortToggle, isCollapsed, onCollapseToggle);
+        const leftContainer = this.createLeftContainer(blockCount, aliases, unsavedAliases, currentAlias, onAliasSelect, sortDescending, onSortToggle, isCollapsed, onCollapseToggle, onFilterChange, currentFilter);
         const rightContainer = this.createRightContainer(
             currentHeaderStyle, 
             onHeaderStyleChange,
@@ -114,7 +116,9 @@ export class HeaderComponent {
         sortDescending: boolean,
         onSortToggle: () => void,
         isCollapsed: boolean,
-        onCollapseToggle: () => void
+        onCollapseToggle: () => void,
+        onFilterChange: (filterText: string) => void,
+        currentFilter: string = ''
     ): HTMLElement {
         // Create a temporary container to use createDiv
         const tempContainer = document.createElement('div');
@@ -129,6 +133,9 @@ export class HeaderComponent {
         // Create alias dropdown
         const aliasDropdown = this.createAliasDropdown(aliases, unsavedAliases, currentAlias, onAliasSelect);
 
+        // Create filter input
+        const filterInput = this.createFilterInput(onFilterChange, currentFilter);
+
         // Create button group
         const buttonGroup = this.createButtonGroup(sortDescending, onSortToggle, isCollapsed, onCollapseToggle);
 
@@ -136,6 +143,7 @@ export class HeaderComponent {
         leftContainer.appendChild(svg);
         leftContainer.appendChild(title);
         leftContainer.appendChild(aliasDropdown);
+        leftContainer.appendChild(filterInput);
         leftContainer.appendChild(buttonGroup);
 
         return leftContainer;
@@ -310,6 +318,42 @@ export class HeaderComponent {
         collapseButton.addEventListener('click', onCollapseToggle);
         
         return collapseButton;
+    }
+
+    private createFilterInput(onFilterChange: (filterText: string) => void, initialValue: string = ''): HTMLInputElement {
+        const filterInput = document.createElement('input');
+        filterInput.type = 'text';
+        filterInput.placeholder = 'Filter blocks...';
+        filterInput.classList.add('filter-input');
+        
+        // Set initial value if provided
+        if (initialValue) {
+            filterInput.value = initialValue;
+        }
+        
+        // Optimized debouncing for better performance
+        let debounceTimeout: NodeJS.Timeout;
+        let lastValue = initialValue;
+        
+        filterInput.addEventListener('input', (e) => {
+            const target = e.target as HTMLInputElement;
+            const filterText = target.value;
+            
+            // Only trigger if value actually changed
+            if (filterText !== lastValue) {
+                lastValue = filterText;
+                
+                // Clear previous timeout
+                clearTimeout(debounceTimeout);
+                
+                // Set new timeout for debounced filtering
+                debounceTimeout = setTimeout(() => {
+                    onFilterChange(filterText.toLowerCase());
+                }, 100); // Reduced from 300ms for better responsiveness
+            }
+        });
+        
+        return filterInput;
     }
 
     private createRightContainer(

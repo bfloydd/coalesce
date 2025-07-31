@@ -24,6 +24,11 @@ export class CoalesceView {
     private blockFinder: AbstractBlockFinder;
     private sortDescending: boolean;
     private blocksCollapsed: boolean;
+    private currentFilter: string = '';
+    
+    // Performance optimizations
+    private filterDebounceTimeout: NodeJS.Timeout | null = null;
+    private headerUpdatePending: boolean = false;
 
     constructor(
         private view: MarkdownView,
@@ -241,6 +246,9 @@ export class CoalesceView {
         this.logger.debug("Updating backlinks", { count: filesLinkingToThis.length, files: filesLinkingToThis });
         this.container.empty();
 
+        // Reset filter when updating backlinks
+        this.currentFilter = '';
+
         const linksContainer = this.container.createDiv({ cls: 'backlinks-list' });
         this.allBlocks = [];
         
@@ -271,7 +279,11 @@ export class CoalesceView {
                 this.allBlocks.push({ block, sourcePath });
             });
         }
+        
+
     }
+
+
 
     /**
      * Renders all blocks into the provided container
@@ -321,7 +333,9 @@ export class CoalesceView {
             this.currentAlias,
             unsavedAliases,
             this.settingsManager.settings.headerStyle,
-            async (style: string) => this.handleHeaderStyleChange(style)
+            async (style: string) => this.handleHeaderStyleChange(style),
+            (filterText: string) => this.handleFilterChange(filterText),
+            this.currentFilter
         );
     }
 
@@ -428,6 +442,11 @@ export class CoalesceView {
     private updateHeaderWithVisibleBlockCount(): void {
         const oldHeader = this.container.querySelector('.backlinks-header');
         if (oldHeader && this.container.contains(oldHeader)) {
+            // Preserve the filter input value and focus before recreating the header
+            const filterInput = oldHeader.querySelector('.filter-input') as HTMLInputElement;
+            const filterValue = filterInput?.value || '';
+            const hadFocus = document.activeElement === filterInput;
+            
             const visibleBlocks = this.countVisibleBlocks();
             const unsavedAliases = this.extractUnsavedAliases(this.currentFilesLinkingToThis);
             
@@ -438,6 +457,17 @@ export class CoalesceView {
             );
             
             this.container.replaceChild(newHeader, oldHeader);
+            
+            // Restore the filter input value and focus
+            const newFilterInput = newHeader.querySelector('.filter-input') as HTMLInputElement;
+            if (newFilterInput && filterValue) {
+                newFilterInput.value = filterValue;
+                if (hadFocus) {
+                    newFilterInput.focus();
+                    // Move cursor to end of input
+                    newFilterInput.setSelectionRange(filterValue.length, filterValue.length);
+                }
+            }
         }
     }
 
@@ -445,6 +475,7 @@ export class CoalesceView {
      * Counts the number of blocks that are currently visible
      */
     private countVisibleBlocks(): number {
+        // Always count actual visible blocks for accuracy
         return this.allBlocks.filter(({ block }) => {
             const container = block.getContainer();
             return container && !container.classList.contains('no-alias');
@@ -457,7 +488,13 @@ export class CoalesceView {
             this.headerComponent.cleanup();
         }
         
-        // Clear any stored blocks and references
+        // Clear filter debounce timeout
+        if (this.filterDebounceTimeout) {
+            clearTimeout(this.filterDebounceTimeout);
+            this.filterDebounceTimeout = null;
+        }
+        
+        // Clear caches and data
         this.allBlocks = [];
         this.currentFilesLinkingToThis = [];
         this.currentOnLinkClick = null;
@@ -543,8 +580,12 @@ export class CoalesceView {
                 // Re-render existing blocks to the new location
                 await this.renderBlocks(linksContainer, this.currentOnLinkClick);
                 
-                // Update block visibility based on current alias filter
-                this.updateBlockVisibilityByAlias();
+                // Update block visibility based on current alias and filter
+                if (this.currentFilter) {
+                    this.updateBlockVisibilityByFilter();
+                } else {
+                    this.updateBlockVisibilityByAlias();
+                }
                 
                 // Update the header with the correct block count
                 this.updateHeaderWithVisibleBlockCount();
@@ -584,8 +625,11 @@ export class CoalesceView {
             const container = block.getContainer();
             if (container) {
                 const hasAlias = this.blockContainsAlias(block);
+                const matchesFilter = this.currentFilter ? 
+                    (block.contents.toLowerCase().includes(this.currentFilter.toLowerCase()) || 
+                     block.getTitle().toLowerCase().includes(this.currentFilter.toLowerCase())) : true;
                 
-                if (hasAlias) {
+                if (hasAlias && matchesFilter) {
                     container.classList.add('has-alias');
                     container.classList.remove('no-alias');
                 } else {
@@ -683,4 +727,76 @@ export class CoalesceView {
         this.updateBlockVisibilityByAlias();
         this.updateHeaderWithVisibleBlockCount();
     }
+
+    private handleFilterChange(filterText: string): void {
+        this.logger.debug("Filter changed:", { filterText });
+        
+        // Clear previous debounce timeout
+        if (this.filterDebounceTimeout) {
+            clearTimeout(this.filterDebounceTimeout);
+        }
+        
+        // Debounce filter updates for better performance
+        this.filterDebounceTimeout = setTimeout(() => {
+            this.currentFilter = filterText;
+            this.updateBlockVisibilityByFilter();
+            this.scheduleHeaderUpdate();
+        }, 150); // Reduced from 300ms for better responsiveness
+    }
+
+    /**
+     * Schedules a header update to avoid excessive DOM operations
+     */
+    private scheduleHeaderUpdate(): void {
+        if (!this.headerUpdatePending) {
+            this.headerUpdatePending = true;
+            // Use requestAnimationFrame for better performance
+            requestAnimationFrame(() => {
+                this.updateHeaderWithVisibleBlockCount();
+                this.headerUpdatePending = false;
+            });
+        }
+    }
+
+    public clearFilter(): void {
+        this.currentFilter = '';
+        this.updateBlockVisibilityByFilter();
+        this.scheduleHeaderUpdate();
+    }
+
+    public getCurrentFilter(): string {
+        return this.currentFilter;
+    }
+
+    private updateBlockVisibilityByFilter(): void {
+        if (!this.currentFilter) {
+            // If no filter, show all blocks that match the current alias filter
+            this.updateBlockVisibilityByAlias();
+            return;
+        }
+
+        const filterLower = this.currentFilter.toLowerCase();
+        
+        // Apply filtering directly to blocks for accuracy
+        this.allBlocks.forEach(({ block }, index) => {
+            const container = block.getContainer();
+            if (container) {
+                const contentMatch = block.contents.toLowerCase().includes(filterLower);
+                const titleMatch = block.getTitle().toLowerCase().includes(filterLower);
+                const matchesFilter = contentMatch || titleMatch;
+                const matchesAlias = this.currentAlias ? this.blockContainsAlias(block) : true;
+                const shouldShow = matchesFilter && matchesAlias;
+                
+                if (shouldShow) {
+                    container.classList.add('has-alias');
+                    container.classList.remove('no-alias');
+                } else {
+                    container.classList.add('no-alias');
+                    container.classList.remove('has-alias');
+                }
+            }
+        });
+    }
+
+
 }

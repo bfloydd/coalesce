@@ -118,7 +118,7 @@ export class BlockComponent {
         }
     }
 
-    private getContentToRender(): string {
+    public getContentToRender(): string {
         if (this.strategy === 'headers-only') {
             return this.filterHeadersOnly();
         } else if (this.hideBacklinkLine) {
@@ -186,6 +186,10 @@ export class BlockComponent {
 
     public getContainer(): HTMLElement | null {
         return this.mainContainer || null;
+    }
+
+    public getTitle(): string {
+        return this.getDisplayTitle(this.filePath, this.headerStyle);
     }
 
     public toggle(): void {
