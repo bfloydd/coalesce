@@ -455,6 +455,14 @@ export class CoalesceView {
             const filterInput = oldHeader.querySelector('.filter-input') as HTMLInputElement;
             const filterValue = filterInput?.value || '';
             const hadFocus = document.activeElement === filterInput;
+            const cursorPosition = filterInput?.selectionStart ?? 0;
+            
+            this.logger.debug("Updating header with focus preservation", {
+                filterValue,
+                hadFocus,
+                cursorPosition,
+                isActiveElement: document.activeElement === filterInput
+            });
             
             const visibleBlocks = this.countVisibleBlocks();
             const unsavedAliases = this.extractUnsavedAliases(this.currentFilesLinkingToThis);
@@ -472,14 +480,21 @@ export class CoalesceView {
             
             // Restore the filter input value and focus
             const newFilterInput = newHeader.querySelector('.filter-input') as HTMLInputElement;
-            if (newFilterInput && filterValue) {
+            if (newFilterInput) {
+                // Always restore the value, even if empty
                 newFilterInput.value = filterValue;
+                
                 if (hadFocus) {
                     // Use requestAnimationFrame to ensure DOM is ready
                     requestAnimationFrame(() => {
                         newFilterInput.focus();
-                        // Move cursor to end of input
-                        newFilterInput.setSelectionRange(filterValue.length, filterValue.length);
+                        // Restore cursor position
+                        const position = Math.min(cursorPosition, filterValue.length);
+                        newFilterInput.setSelectionRange(position, position);
+                        this.logger.debug("Focus restored to filter input", {
+                            value: newFilterInput.value,
+                            cursorPosition: position
+                        });
                     });
                 }
             }
@@ -712,7 +727,12 @@ export class CoalesceView {
         this.filterDebounceTimeout = setTimeout(() => {
             this.currentFilter = filterText;
             this.updateBlockVisibilityByFilter();
-            this.scheduleHeaderUpdate();
+            
+            // Only schedule header update if we have a filter or if blocks are being shown/hidden
+            // This prevents unnecessary header updates when clearing the filter
+            if (filterText || this.currentAlias) {
+                this.scheduleHeaderUpdate();
+            }
         }, 150); // Reduced from 300ms for better responsiveness
     }
 
@@ -724,7 +744,15 @@ export class CoalesceView {
             this.headerUpdatePending = true;
             // Use requestAnimationFrame for better performance
             requestAnimationFrame(() => {
-                this.updateHeaderWithVisibleBlockCount();
+                // Only update header if there are actual changes to the visible block count
+                const currentVisibleCount = this.countVisibleBlocks();
+                const headerTitle = this.container.querySelector('.header-title');
+                const currentTitleText = headerTitle?.textContent || '';
+                const expectedTitleText = `${currentVisibleCount} ${currentVisibleCount === 1 ? 'Block' : 'Blocks'}`;
+                
+                if (currentTitleText !== expectedTitleText) {
+                    this.updateHeaderWithVisibleBlockCount();
+                }
                 this.headerUpdatePending = false;
             });
         }

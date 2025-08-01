@@ -272,17 +272,30 @@
     border-color: var(--background-modifier-border-hover);
 }
 
+/* Ensure filter input is always focusable even when container is collapsed */
+.filter-input:not([disabled]) {
+    pointer-events: auto;
+    user-select: text;
+    /* Prevent focus loss during DOM updates */
+    position: relative;
+    z-index: 10;
+}
+
+/* Ensure filter input maintains focus during transitions */
 .filter-input:focus {
     outline: none;
     border-color: var(--interactive-accent);
     /* Ensure focus is visible */
     box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+    /* Prevent focus loss during DOM updates */
+    position: relative;
+    z-index: 10;
 }
 
-/* Ensure filter input is always focusable even when container is collapsed */
-.filter-input:not([disabled]) {
-    pointer-events: auto;
-    user-select: text;
+/* Prevent focus loss when parent elements are updated */
+.backlinks-header:focus-within .filter-input {
+    position: relative;
+    z-index: 10;
 }
 
 .is-mobile .filter-input,
