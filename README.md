@@ -1,16 +1,18 @@
 # Coalesce
 
-Coalesce your backlinked notes into a single view.
+Coalesce your notes into a single view.
 
 ## Description:
 
 Inspired by Roam, Logseq, Influx, OneNote's Quick Notes, and Obsidian's "Backlinks in document" feature.
 
-This plugin addresses the challenge of organizing quick notes when immediate sorting into folder hierarchies is not feasible, such as during busy or stressful moments. It enables users to efficiently capture notes within a daily note stream and add backlinks at a later, more convenient time. Importantly, it ensures that these quick notes remain accessible, comprehensive, and easy to locate.
+This plugin addresses:
+1. The challenge of taking quick notes when immediate sorting into folder hierarchies is not feasible.
+2. Later finding and viewing those notes in a single view.
 
 ## Features
 - Replace Obsidian's Backlinks in Document with a more comprehensive and configurable view.
-- Use aliases to further narrow the view.
+- Use aliases and filtering to further narrow the view.
 
 ## Getting Started
 1. Enable daily notes, or even better, use the Streams Plugin.
