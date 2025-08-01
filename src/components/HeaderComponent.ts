@@ -316,7 +316,12 @@ export class HeaderComponent {
         return collapseButton;
     }
 
-    private createFilterInput(onFilterChange: (filterText: string) => void, initialValue: string = ''): HTMLInputElement {
+    private createFilterInput(onFilterChange: (filterText: string) => void, initialValue: string = ''): HTMLElement {
+        // Create container
+        const container = document.createElement('div');
+        container.classList.add('filter-input-container');
+        
+        // Create input
         const filterInput = document.createElement('input');
         filterInput.type = 'text';
         filterInput.placeholder = 'Filter...';
@@ -325,7 +330,21 @@ export class HeaderComponent {
         // Set initial value if provided
         if (initialValue) {
             filterInput.value = initialValue;
+            container.classList.add('has-value');
         }
+        
+        // Create clear button
+        const clearButton = document.createElement('button');
+        clearButton.classList.add('filter-clear-button');
+        clearButton.setAttribute('type', 'button');
+        clearButton.setAttribute('aria-label', 'Clear filter');
+        
+        // Create X icon using a simpler approach
+        clearButton.innerHTML = `
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+                <path d="M2 2L8 8M8 2L2 8"/>
+            </svg>
+        `;
         
         // Optimized debouncing for better performance
         let debounceTimeout: NodeJS.Timeout;
@@ -334,6 +353,13 @@ export class HeaderComponent {
         filterInput.addEventListener('input', (e) => {
             const target = e.target as HTMLInputElement;
             const filterText = target.value;
+            
+            // Update container class based on value
+            if (filterText) {
+                container.classList.add('has-value');
+            } else {
+                container.classList.remove('has-value');
+            }
             
             // Only trigger if value actually changed
             if (filterText !== lastValue) {
@@ -349,7 +375,19 @@ export class HeaderComponent {
             }
         });
         
-        return filterInput;
+        // Clear button click handler
+        clearButton.addEventListener('click', () => {
+            filterInput.value = '';
+            filterInput.focus();
+            container.classList.remove('has-value');
+            onFilterChange('');
+        });
+        
+        // Add elements to container
+        container.appendChild(filterInput);
+        container.appendChild(clearButton);
+        
+        return container;
     }
 
     /**
