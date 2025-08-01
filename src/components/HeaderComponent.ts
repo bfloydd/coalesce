@@ -23,18 +23,11 @@ export class HeaderComponent {
         }
     }
 
-    /**
-     * Checks if the container width is small and applies compact styling if needed
-     * @param header The header element to check and update
-     * @param container The container element that holds the header
-     */
     private applyResponsiveLayout(header: HTMLElement, container: HTMLElement): void {
-        // Clean up previous observer if it exists
         this.cleanup();
         
         this.observedContainer = container;
         
-        // Set up resize observer to dynamically adjust layout
         this.resizeObserver = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const width = entry.contentRect.width;
@@ -46,13 +39,11 @@ export class HeaderComponent {
             }
         });
         
-        // Initially check the container width
         const initialWidth = container.getBoundingClientRect().width;
         if (initialWidth < 450) {
             header.classList.add('compact');
         }
         
-        // Start observing the container
         this.resizeObserver.observe(container);
     }
 
@@ -317,36 +308,30 @@ export class HeaderComponent {
     }
 
     private createFilterInput(onFilterChange: (filterText: string) => void, initialValue: string = ''): HTMLElement {
-        // Create container
         const container = document.createElement('div');
         container.classList.add('filter-input-container');
         
-        // Create input
         const filterInput = document.createElement('input');
         filterInput.type = 'text';
         filterInput.placeholder = 'Filter...';
         filterInput.classList.add('filter-input');
         
-        // Set initial value if provided
         if (initialValue) {
             filterInput.value = initialValue;
             container.classList.add('has-value');
         }
         
-        // Create clear button
         const clearButton = document.createElement('button');
         clearButton.classList.add('filter-clear-button');
         clearButton.setAttribute('type', 'button');
         clearButton.setAttribute('aria-label', 'Clear filter');
         
-        // Create X icon using a simpler approach
         clearButton.innerHTML = `
             <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
                 <path d="M2 2L8 8M8 2L2 8"/>
             </svg>
         `;
         
-        // Optimized debouncing for better performance
         let debounceTimeout: NodeJS.Timeout;
         let lastValue = initialValue;
         
@@ -354,28 +339,21 @@ export class HeaderComponent {
             const target = e.target as HTMLInputElement;
             const filterText = target.value;
             
-            // Update container class based on value
             if (filterText) {
                 container.classList.add('has-value');
             } else {
                 container.classList.remove('has-value');
             }
             
-            // Only trigger if value actually changed
             if (filterText !== lastValue) {
                 lastValue = filterText;
-                
-                // Clear previous timeout
                 clearTimeout(debounceTimeout);
-                
-                // Set new timeout for debounced filtering
                 debounceTimeout = setTimeout(() => {
                     onFilterChange(filterText.toLowerCase());
-                }, 100); // Reduced from 300ms for better responsiveness
+                }, 100);
             }
         });
         
-        // Clear button click handler
         clearButton.addEventListener('click', () => {
             filterInput.value = '';
             filterInput.focus();
@@ -383,18 +361,12 @@ export class HeaderComponent {
             onFilterChange('');
         });
         
-        // Add elements to container
         container.appendChild(filterInput);
         container.appendChild(clearButton);
         
         return container;
     }
 
-    /**
-     * Focuses the filter input if it exists in the header
-     * @param header The header element containing the filter input
-     * @returns true if focus was successful, false otherwise
-     */
     public focusFilterInput(header: HTMLElement): boolean {
         const filterInput = header.querySelector('.filter-input') as HTMLInputElement;
         
@@ -406,9 +378,7 @@ export class HeaderComponent {
         });
         
         if (filterInput && filterInput.offsetParent !== null) {
-            // Use requestAnimationFrame to ensure the input is fully rendered
             requestAnimationFrame(() => {
-                // Additional check to ensure the input is fully rendered
                 if (filterInput.offsetWidth > 0 && filterInput.offsetHeight > 0) {
                     filterInput.focus();
                     this.logger.debug("Filter input focused successfully");

@@ -249,7 +249,7 @@
 
 .filter-input {
     padding: 4px 8px;
-    padding-right: 28px; /* Make room for clear button */
+    padding-right: 28px;
     border-radius: 4px;
     border: 1px solid var(--background-modifier-border);
     background-color: var(--background-primary);
@@ -260,20 +260,14 @@
     flex-shrink: 1;
     text-overflow: ellipsis;
     transition: border-color 0.15s ease-out;
-    /* Performance optimization */
     will-change: border-color;
     transform: translateZ(0);
-    /* Ensure focusability */
     position: relative;
     z-index: 1;
-    /* Prevent layout shifts */
     box-sizing: border-box;
-    /* Ensure minimum dimensions for focus */
     min-height: 24px;
     min-width: 80px;
-    /* Remove margin since container handles it */
     margin: 0;
-    /* Ensure input doesn't cover the clear button */
     background-clip: padding-box;
 }
 
@@ -285,27 +279,21 @@
     border-color: var(--background-modifier-border-hover);
 }
 
-/* Ensure filter input is always focusable even when container is collapsed */
 .filter-input:not([disabled]) {
     pointer-events: auto;
     user-select: text;
-    /* Prevent focus loss during DOM updates */
     position: relative;
     z-index: 10;
 }
 
-/* Ensure filter input maintains focus during transitions */
 .filter-input:focus {
     outline: none;
     border-color: var(--interactive-accent);
-    /* Ensure focus is visible */
     box-shadow: 0 0 0 2px var(--interactive-accent-hover);
-    /* Prevent focus loss during DOM updates */
     position: relative;
     z-index: 10;
 }
 
-/* Clear button styles */
 .filter-clear-button {
     position: absolute;
     right: 6px;
@@ -329,10 +317,8 @@
     opacity: 0;
     transition: opacity 0.15s ease-out, background-color 0.15s ease-out;
     z-index: 10;
-    /* Ensure the button is visible */
     pointer-events: auto;
     box-sizing: border-box;
-    /* Force circular shape */
     flex-shrink: 0;
     flex-grow: 0;
 }
@@ -347,12 +333,10 @@
     background-color: var(--background-modifier-active);
 }
 
-/* Show clear button when input has value */
 .filter-input-container.has-value .filter-clear-button {
     opacity: 1;
 }
 
-/* Clear button icon */
 .filter-clear-button svg {
     width: 10px;
     height: 10px;
@@ -362,7 +346,6 @@
     display: block;
 }
 
-/* Prevent focus loss when parent elements are updated */
 .backlinks-header:focus-within .filter-input {
     position: relative;
     z-index: 10;

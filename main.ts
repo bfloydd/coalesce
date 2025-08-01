@@ -36,14 +36,13 @@ export default class CoalescePlugin extends Plugin {
 			this.logger
 		);
 
-		// Expose test method for debugging
+		// Debug methods for development
 		(this.app as any).coalesceTestFocus = () => {
 			console.log("Coalesce plugin test focus called");
 			console.log("Coalesce manager:", this.coalesceManager);
 			this.coalesceManager.testFocusFilterInput();
 		};
 		
-		// Expose plugin status test
 		(this.app as any).coalesceStatus = () => {
 			console.log("Coalesce plugin status:");
 			console.log("- Plugin loaded:", !!this);
@@ -53,7 +52,6 @@ export default class CoalescePlugin extends Plugin {
 			console.log("- All markdown views:", this.app.workspace.getLeavesOfType('markdown').length);
 		};
 
-		// Expose direct focus test
 		(this.app as any).coalesceTestDirectFocus = () => {
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 			console.log("Active view:", activeView);
@@ -73,12 +71,10 @@ export default class CoalescePlugin extends Plugin {
 			}
 		};
 
-		// Expose force focus test
 		(this.app as any).coalesceForceFocus = () => {
 			this.coalesceManager.forceFocusCheck();
 		};
 
-		// Expose direct focus test
 		(this.app as any).coalesceDirectFocus = () => {
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 			if (activeView) {
@@ -90,7 +86,6 @@ export default class CoalescePlugin extends Plugin {
 			}
 		};
 
-		// Expose window focus test
 		(this.app as any).coalesceTestWindowFocus = () => {
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 			if (activeView) {
@@ -102,7 +97,6 @@ export default class CoalescePlugin extends Plugin {
 			}
 		};
 
-		// Expose simple focus test
 		(this.app as any).coalesceTestSimpleFocus = () => {
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 			if (activeView) {
@@ -119,7 +113,6 @@ export default class CoalescePlugin extends Plugin {
 			}
 		};
 
-		// Expose logging state update method
 		(this.app as any).coalesceUpdateLogging = (enabled: boolean) => {
 			if (enabled) {
 				this.logger.on();
