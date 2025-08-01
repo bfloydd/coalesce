@@ -26,11 +26,14 @@ export class CoalesceView {
     private blocksCollapsed: boolean;
     private currentFilter: string = '';
     private currentHeader: HTMLElement | null = null;
-    private headerObserver: MutationObserver | null = null;
+    private focusPending: boolean = false;
+    private focusAttempts: number = 0;
+    private maxFocusAttempts: number = 10;
     
     // Performance optimizations
     private filterDebounceTimeout: NodeJS.Timeout | null = null;
     private headerUpdatePending: boolean = false;
+    private focusTimeout: NodeJS.Timeout | null = null;
 
     constructor(
         private view: MarkdownView,
@@ -270,6 +273,14 @@ export class CoalesceView {
         const header = this.createBacklinksHeader(unsavedAliases, filesLinkingToThis, onLinkClick);
         this.container.appendChild(header);
         this.container.appendChild(linksContainer);
+        
+        this.logger.debug("Header appended to container", {
+            headerInContainer: this.container.contains(header),
+            focusPending: this.focusPending
+        });
+        
+        // Set up observer for future header updates
+        // this.setupHeaderObserver(); // Removed as per edit hint
     }
 
     /**
@@ -336,6 +347,11 @@ export class CoalesceView {
         );
         
         this.currentHeader = header;
+        this.logger.debug("Header created", { 
+            header: header,
+            hasFilterInput: !!header.querySelector('.filter-input')
+        });
+        
         return header;
     }
 
@@ -459,9 +475,12 @@ export class CoalesceView {
             if (newFilterInput && filterValue) {
                 newFilterInput.value = filterValue;
                 if (hadFocus) {
-                    newFilterInput.focus();
-                    // Move cursor to end of input
-                    newFilterInput.setSelectionRange(filterValue.length, filterValue.length);
+                    // Use requestAnimationFrame to ensure DOM is ready
+                    requestAnimationFrame(() => {
+                        newFilterInput.focus();
+                        // Move cursor to end of input
+                        newFilterInput.setSelectionRange(filterValue.length, filterValue.length);
+                    });
                 }
             }
         }
@@ -490,10 +509,10 @@ export class CoalesceView {
             this.filterDebounceTimeout = null;
         }
         
-        // Clean up observer
-        if (this.headerObserver) {
-            this.headerObserver.disconnect();
-            this.headerObserver = null;
+        // Clear focus timeout
+        if (this.focusTimeout) {
+            clearTimeout(this.focusTimeout);
+            this.focusTimeout = null;
         }
         
         // Clear caches and data
@@ -729,7 +748,9 @@ export class CoalesceView {
         this.logger.debug("Attempting to focus filter input", {
             hasHeader: !!this.currentHeader,
             headerElement: this.currentHeader,
-            headerInDOM: this.currentHeader ? this.container.contains(this.currentHeader) : false
+            headerInDOM: this.currentHeader ? this.container.contains(this.currentHeader) : false,
+            containerExists: !!this.container,
+            containerInDOM: this.container.parentElement !== null
         });
         
         let headerToUse = this.currentHeader;
@@ -737,50 +758,25 @@ export class CoalesceView {
         // If current header reference is stale, try to find it in the DOM
         if (!headerToUse || !this.container.contains(headerToUse)) {
             headerToUse = this.container.querySelector('.backlinks-header') as HTMLElement;
-            this.logger.debug("Found header in DOM", { foundHeader: !!headerToUse });
+            this.logger.debug("Found header in DOM", { 
+                foundHeader: !!headerToUse,
+                headerClasses: headerToUse ? headerToUse.className : null
+            });
         }
         
         if (headerToUse && this.container.contains(headerToUse)) {
             this.currentHeader = headerToUse; // Update the reference
-            return this.headerComponent.focusFilterInput(headerToUse);
+            this.logger.debug("Calling headerComponent.focusFilterInput");
+            const result = this.headerComponent.focusFilterInput(headerToUse);
+            this.logger.debug("HeaderComponent focus result", { result });
+            return result;
         } else {
-            this.logger.debug("No current header found or header not in DOM");
+            this.logger.debug("No current header found or header not in DOM", {
+                headerToUse: !!headerToUse,
+                containerContains: headerToUse ? this.container.contains(headerToUse) : false
+            });
             return false;
         }
-    }
-
-    /**
-     * Waits for the header to be available and then focuses the filter input
-     * @param maxAttempts Maximum number of attempts to wait for header
-     * @param intervalMs Interval between attempts in milliseconds
-     * @returns Promise that resolves when focus is successful or max attempts reached
-     */
-    public async waitAndFocusFilterInput(maxAttempts: number = 10, intervalMs: number = 100): Promise<boolean> {
-        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-            this.logger.debug(`Focus attempt ${attempt}/${maxAttempts}`);
-            
-            // Check if the view is ready for focusing
-            if (!this.isViewReadyForFocus()) {
-                this.logger.debug("View not ready for focus, waiting...");
-                if (attempt < maxAttempts) {
-                    await new Promise(resolve => setTimeout(resolve, intervalMs));
-                    continue;
-                }
-            }
-            
-            if (this.focusFilterInput()) {
-                this.logger.debug("Focus successful on attempt", { attempt });
-                return true;
-            }
-            
-            if (attempt < maxAttempts) {
-                this.logger.debug(`Waiting ${intervalMs}ms before next attempt`);
-                await new Promise(resolve => setTimeout(resolve, intervalMs));
-            }
-        }
-        
-        this.logger.debug("Failed to focus after all attempts");
-        return false;
     }
 
     /**
@@ -798,6 +794,101 @@ export class CoalesceView {
         });
         
         return hasContent && isAttached && hasHeader;
+    }
+
+    /**
+     * Requests focus when the header becomes available using Obsidian's recommended pattern
+     */
+    public requestFocusWhenReady(): void {
+        this.logger.debug("Requesting focus when header is ready");
+        
+        // Clear any existing focus timeout
+        if (this.focusTimeout) {
+            clearTimeout(this.focusTimeout);
+            this.focusTimeout = null;
+        }
+        
+        // Reset focus attempts
+        this.focusAttempts = 0;
+        
+        // Use Obsidian's recommended pattern: requestAnimationFrame for DOM readiness
+        requestAnimationFrame(() => {
+            this.attemptFocusWithRetry();
+        });
+    }
+
+    /**
+     * Attempts to focus with retry logic using proper timing
+     */
+    private attemptFocusWithRetry(): void {
+        this.focusAttempts++;
+        
+        this.logger.debug("Focus attempt", { 
+            attempt: this.focusAttempts,
+            maxAttempts: this.maxFocusAttempts,
+            isReady: this.isViewReadyForFocus()
+        });
+        
+        if (this.isViewReadyForFocus()) {
+            const success = this.focusFilterInput();
+            this.logger.debug("Focus attempt result", { success, attempt: this.focusAttempts });
+            
+            if (success) {
+                this.focusAttempts = 0;
+                return;
+            }
+        }
+        
+        // If not ready or focus failed, retry with exponential backoff
+        if (this.focusAttempts < this.maxFocusAttempts) {
+            const delay = Math.min(50 * Math.pow(2, this.focusAttempts - 1), 500);
+            this.focusTimeout = setTimeout(() => {
+                this.attemptFocusWithRetry();
+            }, delay);
+        } else {
+            this.logger.debug("Max focus attempts reached, giving up");
+            this.focusAttempts = 0;
+        }
+    }
+
+    /**
+     * Test method to manually trigger focus for debugging
+     */
+    public testFocus(): void {
+        this.logger.debug("Manual focus test triggered");
+        this.focusFilterInput();
+    }
+
+    /**
+     * Direct focus test - bypass all checks
+     */
+    public directFocusTest(): void {
+        this.logger.debug("Direct focus test triggered");
+        
+        // Try to find the filter input directly
+        const filterInput = this.container.querySelector('.filter-input') as HTMLInputElement;
+        this.logger.debug("Direct filter input search", {
+            found: !!filterInput,
+            inputType: filterInput ? filterInput.type : null,
+            inputVisible: filterInput ? filterInput.offsetParent !== null : false,
+            inputDimensions: filterInput ? { width: filterInput.offsetWidth, height: filterInput.offsetHeight } : null
+        });
+        
+        if (filterInput) {
+            this.logger.debug("Attempting direct focus on filter input");
+            filterInput.focus();
+            this.logger.debug("Direct focus called");
+        } else {
+            this.logger.debug("No filter input found for direct focus");
+        }
+    }
+
+    /**
+     * Test window focus event manually
+     */
+    public testWindowFocus(): void {
+        this.logger.debug("Testing window focus event");
+        this.requestFocusWhenReady();
     }
 
     private updateBlockVisibilityByFilter(): void {

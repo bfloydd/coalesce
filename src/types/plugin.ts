@@ -18,6 +18,7 @@ export interface CoalescePluginSettings {
     hideBacklinkLine: boolean;
     hideFirstHeader: boolean;
     sortByFullPath: boolean; // If true, sort by full path; if false, sort by filename
+    enableLogging: boolean; // Enable/disable debug logging
 }
 
 // ============================

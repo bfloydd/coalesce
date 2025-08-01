@@ -23,6 +23,8 @@ export class Logger {
      */
     constructor(prefix?: string) {
         this.prefix = prefix ? `[${prefix}] ` : '';
+        
+
     }
 
     /**

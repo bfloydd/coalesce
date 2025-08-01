@@ -38,7 +38,94 @@ export default class CoalescePlugin extends Plugin {
 
 		// Expose test method for debugging
 		(this.app as any).coalesceTestFocus = () => {
+			console.log("Coalesce plugin test focus called");
+			console.log("Coalesce manager:", this.coalesceManager);
 			this.coalesceManager.testFocusFilterInput();
+		};
+		
+		// Expose plugin status test
+		(this.app as any).coalesceStatus = () => {
+			console.log("Coalesce plugin status:");
+			console.log("- Plugin loaded:", !!this);
+			console.log("- Settings manager:", !!this.settingsManager);
+			console.log("- Coalesce manager:", !!this.coalesceManager);
+			console.log("- Active views count:", this.coalesceManager['activeViews'].size);
+			console.log("- All markdown views:", this.app.workspace.getLeavesOfType('markdown').length);
+		};
+
+		// Expose direct focus test
+		(this.app as any).coalesceTestDirectFocus = () => {
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			console.log("Active view:", activeView);
+			if (activeView) {
+				const leafId = (activeView.leaf as any).id;
+				console.log("Leaf ID:", leafId);
+				console.log("Active views:", this.coalesceManager['activeViews']);
+				const coalesceView = this.coalesceManager['activeViews'].get(leafId);
+				console.log("Coalesce view:", coalesceView);
+				if (coalesceView) {
+					coalesceView.testFocus();
+				} else {
+					console.log("No coalesce view found for leaf:", leafId);
+				}
+			} else {
+				console.log("No active markdown view found");
+			}
+		};
+
+		// Expose force focus test
+		(this.app as any).coalesceForceFocus = () => {
+			this.coalesceManager.forceFocusCheck();
+		};
+
+		// Expose direct focus test
+		(this.app as any).coalesceDirectFocus = () => {
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (activeView) {
+				const leafId = (activeView.leaf as any).id;
+				const coalesceView = this.coalesceManager['activeViews'].get(leafId);
+				if (coalesceView) {
+					coalesceView.directFocusTest();
+				}
+			}
+		};
+
+		// Expose window focus test
+		(this.app as any).coalesceTestWindowFocus = () => {
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (activeView) {
+				const leafId = (activeView.leaf as any).id;
+				const coalesceView = this.coalesceManager['activeViews'].get(leafId);
+				if (coalesceView) {
+					coalesceView.testWindowFocus();
+				}
+			}
+		};
+
+		// Expose simple focus test
+		(this.app as any).coalesceTestSimpleFocus = () => {
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (activeView) {
+				const leafId = (activeView.leaf as any).id;
+				const coalesceView = this.coalesceManager['activeViews'].get(leafId);
+				if (coalesceView) {
+					console.log("Testing simple focus");
+					coalesceView.requestFocusWhenReady();
+				} else {
+					console.log("No coalesce view found for active leaf");
+				}
+			} else {
+				console.log("No active markdown view found");
+			}
+		};
+
+		// Expose logging state update method
+		(this.app as any).coalesceUpdateLogging = (enabled: boolean) => {
+			if (enabled) {
+				this.logger.on();
+			} else {
+				this.logger.off();
+			}
 		};
 
 		this.registerEventHandlers();
@@ -48,6 +135,13 @@ export default class CoalescePlugin extends Plugin {
 
 	private initializeLogger() {
 		this.logger = new Logger('Coalesce');
+		
+		// Initialize logger state based on settings
+		if (this.settingsManager?.settings?.enableLogging) {
+			this.logger.on();
+		} else {
+			this.logger.off();
+		}
 		
 		const obsidianApp = this.app as ExtendedApp;
 		
@@ -66,7 +160,11 @@ export default class CoalescePlugin extends Plugin {
 		this.registerEvent(
 			this.app.workspace.on('file-open', (file: TFile) => {
 				if (file) {
-					this.logger.debug("File open event", { path: file.path });
+					this.logger.debug("File open event", { 
+						path: file.path,
+						extension: file.extension,
+						basename: file.basename
+					});
 					this.coalesceManager.handleFileOpen(file);
 				}
 			})

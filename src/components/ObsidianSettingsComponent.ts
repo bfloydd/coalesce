@@ -27,6 +27,7 @@ export class ObsidianSettingsComponent extends PluginSettingTab {
         this.addHideBacklinkLineToggle(settingsContainer);
         this.addHideFirstHeaderToggle(settingsContainer);
         this.addSortByFullPathToggle(settingsContainer);
+        this.addEnableLoggingToggle(settingsContainer);
     }
     
     private addDailyNotesToggle(container: HTMLElement): void {
@@ -83,6 +84,20 @@ export class ObsidianSettingsComponent extends PluginSettingTab {
                 }));
     }
     
+    private addEnableLoggingToggle(container: HTMLElement): void {
+        new Setting(container)
+            .setName('Enable debug logging')
+            .setDesc('Enable debug logging for troubleshooting')
+            .addToggle(toggle => toggle
+                .setValue(this.settingsManager.settings.enableLogging)
+                .onChange(async (value) => {
+                    this.logSettingChange("Enable debug logging", value);
+                    this.settingsManager.settings.enableLogging = value;
+                    await this.settingsManager.saveSettings();
+                    this.updateLoggingState();
+                }));
+    }
+    
     private logSettingChange(settingName: string, value: unknown): void {
         this.logger.debug("Setting changed", {
             setting: settingName,
@@ -95,5 +110,18 @@ export class ObsidianSettingsComponent extends PluginSettingTab {
             this.logger.debug("Refreshing views after hideBacklinkLine change");
             this.plugin.coalesceManager.refreshActiveViews();
         }
+    }
+    
+    private updateLoggingState(): void {
+        // Update the logger state based on the setting
+        const enabled = this.settingsManager.settings.enableLogging;
+        if (enabled) {
+            this.logger.on();
+        } else {
+            this.logger.off();
+        }
+        
+        // Also update the main plugin logger
+        (this.app as any).coalesceUpdateLogging?.(enabled);
     }
 }

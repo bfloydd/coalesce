@@ -368,18 +368,20 @@ export class HeaderComponent {
         });
         
         if (filterInput && filterInput.offsetParent !== null) {
-            // Additional check to ensure the input is fully rendered
-            if (filterInput.offsetWidth > 0 && filterInput.offsetHeight > 0) {
-                filterInput.focus();
-                this.logger.debug("Filter input focused successfully");
-                return true;
-            } else {
-                this.logger.debug("Filter input exists but has no dimensions", {
-                    offsetWidth: filterInput.offsetWidth,
-                    offsetHeight: filterInput.offsetHeight
-                });
-                return false;
-            }
+            // Use requestAnimationFrame to ensure the input is fully rendered
+            requestAnimationFrame(() => {
+                // Additional check to ensure the input is fully rendered
+                if (filterInput.offsetWidth > 0 && filterInput.offsetHeight > 0) {
+                    filterInput.focus();
+                    this.logger.debug("Filter input focused successfully");
+                } else {
+                    this.logger.debug("Filter input exists but has no dimensions", {
+                        offsetWidth: filterInput.offsetWidth,
+                        offsetHeight: filterInput.offsetHeight
+                    });
+                }
+            });
+            return true;
         } else {
             this.logger.debug("Filter input not found or not visible", {
                 filterInputExists: !!filterInput,

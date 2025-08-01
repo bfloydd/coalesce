@@ -254,6 +254,14 @@
     /* Performance optimization */
     will-change: border-color;
     transform: translateZ(0);
+    /* Ensure focusability */
+    position: relative;
+    z-index: 1;
+    /* Prevent layout shifts */
+    box-sizing: border-box;
+    /* Ensure minimum dimensions for focus */
+    min-height: 24px;
+    min-width: 80px;
 }
 
 .filter-input::placeholder {
@@ -267,6 +275,14 @@
 .filter-input:focus {
     outline: none;
     border-color: var(--interactive-accent);
+    /* Ensure focus is visible */
+    box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+/* Ensure filter input is always focusable even when container is collapsed */
+.filter-input:not([disabled]) {
+    pointer-events: auto;
+    user-select: text;
 }
 
 .is-mobile .filter-input,
@@ -275,6 +291,7 @@
     font-size: var(--font-ui-smallest);
     padding: 2px 4px;
     height: 20px;
+    min-height: 20px;
 }
 
 /* ============================

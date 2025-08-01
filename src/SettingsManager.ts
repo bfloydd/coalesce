@@ -13,7 +13,8 @@ const DEFAULT_SETTINGS: CoalescePluginSettings = {
     headerStyle: 'full',
     hideBacklinkLine: false,
     hideFirstHeader: false,
-    sortByFullPath: false
+    sortByFullPath: false,
+    enableLogging: false
 };
 
 export class SettingsManager {

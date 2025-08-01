@@ -82,6 +82,8 @@ export class CoalesceManager {
     private initializeView(file: TFile, view: MarkdownView) {
         const leafId = (view.leaf as WorkspaceLeafWithID).id;
         
+        this.logger.debug("Initializing view", { leafId, path: file.path });
+        
         const existingView = this.activeViews.get(leafId);
         if (existingView) {
             this.logger.debug("Clearing existing view", { leafId, path: file.path });
@@ -89,10 +91,13 @@ export class CoalesceManager {
         }
         
         if (this.shouldSkipDailyNote(file.path)) {
+            this.logger.debug("Skipping daily note", { path: file.path });
             return;
         }
         
         const currentNoteName = file.basename;
+        this.logger.debug("Creating new coalesce view", { leafId, currentNoteName });
+        
         const coalesceView = new CoalesceView(
             view, 
             currentNoteName, 
@@ -101,6 +106,11 @@ export class CoalesceManager {
         );
 
         this.activeViews.set(leafId, coalesceView);
+        this.logger.debug("Coalesce view created and stored", { 
+            leafId, 
+            activeViewsCount: this.activeViews.size 
+        });
+        
         this.updateBacklinksForView(file, coalesceView, leafId);
     }
     
@@ -169,8 +179,10 @@ export class CoalesceManager {
             this.initializeView(file, view);
         }
         
-        // Check if we should auto-focus the filter input
-        this.checkAndFocusFilterInput(view);
+        // Use requestAnimationFrame to ensure DOM is ready before checking focus
+        requestAnimationFrame(() => {
+            this.checkAndFocusFilterInput(view);
+        });
     }
 
     /**
@@ -202,23 +214,33 @@ export class CoalesceManager {
         
         this.logger.debug("Filter focus conditions", {
             leafId,
+            viewMode: view.getMode(),
             isPreviewMode,
             isFocused,
-            willFocus: isPreviewMode && isFocused
+            activeLeafId: this.app.workspace.activeLeaf ? (this.app.workspace.activeLeaf as WorkspaceLeafWithID).id : null,
+            willFocus: isPreviewMode && isFocused,
+            viewContainer: !!view.containerEl,
+            viewContainerParent: !!view.containerEl.parentElement
         });
         
         if (isPreviewMode && isFocused) {
-            this.logger.debug("Attempting to focus filter input", { leafId });
+            this.logger.debug("Requesting focus for filter input", { leafId });
             
-            // Use the new async method with better retry logic
-            setTimeout(async () => {
-                // Check if the view is still attached to the DOM
-                if (coalesceView.getView().containerEl.parentElement) {
-                    await coalesceView.waitAndFocusFilterInput(15, 150);
-                } else {
-                    this.logger.debug("View not attached to DOM, skipping focus");
-                }
-            }, 300);
+            // Check if the view is still attached to the DOM
+            if (coalesceView.getView().containerEl.parentElement) {
+                // Use a small delay to ensure the view is fully rendered
+                setTimeout(() => {
+                    coalesceView.requestFocusWhenReady();
+                }, 50);
+            } else {
+                this.logger.debug("View not attached to DOM, skipping focus");
+            }
+        } else {
+            this.logger.debug("Focus conditions not met", {
+                isPreviewMode,
+                isFocused,
+                reason: !isPreviewMode ? "not preview mode" : "not focused"
+            });
         }
     }
     
@@ -253,6 +275,27 @@ export class CoalesceManager {
         if (activeView?.file) {
             this.logger.debug("Manual focus test triggered", { path: activeView.file.path });
             this.checkAndFocusFilterInput(activeView);
+        }
+    }
+
+    /**
+     * Force focus check regardless of conditions
+     */
+    public forceFocusCheck(): void {
+        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (activeView?.file) {
+            const leafId = (activeView.leaf as WorkspaceLeafWithID).id;
+            const coalesceView = this.activeViews.get(leafId);
+            
+            this.logger.debug("Force focus check", { 
+                leafId, 
+                hasCoalesceView: !!coalesceView,
+                viewMode: activeView.getMode()
+            });
+            
+            if (coalesceView) {
+                coalesceView.requestFocusWhenReady();
+            }
         }
     }
 }
