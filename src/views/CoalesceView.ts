@@ -325,7 +325,6 @@ export class CoalesceView {
         const header = this.headerComponent.createHeader(
             this.container, 
             0,
-            this.allBlocks.length,
             this.sortDescending,
             () => this.toggleSort(),
             () => this.toggleAllBlocks(),
@@ -410,9 +409,6 @@ export class CoalesceView {
 
         // Update all blocks based on the new state
         this.updateAllBlocksCollapsedState();
-
-        // Update header to reflect new state
-        this.updateHeaderWithVisibleBlockCount();
     }
 
     /**
@@ -445,72 +441,9 @@ export class CoalesceView {
         }
     }
 
-    /**
-     * Updates the header with the current count of visible blocks
-     */
-    private updateHeaderWithVisibleBlockCount(): void {
-        const oldHeader = this.container.querySelector('.backlinks-header');
-        if (oldHeader && this.container.contains(oldHeader)) {
-            // Preserve the filter input value and focus before recreating the header
-            const filterInput = oldHeader.querySelector('.filter-input') as HTMLInputElement;
-            const filterValue = filterInput?.value || '';
-            const hadFocus = document.activeElement === filterInput;
-            const cursorPosition = filterInput?.selectionStart ?? 0;
-            
-            this.logger.debug("Updating header with focus preservation", {
-                filterValue,
-                hadFocus,
-                cursorPosition,
-                isActiveElement: document.activeElement === filterInput
-            });
-            
-            const visibleBlocks = this.countVisibleBlocks();
-            const unsavedAliases = this.extractUnsavedAliases(this.currentFilesLinkingToThis);
-            
-            const newHeader = this.createBacklinksHeader(
-                unsavedAliases,
-                this.currentFilesLinkingToThis,
-                this.currentOnLinkClick!
-            );
-            
-            this.container.replaceChild(newHeader, oldHeader);
-            
-            // Update the current header reference
-            this.currentHeader = newHeader;
-            
-            // Restore the filter input value and focus
-            const newFilterInput = newHeader.querySelector('.filter-input') as HTMLInputElement;
-            if (newFilterInput) {
-                // Always restore the value, even if empty
-                newFilterInput.value = filterValue;
-                
-                if (hadFocus) {
-                    // Use requestAnimationFrame to ensure DOM is ready
-                    requestAnimationFrame(() => {
-                        newFilterInput.focus();
-                        // Restore cursor position
-                        const position = Math.min(cursorPosition, filterValue.length);
-                        newFilterInput.setSelectionRange(position, position);
-                        this.logger.debug("Focus restored to filter input", {
-                            value: newFilterInput.value,
-                            cursorPosition: position
-                        });
-                    });
-                }
-            }
-        }
-    }
 
-    /**
-     * Counts the number of blocks that are currently visible
-     */
-    private countVisibleBlocks(): number {
-        // Always count actual visible blocks for accuracy
-        return this.allBlocks.filter(({ block }) => {
-            const container = block.getContainer();
-            return container && !container.classList.contains('no-alias');
-        }).length;
-    }
+
+
 
     public cleanup(): void {
         // Clean up the header component to prevent memory leaks
@@ -596,7 +529,6 @@ export class CoalesceView {
         });
         
         this.updateBlockVisibilityByAlias();
-        this.updateHeaderWithVisibleBlockCount();
     }
 
     /**
@@ -712,7 +644,6 @@ export class CoalesceView {
         this.logger.debug("Alias selected:", { alias });
         this.currentAlias = alias;
         this.updateBlockVisibilityByAlias();
-        this.updateHeaderWithVisibleBlockCount();
     }
 
     private handleFilterChange(filterText: string): void {
@@ -744,15 +675,8 @@ export class CoalesceView {
             this.headerUpdatePending = true;
             // Use requestAnimationFrame for better performance
             requestAnimationFrame(() => {
-                // Only update header if there are actual changes to the visible block count
-                const currentVisibleCount = this.countVisibleBlocks();
-                const headerTitle = this.container.querySelector('.header-title');
-                const currentTitleText = headerTitle?.textContent || '';
-                const expectedTitleText = `${currentVisibleCount} ${currentVisibleCount === 1 ? 'Block' : 'Blocks'}`;
-                
-                if (currentTitleText !== expectedTitleText) {
-                    this.updateHeaderWithVisibleBlockCount();
-                }
+                // Since we removed the block count display, we don't need to update the header
+                // based on block count changes anymore
                 this.headerUpdatePending = false;
             });
         }

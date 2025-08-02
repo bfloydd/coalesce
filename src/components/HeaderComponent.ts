@@ -50,7 +50,6 @@ export class HeaderComponent {
     createHeader(
         container: HTMLElement, 
         fileCount: number, 
-        blockCount: number,
         sortDescending: boolean,
         onSortToggle: () => void,
         onCollapseToggle: () => void,
@@ -76,7 +75,7 @@ export class HeaderComponent {
 
         const header = container.createDiv({ cls: 'backlinks-header' });
 
-        const leftContainer = this.createLeftContainer(blockCount, aliases, unsavedAliases, currentAlias, onAliasSelect, sortDescending, onSortToggle, isCollapsed, onCollapseToggle, onFilterChange, currentFilter);
+        const leftContainer = this.createLeftContainer(aliases, unsavedAliases, currentAlias, onAliasSelect, sortDescending, onSortToggle, isCollapsed, onCollapseToggle, onFilterChange, currentFilter);
         const rightContainer = this.createRightContainer(
             currentHeaderStyle, 
             onHeaderStyleChange,
@@ -95,7 +94,6 @@ export class HeaderComponent {
     }
 
     private createLeftContainer(
-        blockCount: number,
         aliases: string[], 
         unsavedAliases: string[],
         currentAlias: string | null,
@@ -114,9 +112,6 @@ export class HeaderComponent {
         // Create and add coalesce icon
         const svg = this.createCoalesceIcon();
         
-        // Create title
-        const title = leftContainer.createSpan({ cls: 'header-title', text: `${blockCount} ${blockCount === 1 ? 'Block' : 'Blocks'}` });
-
         // Create alias dropdown
         const aliasDropdown = this.createAliasDropdown(aliases, unsavedAliases, currentAlias, onAliasSelect);
 
@@ -128,7 +123,6 @@ export class HeaderComponent {
 
         // Add elements in order
         leftContainer.appendChild(svg);
-        leftContainer.appendChild(title);
         leftContainer.appendChild(aliasDropdown);
         leftContainer.appendChild(filterInput);
         leftContainer.appendChild(buttonGroup);
@@ -141,20 +135,63 @@ export class HeaderComponent {
         const tempContainer = document.createElement('div');
         const svg = tempContainer.createSvg('svg', {
             attr: {
-                viewBox: "0 0 100 100",
-                width: "18",
-                height: "18",
+                viewBox: "0 0 200 200",
+                width: "36",
+                height: "36",
                 fill: "currentColor"
             }
         });
         
-        const path = tempContainer.createSvg('path', {
+        // Create the central hexagon
+        const hexagon = tempContainer.createSvg('polygon', {
             attr: {
-                d: "M85 40.5C85 22.5 70.5 10 52.5 10c-27.6 0-43.1 24.5-43.1 40 0 21.7 16.8 40 42.6 40 11.3 0 21.1-2.8 27.4-6.5 2.2-1.3 3.6-2.8 3.6-4.4 0-1.3-0.9-2.4-2.2-2.4-0.6 0-1.2 0.2-2 0.7-6.8 4.8-15.9 7.1-26.8 7.1-22.3 0-36.2-15.4-36.2-34.5 0-19.1 13.9-34.5 36.2-34.5 15.4 0 27.5 10.3 27.5 24.5 0 11.8-7.8 19.5-16.8 19.5-4.9 0-7.8-2.5-7.8-6.7 0-1.1 0.2-2.3 0.5-3.4l4.1-16.8c0.9-3.7-1.1-5.6-4-5.6-4.9 0-9.6 5-9.6 12.3 0 5.6 3.1 9.5 9.3 9.5 4.7 0 9.1-1.9 12.4-5.4 3.3 3.5 8.2 5.4 14.3 5.4C73.2 60 85 51.5 85 40.5z"
+                points: "70,100 85,75 115,75 130,100 115,125 85,125",
+                fill: "#FFFFFF"
             }
         });
         
-        svg.appendChild(path);
+        // Create diagonal arrows group
+        const arrowGroup = tempContainer.createSvg('g', {
+            attr: {
+                fill: "#FFFFFF"
+            }
+        });
+        
+        // Top-left arrow
+        const topLeftArrow = tempContainer.createSvg('polygon', {
+            attr: {
+                points: "42,58 50,50 64,64 70,58 75,82 50,72 57,66"
+            }
+        });
+        
+        // Top-right arrow
+        const topRightArrow = tempContainer.createSvg('polygon', {
+            attr: {
+                points: "158,58 150,50 136,64 130,58 125,82 150,72 143,66"
+            }
+        });
+        
+        // Bottom-left arrow
+        const bottomLeftArrow = tempContainer.createSvg('polygon', {
+            attr: {
+                points: "42,142 50,150 64,136 70,142 75,118 50,128 57,134"
+            }
+        });
+        
+        // Bottom-right arrow
+        const bottomRightArrow = tempContainer.createSvg('polygon', {
+            attr: {
+                points: "158,142 150,150 136,136 130,142 125,118 150,128 143,134"
+            }
+        });
+        
+        svg.appendChild(hexagon);
+        arrowGroup.appendChild(topLeftArrow);
+        arrowGroup.appendChild(topRightArrow);
+        arrowGroup.appendChild(bottomLeftArrow);
+        arrowGroup.appendChild(bottomRightArrow);
+        svg.appendChild(arrowGroup);
+        
         return svg;
     }
 
