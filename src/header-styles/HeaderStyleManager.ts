@@ -5,7 +5,6 @@ export class HeaderStyleManager {
         'full', 
         'short', 
         'first-heading-short',
-        'first-heading-tidy',
         'first-heading-tidy-bold'
     ] as const;
     
