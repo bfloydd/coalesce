@@ -1,8 +1,8 @@
 import { AbstractHeaderStyle } from '../base/AbstractHeaderStyle';
 
-export class FirstHeadingTidyBoldHeaderStyle extends AbstractHeaderStyle {
+export class FirstHeadingBoldHeaderStyle extends AbstractHeaderStyle {
     protected formatTitle(path: string): string {
-        this.logger.debug('Formatting title with first heading tidy bold style', {
+        this.logger.debug('Formatting title with first heading bold style', {
             path,
             blockContentLength: this.blockContent.length
         });
@@ -146,4 +146,4 @@ export class FirstHeadingTidyBoldHeaderStyle extends AbstractHeaderStyle {
         // Case: [[Path/To/Something|Other]] -> [Something > Other]
         return `[${lastPart} > ${alias}]`;
     }
-} 
+}

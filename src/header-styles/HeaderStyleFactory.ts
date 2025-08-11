@@ -4,11 +4,11 @@ import { FullHeaderStyle } from './implementations/FullHeaderStyle';
 import { ShortHeaderStyle } from './implementations/ShortHeaderStyle';
 import { FirstHeadingShortHeaderStyle } from './implementations/FirstHeadingShortHeaderStyle';
 
-import { FirstHeadingTidyBoldHeaderStyle } from './implementations/FirstHeadingTidyBoldHeaderStyle';
+import { FirstHeadingBoldHeaderStyle } from './implementations/FirstHeadingBoldHeaderStyle';
 
 export class HeaderStyleFactory {
     private static readonly VALID_STYLES = [
-        'first-heading-tidy-bold',
+        'first-heading-bold',
         'first-heading-short',
         'short',
         'full'
@@ -30,7 +30,7 @@ export class HeaderStyleFactory {
             'full': 'Full path',
             'short': 'Filename',
             'first-heading-short': 'First heading',
-            'first-heading-tidy-bold': 'Heading tidy bold'
+            'first-heading-bold': 'First heading bold'
         };
     }
 
@@ -54,8 +54,8 @@ export class HeaderStyleFactory {
     
     private static instantiateHeaderStyle(style: string, blockContent: string): AbstractHeaderStyle {
         switch (style) {
-            case 'first-heading-tidy-bold':
-                return new FirstHeadingTidyBoldHeaderStyle(blockContent);
+            case 'first-heading-bold':
+                return new FirstHeadingBoldHeaderStyle(blockContent);
             case 'first-heading-short':
                 return new FirstHeadingShortHeaderStyle(blockContent);
             case 'short':

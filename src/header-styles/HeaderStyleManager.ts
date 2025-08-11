@@ -5,7 +5,7 @@ export class HeaderStyleManager {
         'full', 
         'short', 
         'first-heading-short',
-        'first-heading-tidy-bold'
+        'first-heading-bold'
     ] as const;
     
     private static logger: Logger = new Logger('HeaderStyleManager');
