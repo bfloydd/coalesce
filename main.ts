@@ -121,6 +121,29 @@ export default class CoalescePlugin extends Plugin {
 			}
 		};
 
+		(this.app as any).coalesceTestStyles = () => {
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (activeView) {
+				const markdownSection = activeView.containerEl.querySelector('.markdown-preview-section') as HTMLElement;
+				const markdownSizer = activeView.containerEl.querySelector('.markdown-preview-sizer') as HTMLElement;
+				
+				console.log("Testing style monitoring:");
+				console.log("- Markdown section:", markdownSection);
+				console.log("- Markdown section style:", markdownSection?.getAttribute('style'));
+				console.log("- Markdown sizer:", markdownSizer);
+				console.log("- Markdown sizer style:", markdownSizer?.getAttribute('style'));
+				
+				// Add some test styles to see if they get removed
+				if (markdownSection) {
+					markdownSection.style.paddingBottom = '999px';
+					markdownSection.style.minHeight = '2000px';
+					console.log("Added test styles - they should be removed automatically");
+				}
+			} else {
+				console.log("No active markdown view found");
+			}
+		};
+
 		this.registerEventHandlers();
 		this.addSettingTab(new ObsidianSettingsComponent(this.app, this, this.settingsManager));
 		this.logger.debug("Plugin initialization complete");

@@ -394,9 +394,16 @@
     margin-right: auto;
 }
 
-/* Reduce the large padding-bottom on markdown-preview-section when Coalesce is present */
+/* Prevent Obsidian from adding dynamic styles that push Coalesce down */
 .markdown-preview-section {
     padding-bottom: 150px !important;
+    min-height: unset !important;
+}
+
+/* Override any inline styles that Obsidian might add */
+.markdown-preview-sizer {
+    min-height: unset !important;
+    padding-bottom: unset !important;
 }
 
 .is-readable-line-width .custom-backlinks-container,

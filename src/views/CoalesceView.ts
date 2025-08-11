@@ -34,6 +34,7 @@ export class CoalesceView {
     private filterDebounceTimeout: NodeJS.Timeout | null = null;
     private headerUpdatePending: boolean = false;
     private focusTimeout: NodeJS.Timeout | null = null;
+    private styleObserver: MutationObserver | null = null;
 
     constructor(
         private view: MarkdownView,
@@ -463,6 +464,9 @@ export class CoalesceView {
             this.focusTimeout = null;
         }
         
+        // Stop style monitoring
+        this.stopStyleMonitoring();
+        
         // Clear caches and data
         this.allBlocks = [];
         this.currentFilesLinkingToThis = [];
@@ -511,6 +515,9 @@ export class CoalesceView {
             // Insert after the markdown section
             markdownSection.insertAdjacentElement('afterend', this.container);
             this.logger.debug("Coalesce container attached successfully");
+            
+            // Start monitoring for unwanted style changes
+            this.startStyleMonitoring();
         } else {
             this.logger.error("Failed to attach Coalesce: markdown preview section not found");
         }
@@ -519,6 +526,77 @@ export class CoalesceView {
     // Add getter for view
     public getView(): MarkdownView {
         return this.view;
+    }
+
+    /**
+     * Start monitoring for unwanted style changes that push Coalesce down
+     */
+    private startStyleMonitoring(): void {
+        // Stop any existing observer
+        this.stopStyleMonitoring();
+        
+        // Find elements that Obsidian might add styles to
+        const markdownSection = this.view.containerEl.querySelector('.markdown-preview-section') as HTMLElement;
+        const markdownSizer = this.view.containerEl.querySelector('.markdown-preview-sizer') as HTMLElement;
+        
+        if (!markdownSection && !markdownSizer) return;
+        
+        // Create observer to watch for style attribute changes
+        this.styleObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    const target = mutation.target as HTMLElement;
+                    this.removeUnwantedStyles(target);
+                }
+            });
+        });
+        
+        // Observe both elements if they exist
+        const observeOptions = {
+            attributes: true,
+            attributeFilter: ['style']
+        };
+        
+        if (markdownSection) {
+            this.styleObserver.observe(markdownSection, observeOptions);
+        }
+        if (markdownSizer) {
+            this.styleObserver.observe(markdownSizer, observeOptions);
+        }
+        
+        // Also clean up any existing unwanted styles
+        if (markdownSection) this.removeUnwantedStyles(markdownSection);
+        if (markdownSizer) this.removeUnwantedStyles(markdownSizer);
+    }
+
+    /**
+     * Stop monitoring for style changes
+     */
+    private stopStyleMonitoring(): void {
+        if (this.styleObserver) {
+            this.styleObserver.disconnect();
+            this.styleObserver = null;
+        }
+    }
+
+    /**
+     * Remove unwanted inline styles that affect positioning
+     */
+    private removeUnwantedStyles(element: HTMLElement): void {
+        if (!element || !element.style) return;
+        
+        // Remove problematic inline styles
+        if (element.style.paddingBottom) {
+            element.style.removeProperty('padding-bottom');
+        }
+        if (element.style.minHeight) {
+            element.style.removeProperty('min-height');
+        }
+        
+        this.logger.debug("Removed unwanted styles from element", {
+            tagName: element.tagName,
+            className: element.className
+        });
     }
 
     private filterBlocksByAlias() {
@@ -637,6 +715,9 @@ export class CoalesceView {
                 // Only if we don't have blocks rendered, do a full update
                 this.attachToDOM();
             }
+        } else {
+            // Container is already attached, but ensure style monitoring is active
+            this.startStyleMonitoring();
         }
     }
 
