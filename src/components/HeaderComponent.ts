@@ -646,7 +646,7 @@ export class HeaderComponent {
         
         headerStyleHeader.appendChild(headerIcon);
         
-        const headerText = headerStyleHeader.createSpan({ text: 'Header style' });
+        const headerText = headerStyleHeader.createSpan({ text: 'Header' });
         
         popup.appendChild(headerStyleHeader);
 
@@ -767,7 +767,7 @@ export class HeaderComponent {
         
         headerIcon.appendChild(iconPath);
         
-        const headerText = header.createSpan({ text: 'Block style' });
+        const headerText = header.createSpan({ text: 'Block' });
         
         popup.appendChild(header);
         
