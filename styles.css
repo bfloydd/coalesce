@@ -55,38 +55,24 @@
     flex-wrap: nowrap;
 }
 
-.sort-button, .collapse-button, .settings-button {
-    background: none;
-    border: none;
-    padding: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    border-radius: 4px;
-}
-
-.sort-button:hover, .collapse-button:hover, .settings-button:hover {
-    background-color: var(--background-modifier-hover);
-    color: var(--text-normal);
-}
+/* Let Obsidian's ButtonComponent and ExtraButtonComponent handle button styling */
 
 
 
-.collapse-button svg:not(.is-collapsed) {
+/* Transform rules for button states - work with Obsidian's button components */
+.button-group svg:not(.is-collapsed) {
     transform: none;
 }
 
-.collapse-button svg.is-collapsed {
+.button-group svg.is-collapsed {
     transform: rotate(-90deg);
 }
 
-.sort-button svg.sort-ascending {
+.button-group svg.sort-ascending {
     transform: rotate(180deg);
 }
 
-.sort-button svg.sort-descending {
+.button-group svg.sort-descending {
     transform: none;
 }
 
@@ -99,9 +85,42 @@
     gap: 4px;
 }
 
-.settings-button svg {
-    width: 16px;
-    height: 16px;
+/* Override ExtraButtonComponent icon sizing to match Obsidian's small toolbar icons */
+.button-group {
+    --icon-size: 16px;
+}
+
+.button-group svg {
+    width: 16px !important;
+    height: 16px !important;
+}
+
+/* Ensure all button types in button group use smaller icons */
+.button-group > *,
+.button-group .extra-setting-item,
+.button-group .clickable-icon {
+    --icon-size: 16px !important;
+}
+
+.button-group > * svg,
+.button-group .extra-setting-item svg,
+.button-group .clickable-icon svg {
+    width: 16px !important;
+    height: 16px !important;
+}
+
+/* Isolate hover effects to individual buttons only */
+.button-group > *:not(:hover) {
+    background-color: transparent !important;
+}
+
+.button-group > *:hover {
+    background-color: var(--background-modifier-hover) !important;
+}
+
+/* Prevent hover effects from bubbling up to parent elements */
+.backlinks-header-left:hover .button-group > *:not(:hover) {
+    background-color: transparent !important;
 }
 
 /* Settings popup position - will be adjusted via JavaScript */
@@ -602,25 +621,7 @@
     height: 24px;
 }
 
-/* Compact mobile button styles */
-.is-mobile .sort-button,
-.is-phone .sort-button,
-.is-mobile .collapse-button,
-.is-phone .collapse-button,
-.is-mobile .settings-button,
-.is-phone .settings-button {
-    padding: 6px;
-}
-
-.is-mobile .sort-button svg,
-.is-phone .sort-button svg,
-.is-mobile .collapse-button svg,
-.is-phone .collapse-button svg,
-.is-mobile .settings-button svg,
-.is-phone .settings-button svg {
-    width: 20px;
-    height: 20px;
-}
+/* Mobile styles handled by Obsidian's button components */
 
 @media (max-width: 400px) {
     .backlinks-header {
@@ -820,12 +821,4 @@
     padding-left: 24px;
 }
 
-.backlinks-header .button-group .sort-button svg, 
-.backlinks-header .button-group .collapse-button svg,
-html body .is-mobile .backlinks-header .button-group .sort-button svg, 
-html body .is-phone .backlinks-header .button-group .sort-button svg,
-html body .is-mobile .backlinks-header .button-group .collapse-button svg, 
-html body .is-phone .backlinks-header .button-group .collapse-button svg {
-    width: 21px;
-    height: 21px;
-}
+/* Icon sizing handled by Obsidian's button components */
