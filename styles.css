@@ -109,18 +109,21 @@
     height: 16px !important;
 }
 
-/* Isolate hover effects to individual buttons only */
-.button-group > *:not(:hover) {
-    background-color: transparent !important;
+.sort-button, .collapse-button, .settings-button {
+    background: none;
+    border: none;
+    padding: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    border-radius: 4px;
 }
 
-.button-group > *:hover {
-    background-color: var(--background-modifier-hover) !important;
-}
-
-/* Prevent hover effects from bubbling up to parent elements */
-.backlinks-header-left:hover .button-group > *:not(:hover) {
-    background-color: transparent !important;
+.sort-button:hover, .collapse-button:hover, .settings-button:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
 }
 
 /* Settings popup position - will be adjusted via JavaScript */
@@ -685,13 +688,13 @@
 
 
 
-.backlinks-header.compact svg {
+.backlinks-header.compact > svg {
     width: 36px;
     height: 36px;
     transition: all 0.3s ease;
 }
 
-.backlinks-header.compact:hover svg {
+.backlinks-header.compact > svg:hover {
     opacity: 0.9;
     color: var(--text-muted);
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
@@ -749,7 +752,8 @@
     pointer-events: none;
 }
 
-.backlinks-header-left svg {
+/* Logo SVG styling - only for the Coalesce icon, not button icons */
+.backlinks-header-left > svg {
     width: 48px;
     height: 48px;
     color: var(--text-faint);
@@ -758,16 +762,16 @@
     transition: all 0.3s ease;
 }
 
-.backlinks-header-left:hover svg {
+.backlinks-header-left > svg:hover {
     opacity: 0.9;
     color: var(--text-muted);
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
     transform: scale(1.02);
 }
 
-/* Android-specific SVG visibility fixes */
-.is-mobile .backlinks-header-left svg,
-.is-phone .backlinks-header-left svg {
+/* Android-specific SVG visibility fixes - only for the Coalesce icon */
+.is-mobile .backlinks-header-left > svg,
+.is-phone .backlinks-header-left > svg {
     display: block;
     visibility: visible;
     opacity: 0.7;
@@ -777,16 +781,16 @@
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
-/* Ensure SVG elements render properly on Android */
-.is-mobile .backlinks-header-left svg *,
-.is-phone .backlinks-header-left svg * {
+/* Ensure SVG elements render properly on Android - only for the Coalesce icon */
+.is-mobile .backlinks-header-left > svg *,
+.is-phone .backlinks-header-left > svg * {
     fill: inherit;
     stroke: none;
 }
 
-/* Compact mode on Android */
-.is-mobile .backlinks-header.compact svg,
-.is-phone .backlinks-header.compact svg {
+/* Compact mode on Android - only for the Coalesce icon */
+.is-mobile .backlinks-header.compact > svg,
+.is-phone .backlinks-header.compact > svg {
     width: 36px;
     height: 36px;
     display: block;
@@ -821,4 +825,12 @@
     padding-left: 24px;
 }
 
-/* Icon sizing handled by Obsidian's button components */
+.backlinks-header .button-group .sort-button svg, 
+.backlinks-header .button-group .collapse-button svg,
+html body .is-mobile .backlinks-header .button-group .sort-button svg, 
+html body .is-phone .backlinks-header .button-group .sort-button svg,
+html body .is-mobile .backlinks-header .button-group .collapse-button svg, 
+html body .is-phone .backlinks-header .button-group .collapse-button svg {
+    width: 21px;
+    height: 21px;
+}

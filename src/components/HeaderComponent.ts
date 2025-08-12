@@ -3,6 +3,7 @@ import { Logger } from '../utils/Logger';
 import { HeaderStyleManager } from '../header-styles/HeaderStyleManager';
 import { BlockFinderFactory } from '../block-finders/BlockFinderFactory';
 import { HeaderStyleFactory } from '../header-styles/HeaderStyleFactory';
+import { setIcon, ButtonComponent, ExtraButtonComponent } from 'obsidian';
 
 export class HeaderComponent {
     private static currentHeaderStyle: string = HeaderStyleFactory.getValidStyles()[0];
@@ -284,61 +285,63 @@ export class HeaderComponent {
         return buttonGroup;
     }
 
-    private createSortButton(sortDescending: boolean, onSortToggle: () => void): HTMLButtonElement {
-        // Create a temporary container to use createEl
+    private createSortButton(sortDescending: boolean, onSortToggle: () => void): HTMLElement {
+        // Create simple custom button with proper hover isolation
         const tempContainer = document.createElement('div');
         const sortButton = tempContainer.createEl('button', {
             cls: 'sort-button',
-            attr: { 'aria-label': sortDescending ? 'Sort ascending' : 'Sort descending' }
-        });
-        
-        const svg = tempContainer.createSvg('svg', {
-            attr: {
-                viewBox: "0 0 16 16"
-            },
-            cls: sortDescending ? 'sort-descending' : 'sort-ascending'
-        });
-        
-        const path = tempContainer.createSvg('path', {
-            attr: {
-                fill: "currentColor",
-                d: "M4 4l4 4 4-4H4z"
+            attr: { 
+                'aria-label': sortDescending ? 'Sort ascending' : 'Sort descending',
+                'type': 'button'
             }
         });
         
-        svg.appendChild(path);
-        sortButton.appendChild(svg);
+        // Use Obsidian's setIcon for the icon
+        setIcon(sortButton, 'arrow-up-down');
         
+        // Add classes for custom rotation based on state
+        const svg = sortButton.querySelector('svg');
+        if (svg) {
+            if (sortDescending) {
+                svg.classList.add('sort-descending');
+                svg.classList.remove('sort-ascending');
+            } else {
+                svg.classList.add('sort-ascending'); 
+                svg.classList.remove('sort-descending');
+            }
+        }
+        
+        // Add click handler
         sortButton.addEventListener('click', onSortToggle);
         
         return sortButton;
     }
 
-    private createCollapseButton(isCollapsed: boolean, onCollapseToggle: () => void): HTMLButtonElement {
-        // Create a temporary container to use createEl
+    private createCollapseButton(isCollapsed: boolean, onCollapseToggle: () => void): HTMLElement {
+        // Create simple custom button with proper hover isolation
         const tempContainer = document.createElement('div');
         const collapseButton = tempContainer.createEl('button', {
             cls: 'collapse-button',
-            attr: { 'aria-label': isCollapsed ? 'Expand all' : 'Collapse all' }
-        });
-        
-        const svg = tempContainer.createSvg('svg', {
-            attr: {
-                viewBox: "0 0 16 16"
-            },
-            cls: isCollapsed ? 'is-collapsed' : ''
-        });
-        
-        const path = tempContainer.createSvg('path', {
-            attr: {
-                fill: "currentColor",
-                d: "M4 4l4 4 4-4H4z"
+            attr: { 
+                'aria-label': isCollapsed ? 'Expand all' : 'Collapse all',
+                'type': 'button'
             }
         });
         
-        svg.appendChild(path);
-        collapseButton.appendChild(svg);
+        // Use Obsidian's setIcon for the icon
+        setIcon(collapseButton, 'chevron-down');
         
+        // Add classes for custom rotation based on state
+        const svg = collapseButton.querySelector('svg');
+        if (svg) {
+            if (isCollapsed) {
+                svg.classList.add('is-collapsed');
+            } else {
+                svg.classList.remove('is-collapsed');
+            }
+        }
+        
+        // Add click handler
         collapseButton.addEventListener('click', onCollapseToggle);
         
         return collapseButton;
@@ -470,59 +473,24 @@ export class HeaderComponent {
         onStrategyChange: (strategy: string) => void = () => {},
         currentTheme: string = 'default',
         onThemeChange: (theme: string) => void = () => {}
-    ): HTMLButtonElement {
-        // Create a temporary container to use createEl
+    ): HTMLElement {
+        // Create a temporary container to host the Obsidian component
         const tempContainer = document.createElement('div');
+        
+        // Create simple custom button with proper hover isolation
         const settingsButton = tempContainer.createEl('button', {
             cls: 'settings-button',
-            attr: { 'aria-label': 'Settings' }
-        });
-        
-        const svg = tempContainer.createSvg('svg', {
-            attr: {
-                xmlns: "http://www.w3.org/2000/svg",
-                width: "16",
-                height: "16",
-                viewBox: "0 0 24 24",
-                fill: "none",
-                stroke: "currentColor",
-                "stroke-width": "2",
-                "stroke-linecap": "round",
-                "stroke-linejoin": "round"
+            attr: { 
+                'aria-label': 'Settings',
+                'type': 'button'
             }
         });
         
-        const circle1 = tempContainer.createSvg('circle', {
-            attr: {
-                cx: "12",
-                cy: "12",
-                r: "1"
-            }
-        });
-        
-        const circle2 = tempContainer.createSvg('circle', {
-            attr: {
-                cx: "12",
-                cy: "5",
-                r: "1"
-            }
-        });
-        
-        const circle3 = tempContainer.createSvg('circle', {
-            attr: {
-                cx: "12",
-                cy: "19",
-                r: "1"
-            }
-        });
-        
-        svg.appendChild(circle1);
-        svg.appendChild(circle2);
-        svg.appendChild(circle3);
-        
-        settingsButton.appendChild(svg);
+        // Use Obsidian's setIcon for the icon
+        setIcon(settingsButton, 'more-horizontal');
 
-        settingsButton.addEventListener('click', (e) => {
+        // Create the click handler function for the settings popup
+        const handleSettingsClick = (e: MouseEvent) => {
             e.stopPropagation(); // Prevent body click from being triggered immediately
             
             // Check if there's already a popup open
@@ -534,19 +502,19 @@ export class HeaderComponent {
             }
 
             // Create settings popup
-                    const popup = this.createSettingsPopup(
-            currentHeaderStyle,
-            onHeaderStyleChange,
-            currentStrategy,
-            onStrategyChange,
-            currentTheme,
-            onThemeChange
-        );
+            const popup = this.createSettingsPopup(
+                currentHeaderStyle,
+                onHeaderStyleChange,
+                currentStrategy,
+                onStrategyChange,
+                currentTheme,
+                onThemeChange
+            );
 
             // Add the popup to the document body for proper positioning
             document.body.appendChild(popup);
             
-            // Calculate popup position relative to button
+            // Get the button element for positioning
             const buttonRect = settingsButton.getBoundingClientRect();
             
             // Position the popup below the button using setCssStyles
@@ -557,8 +525,11 @@ export class HeaderComponent {
             
             // Close popup when clicking outside
             this.setupPopupClickOutsideHandler(popup, settingsButton);
-        });
-
+        };
+        
+        // Add click handler
+        settingsButton.addEventListener('click', handleSettingsClick);
+        
         return settingsButton;
     }
 
@@ -721,9 +692,15 @@ export class HeaderComponent {
     private setupPopupClickOutsideHandler(popup: HTMLElement, settingsButton: HTMLElement): void {
         const closePopup = (e: MouseEvent) => {
             const target = e.target as HTMLElement;
+            
+            // Add null checks to prevent errors
+            if (!target || !popup || !settingsButton) {
+                return;
+            }
+            
             // Only close if clicking outside both popup and settings button
             if (!popup.contains(target) && target !== settingsButton && !settingsButton.contains(target)) {
-            document.removeEventListener('click', closePopup);
+                document.removeEventListener('click', closePopup);
                 popup.remove();
             }
         };

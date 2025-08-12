@@ -146,6 +146,9 @@ export default class CoalescePlugin extends Plugin {
 
 		this.registerEventHandlers();
 		this.addSettingTab(new ObsidianSettingsComponent(this.app, this, this.settingsManager));
+		
+		this.initializeExistingViews();
+		
 		this.logger.debug("Plugin initialization complete");
 	}
 
@@ -170,6 +173,35 @@ export default class CoalescePlugin extends Plugin {
 		}
 		
 		this.logger.debug("Initializing plugin");
+	}
+
+	private initializeExistingViews() {
+		// Use requestAnimationFrame to ensure the workspace is fully ready
+		requestAnimationFrame(() => {
+			const existingViews = this.app.workspace.getLeavesOfType('markdown');
+			if (existingViews.length > 0) {
+				this.logger.debug("Initializing existing views on fresh app load", { count: existingViews.length });
+				existingViews.forEach(leaf => {
+					const view = leaf.view as MarkdownView;
+					if (view?.file) {
+						this.coalesceManager.handleFileOpen(view.file);
+					}
+				});
+			}
+			
+			// Fallback check in case views weren't ready yet
+			setTimeout(() => {
+				const delayedViews = this.app.workspace.getLeavesOfType('markdown');
+				if (delayedViews.length > existingViews.length) {
+					delayedViews.forEach(leaf => {
+						const view = leaf.view as MarkdownView;
+						if (view?.file) {
+							this.coalesceManager.handleFileOpen(view.file);
+						}
+					});
+				}
+			}, 500);
+		});
 	}
 
 	private registerEventHandlers() {

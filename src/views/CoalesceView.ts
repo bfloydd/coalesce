@@ -29,6 +29,7 @@ export class CoalesceView {
     private focusPending: boolean = false;
     private focusAttempts: number = 0;
     private maxFocusAttempts: number = 10;
+    private hasBeenFocused: boolean = false;
     
     // Performance optimizations
     private filterDebounceTimeout: NodeJS.Timeout | null = null;
@@ -55,6 +56,7 @@ export class CoalesceView {
         this.applyTheme(this.currentTheme);
         this.attachToDOM();
         this.loadAliasesFromMetadata();
+        this.setupFocusListeners();
     }
 
     private initializeFromSettings(): void {
@@ -251,6 +253,17 @@ export class CoalesceView {
         this.currentFilesLinkingToThis = filesLinkingToThis;
         this.currentOnLinkClick = onLinkClick;
         this.logger.debug("Updating backlinks", { count: filesLinkingToThis.length, files: filesLinkingToThis });
+        
+        // Ensure container is attached to DOM before updating
+        const isProperlyAttached = this.container.parentElement && 
+                                   this.container.parentElement.isConnected && 
+                                   this.view.containerEl.contains(this.container);
+        
+        if (!isProperlyAttached) {
+            this.logger.debug("Container not attached, reattaching before update");
+            this.attachToDOM();
+        }
+        
         this.container.empty();
 
         // Reset filter when updating backlinks
@@ -275,9 +288,30 @@ export class CoalesceView {
         this.container.appendChild(header);
         this.container.appendChild(linksContainer);
         
+        // Handle different states based on backlinks and focus
+        if (filesLinkingToThis.length === 0) {
+            // State 1: No backlinks found
+            const noBacklinksMessage = linksContainer.createDiv({ 
+                cls: 'no-backlinks-message',
+                text: `No backlinks found for "${this.currentNoteName}". Create links to this note from other notes to see them here.`
+            });
+            noBacklinksMessage.style.padding = '20px';
+            noBacklinksMessage.style.textAlign = 'center';
+            noBacklinksMessage.style.color = 'var(--text-muted)';
+            noBacklinksMessage.style.fontStyle = 'italic';
+            noBacklinksMessage.style.border = '1px dashed var(--background-modifier-border)';
+            noBacklinksMessage.style.borderRadius = '4px';
+            noBacklinksMessage.style.margin = '10px 0';
+            noBacklinksMessage.style.backgroundColor = 'var(--background-secondary)';
+        } else if (!this.hasBeenFocused) {
+            // State 3: Backlinks exist but view hasn't been focused yet
+            this.showSuspendedState(linksContainer);
+        }
+        
         this.logger.debug("Header appended to container", {
             headerInContainer: this.container.contains(header),
-            focusPending: this.focusPending
+            focusPending: this.focusPending,
+            backlinksCount: filesLinkingToThis.length
         });
         
         // Set up observer for future header updates
@@ -467,6 +501,9 @@ export class CoalesceView {
         // Stop style monitoring
         this.stopStyleMonitoring();
         
+        // Clean up focus event listeners
+        this.cleanupFocusListeners();
+        
         // Clear caches and data
         this.allBlocks = [];
         this.currentFilesLinkingToThis = [];
@@ -497,9 +534,23 @@ export class CoalesceView {
         if (this.settingsManager.settings.onlyDailyNotes && 
             this.view.file && 
             DailyNote.isDaily(this.view.app as AppWithInternalPlugins, this.view.file.path)) {
-            // Do not attach if we're in a daily note and setting is enabled
             this.logger.debug("Skipping Coalesce attachment in daily note (Hide in Daily Notes enabled)");
             return;
+        }
+
+        // Check if container is already properly attached
+        const isProperlyAttached = this.container.parentElement && 
+                                   this.container.parentElement.isConnected && 
+                                   this.view.containerEl.contains(this.container);
+
+        if (isProperlyAttached) {
+            this.logger.debug("Container already properly attached, skipping attachment");
+            return;
+        }
+
+        // If container has a parent but it's not properly attached, remove it first
+        if (this.container.parentElement) {
+            this.container.parentElement.removeChild(this.container);
         }
 
         // Only create backlinks list if it doesn't exist and we're not handling this in updatePosition
@@ -511,9 +562,16 @@ export class CoalesceView {
 
         // Always place below content
         const markdownSection = this.view.containerEl.querySelector('.markdown-preview-section') as HTMLElement;
+        
         if (markdownSection) {
             // Insert after the markdown section
             markdownSection.insertAdjacentElement('afterend', this.container);
+            
+            // Ensure the container is always visible with minimum styles
+            this.container.style.minHeight = '50px';
+            this.container.style.display = 'block';
+            this.container.style.visibility = 'visible';
+            
             this.logger.debug("Coalesce container attached successfully");
             
             // Start monitoring for unwanted style changes
@@ -696,8 +754,12 @@ export class CoalesceView {
 
     // Add method to ensure view is attached to DOM without re-rendering
     public ensureAttached(): void {
-        // Check if container is already in the DOM
-        if (!this.container.parentElement) {
+        // Check if container is properly attached to the DOM
+        const isProperlyAttached = this.container.parentElement && 
+                                   this.container.parentElement.isConnected && 
+                                   this.view.containerEl.contains(this.container);
+
+        if (!isProperlyAttached) {
             // If we have blocks already rendered, just reattach
             if (this.allBlocks.length > 0) {
                 this.attachToDOM();
@@ -952,5 +1014,110 @@ export class CoalesceView {
                 }
             }
         });
+    }
+
+    /**
+     * Shows the suspended state message when backlinks exist but view hasn't been focused
+     */
+    private showSuspendedState(linksContainer: HTMLElement): void {
+        // Clear any existing blocks since we're showing suspended state
+        linksContainer.empty();
+        
+        const suspendedMessage = linksContainer.createDiv({ 
+            cls: 'suspended-state-message',
+            text: 'Suspended until focused. Focus to load Coalesce content.'
+        });
+        suspendedMessage.style.padding = '20px';
+        suspendedMessage.style.textAlign = 'center';
+        suspendedMessage.style.color = 'var(--text-accent)';
+        suspendedMessage.style.fontStyle = 'italic';
+        suspendedMessage.style.border = '1px dashed var(--accent-color)';
+        suspendedMessage.style.borderRadius = '4px';
+        suspendedMessage.style.margin = '10px 0';
+        suspendedMessage.style.backgroundColor = 'var(--background-secondary)';
+        suspendedMessage.style.cursor = 'pointer';
+        
+        // Add click handler to activate the view when clicked
+        suspendedMessage.addEventListener('click', () => {
+            this.activateView();
+        });
+        
+        this.logger.debug("Suspended state displayed", {
+            hasBeenFocused: this.hasBeenFocused,
+            backlinksCount: this.currentFilesLinkingToThis.length
+        });
+    }
+
+    /**
+     * Activates the view by marking it as focused and reloading content
+     */
+    private activateView(): void {
+        this.hasBeenFocused = true;
+        this.logger.debug("View activated by user interaction");
+        
+        // Reload the backlinks to show actual content
+        if (this.currentFilesLinkingToThis.length > 0 && this.currentOnLinkClick) {
+            this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick);
+        }
+    }
+
+    /**
+     * Sets up focus event listeners to detect when the view becomes focused
+     */
+    private setupFocusListeners(): void {
+        // Listen for focus events on the view container
+        this.view.containerEl.addEventListener('focusin', () => {
+            this.handleViewFocus();
+        });
+
+        // Listen for click events as an alternative to focus
+        this.view.containerEl.addEventListener('click', () => {
+            this.handleViewFocus();
+        });
+
+        // Listen for workspace active leaf changes
+        this.view.app.workspace.on('active-leaf-change', () => {
+            // Check if this leaf is the active one
+            if (this.view.app.workspace.activeLeaf === this.view.leaf) {
+                this.handleViewFocus();
+            }
+        });
+    }
+
+    /**
+     * Handles when the view receives focus
+     */
+    private handleViewFocus(): void {
+        if (!this.hasBeenFocused) {
+            this.logger.debug("View focused for the first time, activating content");
+            this.activateView();
+        }
+    }
+
+    /**
+     * Public method to mark view as focused (called from CoalesceManager)
+     */
+    public markAsFocused(): void {
+        if (!this.hasBeenFocused) {
+            this.hasBeenFocused = true;
+            this.logger.debug("View marked as focused externally");
+            
+            // If we're currently showing suspended state and have backlinks, reload
+            if (this.currentFilesLinkingToThis.length > 0 && this.currentOnLinkClick) {
+                const suspendedMessage = this.container.querySelector('.suspended-state-message');
+                if (suspendedMessage) {
+                    this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick);
+                }
+            }
+        }
+    }
+
+    /**
+     * Cleans up focus event listeners
+     */
+    private cleanupFocusListeners(): void {
+        // Remove DOM event listeners (these will be cleaned up automatically when the element is removed)
+        // The workspace event listener will be cleaned up when the plugin is disabled
+        this.logger.debug("Focus listeners cleaned up");
     }
 }
