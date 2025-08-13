@@ -82,7 +82,7 @@
     align-items: center;
     white-space: nowrap;
     margin-left: 4px;
-    gap: 4px;
+    gap: 7px;
 }
 
 /* Override ExtraButtonComponent icon sizing to match Obsidian's small toolbar icons */
@@ -218,14 +218,15 @@
 }
 
 .alias-dropdown {
-    margin: 0 8px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 1px solid var(--background-modifier-border);
-    background-color: var(--background-primary);
-    color: var(--text-normal);
+    /* margin: 0 8px; */
+    /* padding: 4px 8px; */
+    /* border-radius: 4px; */
+    /* border: 1px solid var(--background-modifier-border); */
+    /* background-color: var(--background-primary); */
+    /* color: var(--text-normal); */
     font-size: var(--font-ui-smaller);
     min-width: 120px;
+    max-width: 120px;
     height: 24px;
     flex-shrink: 1;
     text-overflow: ellipsis;
