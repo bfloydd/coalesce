@@ -9,8 +9,13 @@ export class HeaderComponent {
     private static currentHeaderStyle: string = HeaderStyleFactory.getValidStyles()[0];
     private resizeObserver: ResizeObserver | null = null;
     private observedContainer: HTMLElement | null = null;
+    private settingsManager: any = null;
 
     constructor(private logger: Logger) {}
+
+    public setSettingsManager(settingsManager: any): void {
+        this.settingsManager = settingsManager;
+    }
 
     /**
      * Cleans up resources used by this component
@@ -541,6 +546,11 @@ export class HeaderComponent {
         currentTheme: string = 'default',
         onThemeChange: (theme: string) => void = () => {}
     ): HTMLElement {
+        // Get current values from settings manager if available
+        const currentHeaderStyleValue = this.settingsManager?.settings?.headerStyle || currentHeaderStyle;
+        const currentStrategyValue = this.settingsManager?.settings?.blockBoundaryStrategy || currentStrategy;
+        const currentThemeValue = this.settingsManager?.settings?.theme || currentTheme;
+        
         // Create a temporary container to use createDiv
         const tempContainer = document.createElement('div');
         const popup = tempContainer.createDiv({ cls: 'settings-popup' });
@@ -561,7 +571,7 @@ export class HeaderComponent {
         // Add separator after top options
         const separator1 = popup.createDiv({ cls: 'menu-separator' });
         
-        this.addHeaderStyleSettings(popup, currentHeaderStyle, onHeaderStyleChange);
+        this.addHeaderStyleSettings(popup, currentHeaderStyleValue, onHeaderStyleChange);
         
         // Add separator after header style
         const separator2 = popup.createDiv({ cls: 'menu-separator' });
@@ -569,12 +579,12 @@ export class HeaderComponent {
         // Add separator after position
         const separator3 = popup.createDiv({ cls: 'menu-separator' });
         
-        this.addBlockStyleSettings(popup, currentStrategy, onStrategyChange);
+        this.addBlockStyleSettings(popup, currentStrategyValue, onStrategyChange);
         
         // Add separator after block style
         const separator4 = popup.createDiv({ cls: 'menu-separator' });
         
-        this.addThemeSettings(popup, currentTheme, onThemeChange);
+        this.addThemeSettings(popup, currentThemeValue, onThemeChange);
         
         this.setupPopupClickOutsideHandler(popup, settingsButton);
 
@@ -683,6 +693,9 @@ export class HeaderComponent {
                 
                 // Call the change handler with the new style
                 onHeaderStyleChange(style);
+                
+                // Close the popup after a brief delay so user can see the checkmark change
+                setTimeout(() => popup.remove(), 150);
             });
 
             popup.appendChild(item);
@@ -789,6 +802,9 @@ export class HeaderComponent {
                 });
                 checkContainer.classList.add('is-checked');
                 onStrategyChange(strategyId);
+                
+                // Close the popup after a brief delay so user can see the checkmark change
+                setTimeout(() => popup.remove(), 150);
             });
             
             popup.appendChild(item);
@@ -877,6 +893,9 @@ export class HeaderComponent {
                 });
                 checkContainer.classList.add('is-checked');
                 onThemeChange(theme.id);
+                
+                // Close the popup after a brief delay so user can see the checkmark change
+                setTimeout(() => popup.remove(), 150);
             });
             
             popup.appendChild(item);

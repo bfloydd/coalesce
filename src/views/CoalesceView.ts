@@ -47,6 +47,7 @@ export class CoalesceView {
         this.container = this.createBacklinksContainer();
         this.currentTheme = this.settingsManager.settings.theme;
         this.headerComponent = new HeaderComponent(this.logger);
+        this.headerComponent.setSettingsManager(this.settingsManager);
         this.blockFinder = BlockFinderFactory.createBlockFinder(
             this.settingsManager.settings.blockBoundaryStrategy,
             this.logger
