@@ -148,18 +148,31 @@ export class HeaderComponent {
             }
         });
         
-        // Create the central hexagon
-        const hexagon = tempContainer.createSvg('polygon', {
+        // Create background circle for contrast and premium look
+        const background = tempContainer.createSvg('circle', {
             attr: {
-                points: "70,100 85,75 115,75 130,100 115,125 85,125",
-                fill: "#FFFFFF"
+                cx: "100",
+                cy: "100", 
+                r: "95",
+                fill: "currentColor",
+                opacity: "0.08"
             }
         });
         
-        // Create diagonal arrows group
+        // Create the central hexagon - now uses currentColor with opacity for theme adaptation
+        const hexagon = tempContainer.createSvg('polygon', {
+            attr: {
+                points: "70,100 85,75 115,75 130,100 115,125 85,125",
+                fill: "currentColor",
+                opacity: "0.9"
+            }
+        });
+        
+        // Create diagonal arrows group - now uses currentColor with reduced opacity
         const arrowGroup = tempContainer.createSvg('g', {
             attr: {
-                fill: "#FFFFFF"
+                fill: "currentColor",
+                opacity: "0.7"
             }
         });
         
@@ -191,6 +204,21 @@ export class HeaderComponent {
             }
         });
         
+        // Add subtle inner glow effect for premium look
+        const innerGlow = tempContainer.createSvg('circle', {
+            attr: {
+                cx: "100",
+                cy: "100",
+                r: "85",
+                fill: "none",
+                stroke: "currentColor",
+                "stroke-width": "1",
+                opacity: "0.15"
+            }
+        });
+        
+        svg.appendChild(background);
+        svg.appendChild(innerGlow);
         svg.appendChild(hexagon);
         arrowGroup.appendChild(topLeftArrow);
         arrowGroup.appendChild(topRightArrow);
