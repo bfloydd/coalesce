@@ -2,6 +2,7 @@ import { Logger } from '../utils/Logger';
 
 export class HeaderStyleManager {
     private static readonly STYLES = [
+        'first-heading-tidy',
         'full', 
         'short', 
         'first-heading-short',
