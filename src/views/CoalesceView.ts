@@ -85,6 +85,10 @@ export class CoalesceView {
         // Create a temporary container to use Obsidian's helper methods
         const tempContainer = document.createElement('div');
         const container = tempContainer.createDiv({ cls: 'custom-backlinks-container' });
+        
+        // Add a unique identifier to help track containers
+        container.setAttribute('data-coalesce-view', this.view.file?.path || 'unknown');
+        
         this.logger.debug("Created backlinks container", { container: container });
         return container;
     }
@@ -265,7 +269,12 @@ export class CoalesceView {
             this.attachToDOM();
         }
         
+        // Ensure complete clearing of container content to prevent mobile duplication
         this.container.empty();
+        // Additional check to remove any lingering child elements on mobile
+        while (this.container.firstChild) {
+            this.container.removeChild(this.container.firstChild);
+        }
 
         // Reset filter when updating backlinks
         this.currentFilter = '';
@@ -602,6 +611,25 @@ export class CoalesceView {
         if (isProperlyAttached) {
             this.logger.debug("Container already properly attached, skipping attachment");
             return;
+        }
+
+        // Check for existing Coalesce containers in this view and remove them to prevent duplicates
+        const existingContainers = this.view.containerEl.querySelectorAll('.custom-backlinks-container');
+        if (existingContainers.length > 0) {
+            this.logger.debug("Found existing Coalesce containers, removing to prevent duplicates", { 
+                count: existingContainers.length,
+                currentFilePath: this.view.file?.path
+            });
+            existingContainers.forEach(container => {
+                // Remove any container that isn't this specific instance
+                if (container !== this.container) {
+                    this.logger.debug("Removing duplicate container", {
+                        containerPath: container.getAttribute('data-coalesce-view'),
+                        currentPath: this.view.file?.path
+                    });
+                    container.remove();
+                }
+            });
         }
 
         // If container has a parent but it's not properly attached, remove it first
@@ -1128,10 +1156,17 @@ export class CoalesceView {
         suspendedMessage.style.backgroundColor = 'var(--background-secondary)';
         suspendedMessage.style.cursor = 'pointer';
         
-        // Add click handler to activate the view when clicked
-        suspendedMessage.addEventListener('click', () => {
+        // Add multiple event handlers to activate the view when interacted with
+        const activateHandler = (e: Event) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.logger.debug("Suspended message clicked/touched, activating view");
             this.activateView();
-        });
+        };
+        
+        suspendedMessage.addEventListener('click', activateHandler);
+        suspendedMessage.addEventListener('touchstart', activateHandler);
+        suspendedMessage.addEventListener('mousedown', activateHandler);
         
         this.logger.debug("Suspended state displayed", {
             hasBeenFocused: this.hasBeenFocused,
@@ -1171,6 +1206,16 @@ export class CoalesceView {
             this.handleViewFocus();
         });
 
+        // Listen for touch events on mobile
+        this.view.containerEl.addEventListener('touchstart', () => {
+            this.handleViewFocus();
+        });
+
+        // Listen for mouse events as additional triggers
+        this.view.containerEl.addEventListener('mousedown', () => {
+            this.handleViewFocus();
+        });
+
         // Listen for workspace active leaf changes
         this.view.app.workspace.on('active-leaf-change', () => {
             // Check if this leaf is the active one
@@ -1178,6 +1223,24 @@ export class CoalesceView {
                 this.handleViewFocus();
             }
         });
+        
+        // Add a periodic check to see if this view is active and should be focused
+        const periodicCheck = () => {
+            if (!this.hasBeenFocused && this.view.app.workspace.activeLeaf === this.view.leaf) {
+                this.handleViewFocus();
+            }
+        };
+        
+        // Check every 500ms for the first 5 seconds after creation
+        let checkCount = 0;
+        const maxChecks = 10;
+        const checkInterval = setInterval(() => {
+            periodicCheck();
+            checkCount++;
+            if (checkCount >= maxChecks || this.hasBeenFocused) {
+                clearInterval(checkInterval);
+            }
+        }, 500);
     }
 
     /**

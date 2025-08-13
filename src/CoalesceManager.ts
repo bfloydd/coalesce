@@ -15,6 +15,7 @@ interface WorkspaceLeafWithID extends WorkspaceLeaf {
 /** Manages view lifecycle, handles file events, and coordinates backlinks across multiple views */
 export class CoalesceManager {
     private activeViews: Map<string, CoalesceView> = new Map();
+    private pendingInitializations: Map<string, NodeJS.Timeout> = new Map();
 
     constructor(
         private app: App, 
@@ -42,9 +43,23 @@ export class CoalesceManager {
             const leafId = (activeView.leaf as WorkspaceLeafWithID).id;
             const coalesceView = this.activeViews.get(leafId);
             if (coalesceView) {
+                this.logger.debug("Marking view as focused due to file open", { leafId, path: file.path });
                 coalesceView.markAsFocused();
             }
         }
+        
+        // Also check after a delay in case the active view changes
+        setTimeout(() => {
+            const delayedActiveView = this.app.workspace.getActiveViewOfType(MarkdownView);
+            if (delayedActiveView && delayedActiveView.file?.path === file.path) {
+                const leafId = (delayedActiveView.leaf as WorkspaceLeafWithID).id;
+                const coalesceView = this.activeViews.get(leafId);
+                if (coalesceView) {
+                    this.logger.debug("Delayed focus marking for file open", { leafId, path: file.path });
+                    coalesceView.markAsFocused();
+                }
+            }
+        }, 100);
     }
 
     private getAllMarkdownViews(): MarkdownView[] {
@@ -97,7 +112,34 @@ export class CoalesceManager {
     private initializeView(file: TFile, view: MarkdownView) {
         const leafId = (view.leaf as WorkspaceLeafWithID).id;
         
+        // Clear any pending initialization for this leaf to prevent duplicates
+        if (this.pendingInitializations.has(leafId)) {
+            clearTimeout(this.pendingInitializations.get(leafId)!);
+            this.pendingInitializations.delete(leafId);
+        }
+        
+        // Debounce initialization to prevent rapid successive calls on mobile
+        this.pendingInitializations.set(leafId, setTimeout(() => {
+            this.pendingInitializations.delete(leafId);
+            this.doInitializeView(file, view);
+        }, 50)); // 50ms debounce
+    }
+    
+    private doInitializeView(file: TFile, view: MarkdownView) {
+        const leafId = (view.leaf as WorkspaceLeafWithID).id;
+        
         this.logger.debug("Initializing view", { leafId, path: file.path });
+        
+        // Before creating a new view, clean up any orphaned Coalesce containers in this view
+        const existingContainers = view.containerEl.querySelectorAll('.custom-backlinks-container');
+        if (existingContainers.length > 0) {
+            this.logger.debug("Found orphaned Coalesce containers, cleaning up", { 
+                count: existingContainers.length,
+                leafId,
+                path: file.path
+            });
+            existingContainers.forEach(container => container.remove());
+        }
         
         const existingView = this.activeViews.get(leafId);
         if (existingView) {
@@ -200,10 +242,17 @@ export class CoalesceManager {
 
     clearBacklinks() {
         this.logger.debug("Clearing all backlinks", { 
-            activeViewCount: this.activeViews.size 
+            activeViewsCount: this.activeViews.size 
         });
-
-        for (const view of this.activeViews.values()) {
+        
+        // Clear any pending initializations
+        for (const timeout of this.pendingInitializations.values()) {
+            clearTimeout(timeout);
+        }
+        this.pendingInitializations.clear();
+        
+        for (const [leafId, view] of this.activeViews.entries()) {
+            this.logger.debug("Clearing view", { leafId });
             view.cleanup();
             view.clear();
         }
@@ -251,10 +300,22 @@ export class CoalesceManager {
             if (this.app.workspace.activeLeaf === view.leaf) {
                 const coalesceView = this.activeViews.get(leafId);
                 if (coalesceView) {
+                    this.logger.debug("Marking view as focused due to active leaf", { leafId });
                     coalesceView.markAsFocused();
                 }
             }
         });
+        
+        // Additional check after a brief delay to catch cases where the leaf becomes active
+        setTimeout(() => {
+            if (this.app.workspace.activeLeaf === view.leaf) {
+                const coalesceView = this.activeViews.get(leafId);
+                if (coalesceView) {
+                    this.logger.debug("Delayed focus marking for active leaf", { leafId });
+                    coalesceView.markAsFocused();
+                }
+            }
+        }, 100);
     }
 
     /**
