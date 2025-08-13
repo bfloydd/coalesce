@@ -270,23 +270,6 @@ export class CoalesceView {
         this.currentFilter = '';
 
         const linksContainer = this.container.createDiv({ cls: 'backlinks-list' });
-        this.allBlocks = [];
-        
-        await this.collectBlocksFromFiles(filesLinkingToThis);
-        
-        // Extract unsaved aliases after collecting blocks
-        const unsavedAliases = this.extractUnsavedAliases(filesLinkingToThis);
-
-        // Sort blocks
-        this.sortBlocks();
-
-        // Render blocks with correct initial state
-        await this.renderBlocks(linksContainer, onLinkClick);
-
-        // Create header after blocks are rendered
-        const header = this.createBacklinksHeader(unsavedAliases, filesLinkingToThis, onLinkClick);
-        this.container.appendChild(header);
-        this.container.appendChild(linksContainer);
         
         // Handle different states based on backlinks and focus
         if (filesLinkingToThis.length === 0) {
@@ -303,19 +286,91 @@ export class CoalesceView {
             noBacklinksMessage.style.borderRadius = '4px';
             noBacklinksMessage.style.margin = '10px 0';
             noBacklinksMessage.style.backgroundColor = 'var(--background-secondary)';
+            
+            // Create a minimal header for no-backlinks state
+            const header = this.createMinimalHeader();
+            this.container.appendChild(header);
+            this.container.appendChild(linksContainer);
         } else if (!this.hasBeenFocused) {
-            // State 3: Backlinks exist but view hasn't been focused yet
+            // State 2: Backlinks exist but view hasn't been focused yet - show suspended state WITHOUT processing files
+            this.logger.debug("Showing suspended state, deferring content loading", {
+                backlinksCount: filesLinkingToThis.length
+            });
             this.showSuspendedState(linksContainer);
+            
+            // Create a minimal header for suspended state
+            const header = this.createMinimalHeader();
+            this.container.appendChild(header);
+            this.container.appendChild(linksContainer);
+        } else {
+            // State 3: Backlinks exist and view has been focused - do the full loading
+            await this.loadAndRenderContent(linksContainer, onLinkClick, filesLinkingToThis);
         }
         
-        this.logger.debug("Header appended to container", {
-            headerInContainer: this.container.contains(header),
-            focusPending: this.focusPending,
+        this.logger.debug("Backlinks update complete", {
+            backlinksCount: filesLinkingToThis.length,
+            hasBeenFocused: this.hasBeenFocused,
+            hasActiveContent: this.hasActiveContent()
+        });
+    }
+
+    /**
+     * Creates a minimal header for states that don't need full functionality
+     */
+    private createMinimalHeader(): HTMLElement {
+        const header = document.createElement('div');
+        header.className = 'backlinks-header';
+        
+        // Just show the Coalesce logo and title
+        const headerLeft = header.createDiv({ cls: 'backlinks-header-left' });
+        
+        // Add the Coalesce logo
+        const logoSvg = headerLeft.createSvg('svg');
+        logoSvg.setAttribute('viewBox', '0 0 100 100');
+        logoSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        logoSvg.innerHTML = `
+            <circle cx="50" cy="25" r="8" fill="currentColor" opacity="0.8"/>
+            <circle cx="25" cy="50" r="8" fill="currentColor" opacity="0.6"/>
+            <circle cx="75" cy="50" r="8" fill="currentColor" opacity="0.6"/>
+            <circle cx="50" cy="75" r="8" fill="currentColor" opacity="0.8"/>
+            <path d="M50,33 L50,42 M42,50 L33,50 M58,50 L67,50 M50,58 L50,67" stroke="currentColor" stroke-width="2" opacity="0.4"/>
+        `;
+        
+        // Add title
+        const title = headerLeft.createSpan({ text: 'Coalesce' });
+        title.style.marginLeft = '8px';
+        title.style.fontWeight = '600';
+        title.style.color = 'var(--text-muted)';
+        
+        return header;
+    }
+
+    /**
+     * Loads and renders the full content (blocks, header with functionality)
+     */
+    private async loadAndRenderContent(linksContainer: HTMLElement, onLinkClick: (path: string, openInNewTab?: boolean) => void, filesLinkingToThis: string[]): Promise<void> {
+        this.allBlocks = [];
+        
+        await this.collectBlocksFromFiles(filesLinkingToThis);
+        
+        // Extract unsaved aliases after collecting blocks
+        const unsavedAliases = this.extractUnsavedAliases(filesLinkingToThis);
+
+        // Sort blocks
+        this.sortBlocks();
+
+        // Render blocks with correct initial state
+        await this.renderBlocks(linksContainer, onLinkClick);
+
+        // Create full header with all functionality
+        const header = this.createBacklinksHeader(unsavedAliases, filesLinkingToThis, onLinkClick);
+        this.container.appendChild(header);
+        this.container.appendChild(linksContainer);
+        
+        this.logger.debug("Full content loaded and rendered", {
+            blocksCount: this.allBlocks.length,
             backlinksCount: filesLinkingToThis.length
         });
-        
-        // Set up observer for future header updates
-        // this.setupHeaderObserver(); // Removed as per edit hint
     }
 
     /**
@@ -584,6 +639,41 @@ export class CoalesceView {
     // Add getter for view
     public getView(): MarkdownView {
         return this.view;
+    }
+
+    /**
+     * Checks if the view has content and is not in suspended state
+     */
+    public hasActiveContent(): boolean {
+        const hasSuspendedMessage = this.container.querySelector('.suspended-state-message') !== null;
+        const hasNoBacklinksMessage = this.container.querySelector('.no-backlinks-message') !== null;
+        const hasBlocksRendered = this.allBlocks.length > 0;
+        const hasBeenFocused = this.hasBeenFocused;
+        
+        // View has active content if it's been focused and either has blocks or shows "no backlinks" message
+        // but is NOT showing the suspended message
+        return hasBeenFocused && (hasBlocksRendered || hasNoBacklinksMessage) && !hasSuspendedMessage;
+    }
+
+    /**
+     * Checks if the provided backlinks are different from current ones
+     */
+    public areBacklinksDifferent(newBacklinks: string[]): boolean {
+        if (this.currentFilesLinkingToThis.length !== newBacklinks.length) {
+            return true;
+        }
+        
+        // Sort both arrays for comparison
+        const currentSorted = [...this.currentFilesLinkingToThis].sort();
+        const newSorted = [...newBacklinks].sort();
+        
+        for (let i = 0; i < currentSorted.length; i++) {
+            if (currentSorted[i] !== newSorted[i]) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**
@@ -1049,15 +1139,20 @@ export class CoalesceView {
     }
 
     /**
-     * Activates the view by marking it as focused and reloading content
+     * Activates the view by marking it as focused and loading content
      */
-    private activateView(): void {
+    private async activateView(): Promise<void> {
         this.hasBeenFocused = true;
         this.logger.debug("View activated by user interaction");
         
-        // Reload the backlinks to show actual content
+        // Load the actual content now
         if (this.currentFilesLinkingToThis.length > 0 && this.currentOnLinkClick) {
-            this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick);
+            // Clear the container and rebuild with full content
+            this.container.empty();
+            const linksContainer = this.container.createDiv({ cls: 'backlinks-list' });
+            
+            // Load and render the full content
+            await this.loadAndRenderContent(linksContainer, this.currentOnLinkClick, this.currentFilesLinkingToThis);
         }
     }
 
@@ -1090,7 +1185,7 @@ export class CoalesceView {
     private handleViewFocus(): void {
         if (!this.hasBeenFocused) {
             this.logger.debug("View focused for the first time, activating content");
-            this.activateView();
+            this.activateView(); // No need to await here, let it run async
         }
     }
 
@@ -1102,13 +1197,16 @@ export class CoalesceView {
             this.hasBeenFocused = true;
             this.logger.debug("View marked as focused externally");
             
-            // If we're currently showing suspended state and have backlinks, reload
+            // If we're currently showing suspended state and have backlinks, activate
             if (this.currentFilesLinkingToThis.length > 0 && this.currentOnLinkClick) {
                 const suspendedMessage = this.container.querySelector('.suspended-state-message');
                 if (suspendedMessage) {
-                    this.updateBacklinks(this.currentFilesLinkingToThis, this.currentOnLinkClick);
+                    this.logger.debug("Activating suspended view");
+                    this.activateView(); // No need to await, let it run async
                 }
             }
+        } else {
+            this.logger.debug("View already focused, no action needed");
         }
     }
 

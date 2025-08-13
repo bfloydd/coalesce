@@ -68,8 +68,16 @@ export class CoalesceManager {
             } else {
                 const existingView = this.activeViews.get(leafId);
                 if (existingView) {
-                    this.logger.debug("Re-attaching existing view", { leafId, path: viewFile.path });
-                    existingView.ensureAttached();
+                    // Use smart refresh logic instead of always re-attaching
+                    if (this.needsViewRefresh(existingView, viewFile, view)) {
+                        this.logger.debug("Re-initializing view due to meaningful changes", { leafId, path: viewFile.path });
+                        this.initializeView(viewFile, view);
+                    } else {
+                        this.logger.debug("Re-attaching existing view, no refresh needed", { leafId, path: viewFile.path });
+                        existingView.ensureAttached();
+                        // Still need to update backlinks even when preserving the view
+                        this.updateBacklinksForView(viewFile, existingView, leafId);
+                    }
                 }
             }
         });
@@ -154,15 +162,36 @@ export class CoalesceManager {
             
         const filesLinkingToThis = [...new Set([...resolvedBacklinks, ...unresolvedBacklinks])];
 
-        this.logger.debug("Updating backlinks for view", {
+        this.logger.debug("Checking backlinks for view", {
             leafId,
             path: file.path,
-            backlinksCount: filesLinkingToThis.length
+            backlinksCount: filesLinkingToThis.length,
+            files: filesLinkingToThis
         });
 
-        coalesceView.updateBacklinks(filesLinkingToThis, (path: string, openInNewTab: boolean = false) => {
-            this.app.workspace.openLinkText(path, '', openInNewTab);
-        });
+        // Only update if backlinks have actually changed OR if view has no content yet
+        const needsUpdate = coalesceView.areBacklinksDifferent(filesLinkingToThis) || !coalesceView.hasActiveContent();
+        
+        if (needsUpdate) {
+            const reason = coalesceView.areBacklinksDifferent(filesLinkingToThis) ? "backlinks changed" : "no active content";
+            this.logger.debug(`Updating view: ${reason}`, {
+                leafId,
+                path: file.path,
+                newCount: filesLinkingToThis.length,
+                hasActiveContent: coalesceView.hasActiveContent()
+            });
+            
+            coalesceView.updateBacklinks(filesLinkingToThis, (path: string, openInNewTab: boolean = false) => {
+                this.app.workspace.openLinkText(path, '', openInNewTab);
+            });
+        } else {
+            this.logger.debug("Backlinks unchanged and view has content, skipping update", {
+                leafId,
+                path: file.path,
+                count: filesLinkingToThis.length,
+                hasActiveContent: coalesceView.hasActiveContent()
+            });
+        }
     }
 
     private getBlockFinder(strategy: string): AbstractBlockFinder {
@@ -195,8 +224,24 @@ export class CoalesceManager {
             return;
         }
         
-        // Reinitialize view to ensure it's properly set up
-        this.initializeView(file, view);
+        const existingView = this.activeViews.get(leafId);
+        
+        // Smart refresh logic: only reinitialize if there's a meaningful change
+        if (!existingView) {
+            // No existing view, need to initialize
+            this.logger.debug("No existing view found, initializing new view", { leafId });
+            this.initializeView(file, view);
+        } else if (this.needsViewRefresh(existingView, file, view)) {
+            // View needs refresh due to meaningful changes
+            this.logger.debug("View needs refresh due to meaningful changes", { leafId });
+            this.initializeView(file, view);
+        } else {
+            // Just ensure the view is attached and handle focus
+            this.logger.debug("Ensuring existing view is attached, no refresh needed", { leafId });
+            existingView.ensureAttached();
+            // Still need to update backlinks even when preserving the view
+            this.updateBacklinksForView(file, existingView, leafId);
+        }
         
         // Use requestAnimationFrame to ensure DOM is ready before checking focus
         requestAnimationFrame(() => {
@@ -210,6 +255,66 @@ export class CoalesceManager {
                 }
             }
         });
+    }
+
+    /**
+     * Determines if a view needs to be refreshed based on meaningful changes
+     */
+    private needsViewRefresh(existingView: CoalesceView, file: TFile, view: MarkdownView): boolean {
+        // Check if the view mode changed from edit to preview or vice versa
+        const currentMode = view.getMode();
+        const wasInPreviewMode = existingView.getView().getMode() === 'preview';
+        const isNowInPreviewMode = currentMode === 'preview';
+        
+        // Check if the file changed
+        const existingFile = existingView.getView().file;
+        if (!existingFile || existingFile.path !== file.path) {
+            this.logger.debug("File changed, refresh needed", {
+                previousFile: existingFile?.path,
+                currentFile: file.path
+            });
+            return true;
+        }
+        
+        // Both in preview mode, same file - check if we need refresh based on content state
+        if (wasInPreviewMode && isNowInPreviewMode) {
+            // If view has active content, preserve it; if not, refresh it
+            const hasActiveContent = existingView.hasActiveContent();
+            
+            if (hasActiveContent) {
+                this.logger.debug("Same file, preview mode, with active content - preserving view", {
+                    path: file.path,
+                    mode: currentMode,
+                    hasActiveContent: true
+                });
+                return false; // Don't refresh, but backlinks will still be updated in calling code
+            } else {
+                this.logger.debug("Same file, preview mode, but no active content - refreshing", {
+                    path: file.path,
+                    mode: currentMode,
+                    hasActiveContent: false
+                });
+                return true; // Refresh to load content
+            }
+        }
+        
+        // Check if switching from edit to preview (should show CoalesceView)
+        if (!wasInPreviewMode && isNowInPreviewMode) {
+            this.logger.debug("Switching from edit to preview mode, refresh needed", {
+                path: file.path,
+                previousMode: existingView.getView().getMode(),
+                currentMode: currentMode
+            });
+            return true;
+        }
+        
+        // No meaningful change detected
+        this.logger.debug("No meaningful change detected, no refresh needed", {
+            path: file.path,
+            mode: currentMode,
+            hasActiveContent: existingView.hasActiveContent()
+        });
+        return false;
     }
 
     /**
