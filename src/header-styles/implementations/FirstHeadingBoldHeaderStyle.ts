@@ -11,8 +11,8 @@ export class FirstHeadingBoldHeaderStyle extends AbstractHeaderStyle {
         const firstHeading = this.findAndFormatFirstHeading();
         
         if (!firstHeading) {
-            this.logger.debug('No heading found, using file name only', { fileName });
-            return fileName;
+            this.logger.debug('No heading found, showing filename with guidance', { fileName });
+            return `${fileName} - 📝 Add a heading`;
         }
         
         const processedText = this.convertToBoldText(firstHeading);

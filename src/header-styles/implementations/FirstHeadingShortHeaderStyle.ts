@@ -21,7 +21,7 @@ export class FirstHeadingShortHeaderStyle extends AbstractHeaderStyle {
     }
     
     private combineFileNameAndHeading(fileName: string, heading: string | null): string {
-        return heading ? `${fileName} - ${heading}` : fileName;
+        return heading ? `${fileName} - ${heading}` : `${fileName} - 📝 Add a heading`;
     }
 
     private findFirstHeading(): string | null {
