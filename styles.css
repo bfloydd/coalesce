@@ -692,39 +692,25 @@
 .backlinks-header.compact > svg {
     width: 36px;
     height: 36px;
-    color: var(--text-muted);
-    opacity: 0.7;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.08)) drop-shadow(0 0 6px rgba(var(--interactive-accent-rgb), 0.04));
+    color: var(--text-faint);
+    opacity: 0.6;
+    transition: all 0.3s ease;
 }
 
-/* Default compact hover - will be overridden by theme-specific rules */
 .backlinks-header.compact > svg:hover {
-    transform: scale(1.03) translateY(-1px);
+    transform: scale(1.03);
 }
 
 /* Dark theme compact mode */
-.theme-dark .backlinks-header.compact > svg {
-    color: var(--text-faint);
-    opacity: 0.6;
-}
-
 .theme-dark .backlinks-header.compact > svg:hover {
     color: #ffffff;
-    opacity: 0.95;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2)) drop-shadow(0 0 12px rgba(var(--interactive-accent-rgb), 0.2));
+    opacity: 0.9;
 }
 
 /* Light theme compact mode */
-.theme-light .backlinks-header.compact > svg {
-    color: var(--text-faint);
-    opacity: 0.6;
-}
-
 .theme-light .backlinks-header.compact > svg:hover {
     color: var(--text-normal);
     opacity: 0.9;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.12)) drop-shadow(0 0 8px rgba(var(--interactive-accent-rgb), 0.1));
 }
 
 .backlinks-header.compact .button-group {
@@ -782,41 +768,25 @@
 .backlinks-header-left > svg {
     width: 48px;
     height: 48px;
-    color: var(--text-muted);
-    opacity: 0.7;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.08)) drop-shadow(0 0 8px rgba(var(--interactive-accent-rgb), 0.05));
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Default hover - will be overridden by theme-specific rules */
-.backlinks-header-left > svg:hover {
-    transform: scale(1.03) translateY(-1px);
-}
-
-/* Dark theme - start muted, get brighter on hover */
-.theme-dark .backlinks-header-left > svg {
     color: var(--text-faint);
     opacity: 0.6;
-    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.2)) drop-shadow(0 0 10px rgba(var(--interactive-accent-rgb), 0.08));
+    transition: all 0.3s ease;
 }
 
+.backlinks-header-left > svg:hover {
+    transform: scale(1.03);
+}
+
+/* Dark theme - get bright on hover */
 .theme-dark .backlinks-header-left > svg:hover {
     color: #ffffff;
-    opacity: 0.95;
-    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.25)) drop-shadow(0 0 16px rgba(var(--interactive-accent-rgb), 0.25));
+    opacity: 0.9;
 }
 
-/* Light theme - start muted, get darker on hover */
-.theme-light .backlinks-header-left > svg {
-    color: var(--text-faint);
-    opacity: 0.6;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.06)) drop-shadow(0 0 6px rgba(var(--interactive-accent-rgb), 0.04));
-}
-
+/* Light theme - get darker on hover */
 .theme-light .backlinks-header-left > svg:hover {
     color: var(--text-normal);
     opacity: 0.9;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15)) drop-shadow(0 0 10px rgba(var(--interactive-accent-rgb), 0.12));
 }
 
 /* Android-specific SVG visibility fixes - only for the Coalesce icon */
