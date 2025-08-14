@@ -164,9 +164,11 @@ export class HeadingPopupComponent {
 
         this.logger.debug('Adding heading to file', { filePath, headingText });
 
+        // Get reference to the add button before try block
+        const addButton = this.modal?.querySelector('button:last-child') as HTMLButtonElement;
+
         try {
             // Disable the add button to prevent double-clicks
-            const addButton = this.modal?.querySelector('button:last-child') as HTMLButtonElement;
             if (addButton) {
                 addButton.disabled = true;
                 addButton.textContent = 'Adding...';
