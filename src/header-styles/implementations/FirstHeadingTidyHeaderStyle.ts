@@ -23,6 +23,11 @@ export class FirstHeadingTidyHeaderStyle extends AbstractHeaderStyle {
         return firstHeading;
     }
 
+    showsAddHeadingPrompt(): boolean {
+        const firstHeading = this.findAndFormatFirstHeading();
+        return !firstHeading;
+    }
+
     private findAndFormatFirstHeading(): string | null {
         this.logger.debug('Searching for first heading in block content');
         

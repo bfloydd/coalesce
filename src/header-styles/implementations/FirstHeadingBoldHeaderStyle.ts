@@ -26,6 +26,11 @@ export class FirstHeadingBoldHeaderStyle extends AbstractHeaderStyle {
         
         return formattedTitle;
     }
+
+    showsAddHeadingPrompt(): boolean {
+        const firstHeading = this.findAndFormatFirstHeading();
+        return !firstHeading;
+    }
     
     private convertToBoldText(text: string): string {
         // Split the text into parts: outside brackets and inside brackets

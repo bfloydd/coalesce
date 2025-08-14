@@ -25,6 +25,13 @@ export abstract class AbstractHeaderStyle {
         return formattedTitle;
     }
 
+    /**
+     * Returns true if this header style shows an "Add a heading" prompt
+     */
+    showsAddHeadingPrompt(): boolean {
+        return false;
+    }
+
     protected sanitizePath(path: string): string {
         const sanitized = path.replace(/\.md$/, '');
         this.logger.debug('Sanitizing path', {

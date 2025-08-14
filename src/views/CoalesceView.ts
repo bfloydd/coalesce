@@ -2,6 +2,7 @@ import { MarkdownView,TFile } from 'obsidian';
 import { BlockComponent } from '../components/BlockComponent';
 import { Logger } from '../utils/Logger';
 import { HeaderComponent } from '../components/HeaderComponent';
+import { HeadingPopupComponent } from '../components/HeadingPopupComponent';
 import { SettingsManager } from '../SettingsManager';
 import { ThemeManager } from '../ThemeManager';
 import { AbstractBlockFinder } from '../block-finders/base/AbstractBlockFinder';
@@ -15,6 +16,7 @@ import { AppWithInternalPlugins } from '../types';
 export class CoalesceView {
     private container: HTMLElement;
     private headerComponent: HeaderComponent;
+    private headingPopupComponent: HeadingPopupComponent;
     private allBlocks: { block: BlockComponent; sourcePath: string }[] = [];
     private currentTheme: string;
     private currentAlias: string | null = null;
@@ -48,6 +50,7 @@ export class CoalesceView {
         this.currentTheme = this.settingsManager.settings.theme;
         this.headerComponent = new HeaderComponent(this.logger);
         this.headerComponent.setSettingsManager(this.settingsManager);
+        this.headingPopupComponent = new HeadingPopupComponent(this.view.app, this.logger);
         this.blockFinder = BlockFinderFactory.createBlockFinder(
             this.settingsManager.settings.blockBoundaryStrategy,
             this.logger
@@ -58,6 +61,7 @@ export class CoalesceView {
         this.attachToDOM();
         this.loadAliasesFromMetadata();
         this.setupFocusListeners();
+        this.setupNavigationListeners();
     }
 
     private initializeFromSettings(): void {
@@ -123,7 +127,9 @@ export class CoalesceView {
                 this.logger,
                 this.settingsManager.settings.blockBoundaryStrategy,
                 this.settingsManager.settings.hideBacklinkLine,
-                this.settingsManager.settings.hideFirstHeader
+                this.settingsManager.settings.hideFirstHeader,
+                this.headingPopupComponent,
+                this.view.app
             );
             blocks.push(block);
         }
@@ -1241,6 +1247,24 @@ export class CoalesceView {
                 clearInterval(checkInterval);
             }
         }, 500);
+    }
+
+    /**
+     * Sets up navigation event listeners for block components
+     */
+    private setupNavigationListeners(): void {
+        // Listen for navigation events from block components
+        this.container.addEventListener('coalesce-navigate', (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { filePath, openInNewTab } = customEvent.detail;
+            
+            this.logger.debug('Navigation event received', { filePath, openInNewTab });
+            
+            // Handle navigation using the current onLinkClick handler
+            if (this.currentOnLinkClick) {
+                this.currentOnLinkClick(filePath, openInNewTab);
+            }
+        });
     }
 
     /**

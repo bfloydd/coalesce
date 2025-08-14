@@ -19,6 +19,11 @@ export class FirstHeadingShortHeaderStyle extends AbstractHeaderStyle {
         
         return formattedTitle;
     }
+
+    showsAddHeadingPrompt(): boolean {
+        const firstHeading = this.findFirstHeading();
+        return !firstHeading;
+    }
     
     private combineFileNameAndHeading(fileName: string, heading: string | null): string {
         return heading ? `${fileName} - ${heading}` : `${fileName} - 📝 Add a heading`;

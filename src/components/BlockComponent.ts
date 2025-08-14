@@ -1,9 +1,10 @@
-import { MarkdownRenderer, MarkdownView } from 'obsidian';
+import { MarkdownRenderer, MarkdownView, TFile } from 'obsidian';
 import { Logger } from '../utils/Logger';
 import { BlockFinderFactory } from '../block-finders/BlockFinderFactory';
 import { AbstractBlockFinder } from '../block-finders/base/AbstractBlockFinder';
 import { HeaderStyleFactory } from '../header-styles/HeaderStyleFactory';
 import { AbstractHeaderStyle } from '../header-styles/base/AbstractHeaderStyle';
+import { HeadingPopupComponent } from './HeadingPopupComponent';
 
 export class BlockComponent {
     private mainContainer: HTMLElement;
@@ -11,6 +12,7 @@ export class BlockComponent {
     private toggleButton: HTMLElement;
     private blockFinder: AbstractBlockFinder;
     private headerStyleInstance: AbstractHeaderStyle;
+    private app: any; // Obsidian App instance
     
     // Compiled regex patterns for better performance
     private static readonly HEADER_PATTERN = /^\s*#{1,5}\s/;
@@ -25,7 +27,9 @@ export class BlockComponent {
         private logger: Logger,
         private strategy: string = 'default',
         private hideBacklinkLine: boolean = false,
-        private hideFirstHeader: boolean = false
+        private hideFirstHeader: boolean = false,
+        private headingPopupComponent?: HeadingPopupComponent,
+        app?: any
     ) {
         this.logger.debug('Creating block component', {
             filePath,
@@ -37,6 +41,7 @@ export class BlockComponent {
             contentLength: contents.length
         });
 
+        this.app = app;
         this.blockFinder = BlockFinderFactory.createBlockFinder(strategy, logger);
         this.headerStyleInstance = HeaderStyleFactory.createHeaderStyle(headerStyle, contents);
     }
@@ -83,21 +88,50 @@ export class BlockComponent {
     }
 
     private createBlockTitle(onLinkClick: (path: string, openInNewTab?: boolean) => void): void {
-        const blockTitle = this.headerContainer.createEl('a', {
-            text: this.getDisplayTitle(this.filePath, this.headerStyle),
-            cls: 'block-title',
-            href: '#',
-        });
+        const displayTitle = this.getDisplayTitle(this.filePath, this.headerStyle);
+        const showsAddHeading = this.headerStyleInstance.showsAddHeadingPrompt();
         
-        blockTitle.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation(); // Prevent header click from also triggering
-            this.logger.debug('Block title clicked', {
-                filePath: this.filePath,
-                ctrlKey: event.ctrlKey
+        if (showsAddHeading && this.headingPopupComponent) {
+            // Create clickable "Add a heading" text
+            const addHeadingSpan = this.headerContainer.createEl('span', {
+                text: displayTitle,
+                cls: 'block-title add-heading-prompt',
             });
-            onLinkClick(this.filePath, event.ctrlKey);
-        });
+            
+            addHeadingSpan.style.cssText = `
+                color: var(--text-muted);
+                cursor: pointer;
+                text-decoration: underline;
+                text-decoration-style: dotted;
+            `;
+            
+            addHeadingSpan.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                this.logger.debug('Add heading prompt clicked', { filePath: this.filePath });
+                this.headingPopupComponent!.show(this.filePath, () => {
+                    // Refresh the content after heading is added
+                    this.refreshContentFromFile();
+                });
+            });
+        } else {
+            // Create regular clickable title
+            const blockTitle = this.headerContainer.createEl('a', {
+                text: displayTitle,
+                cls: 'block-title',
+                href: '#',
+            });
+            
+            blockTitle.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation(); // Prevent header click from also triggering
+                this.logger.debug('Block title clicked', {
+                    filePath: this.filePath,
+                    ctrlKey: event.ctrlKey
+                });
+                onLinkClick(this.filePath, event.ctrlKey);
+            });
+        }
     }
 
     private async renderContent(view: MarkdownView): Promise<void> {
@@ -236,9 +270,103 @@ export class BlockComponent {
             newStyle: headerStyle
         });
 
-        const titleElement = this.headerContainer?.querySelector('.block-title') as HTMLAnchorElement;
-        if (titleElement) {
-            titleElement.textContent = this.getDisplayTitle(this.filePath, headerStyle);
+        const displayTitle = this.getDisplayTitle(this.filePath, headerStyle);
+        const showsAddHeading = this.headerStyleInstance.showsAddHeadingPrompt();
+        
+        // Remove existing title elements
+        const existingTitle = this.headerContainer?.querySelector('.block-title');
+        const existingAddHeading = this.headerContainer?.querySelector('.add-heading-prompt');
+        
+        if (existingTitle) existingTitle.remove();
+        if (existingAddHeading) existingAddHeading.remove();
+        
+        // Create the appropriate title element based on current state
+        if (showsAddHeading && this.headingPopupComponent) {
+            this.createAddHeadingPrompt(displayTitle);
+        } else {
+            this.createRegularTitle(displayTitle);
+        }
+    }
+
+    private createAddHeadingPrompt(displayTitle: string): void {
+        const addHeadingSpan = this.headerContainer!.createEl('span', {
+            text: displayTitle,
+            cls: 'block-title add-heading-prompt',
+        });
+        
+        addHeadingSpan.style.cssText = `
+            color: var(--text-muted);
+            cursor: pointer;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+        `;
+        
+        addHeadingSpan.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.logger.debug('Add heading prompt clicked', { filePath: this.filePath });
+            this.headingPopupComponent!.show(this.filePath, () => {
+                // Refresh the content after heading is added
+                this.refreshContentFromFile();
+            });
+        });
+    }
+
+    private createRegularTitle(displayTitle: string): void {
+        const blockTitle = this.headerContainer!.createEl('a', {
+            text: displayTitle,
+            cls: 'block-title',
+            href: '#',
+        });
+        
+        blockTitle.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.logger.debug('Block title clicked', { filePath: this.filePath });
+            
+            // Trigger navigation by dispatching a custom event
+            // The CoalesceView will handle this event
+            const navigationEvent = new CustomEvent('coalesce-navigate', {
+                detail: { filePath: this.filePath, openInNewTab: event.ctrlKey },
+                bubbles: true
+            });
+            this.headerContainer!.dispatchEvent(navigationEvent);
+        });
+    }
+
+    public refreshContent(): void {
+        this.logger.debug('Refreshing block content', { filePath: this.filePath });
+        
+        // Recreate the header style instance with updated content
+        this.headerStyleInstance = HeaderStyleFactory.createHeaderStyle(this.headerStyle, this.contents);
+        
+        // Update the title display
+        this.updateTitleDisplay(this.headerStyle);
+    }
+
+    public async refreshContentFromFile(): Promise<void> {
+        this.logger.debug('Refreshing block content from file', { filePath: this.filePath });
+        
+        try {
+            // Read the updated file content
+            const file = this.app.vault.getAbstractFileByPath(this.filePath);
+            if (file && file instanceof TFile) {
+                const newContent = await this.app.vault.read(file);
+                this.contents = newContent;
+                
+                // Recreate the header style instance with new content
+                this.headerStyleInstance = HeaderStyleFactory.createHeaderStyle(this.headerStyle, this.contents);
+                
+                // Update the title display
+                this.updateTitleDisplay(this.headerStyle);
+                
+                this.logger.debug('Block content refreshed from file', { 
+                    filePath: this.filePath,
+                    newContentLength: newContent.length
+                });
+            }
+        } catch (error) {
+            this.logger.error('Failed to refresh block content from file', error);
         }
     }
 
