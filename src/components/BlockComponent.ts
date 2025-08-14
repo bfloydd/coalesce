@@ -1,4 +1,4 @@
-import { MarkdownRenderer, MarkdownView, TFile } from 'obsidian';
+import { MarkdownRenderer, MarkdownView, TFile, setIcon } from 'obsidian';
 import { Logger } from '../utils/Logger';
 import { BlockFinderFactory } from '../block-finders/BlockFinderFactory';
 import { AbstractBlockFinder } from '../block-finders/base/AbstractBlockFinder';
@@ -113,6 +113,33 @@ export class BlockComponent {
                     // Refresh the content after heading is added
                     this.refreshContentFromFile();
                 });
+            });
+
+            // Add a small open-note icon next to the prompt
+            const linkIcon = this.headerContainer.createEl('span', {
+                cls: 'add-heading-open-note',
+                attr: {
+                    'role': 'button',
+                    'tabindex': '0',
+                    'aria-label': 'Open note'
+                }
+            });
+            setIcon(linkIcon, 'external-link');
+            linkIcon.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const openInNewTab = (event as MouseEvent).ctrlKey || (event as MouseEvent).metaKey;
+                const navigationEvent = new CustomEvent('coalesce-navigate', {
+                    detail: { filePath: this.filePath, openInNewTab },
+                    bubbles: true
+                });
+                this.headerContainer!.dispatchEvent(navigationEvent);
+            });
+            linkIcon.addEventListener('keydown', (e: KeyboardEvent) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    (linkIcon as HTMLElement).click();
+                }
             });
         } else {
             // Create regular clickable title
@@ -309,6 +336,33 @@ export class BlockComponent {
                 // Refresh the content after heading is added
                 this.refreshContentFromFile();
             });
+        });
+
+        // Add a small open-note icon next to the prompt
+        const linkIcon = this.headerContainer!.createEl('span', {
+            cls: 'add-heading-open-note',
+            attr: {
+                'role': 'button',
+                'tabindex': '0',
+                'aria-label': 'Open note'
+            }
+        });
+        setIcon(linkIcon, 'external-link');
+        linkIcon.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const openInNewTab = (event as MouseEvent).ctrlKey || (event as MouseEvent).metaKey;
+            const navigationEvent = new CustomEvent('coalesce-navigate', {
+                detail: { filePath: this.filePath, openInNewTab },
+                bubbles: true
+            });
+            this.headerContainer!.dispatchEvent(navigationEvent);
+        });
+        linkIcon.addEventListener('keydown', (e: KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                (linkIcon as HTMLElement).click();
+            }
         });
     }
 

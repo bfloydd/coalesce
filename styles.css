@@ -877,6 +877,22 @@ html body .is-phone .backlinks-header .button-group .collapse-button svg {
     color: var(--text-accent-hover) !important;
 }
 
+/* Open note icon next to Add heading */
+.add-heading-open-note {
+    margin-left: 6px;
+    padding: 2px;
+    line-height: 0;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.add-heading-open-note:hover {
+    color: var(--text-accent);
+}
+
 /* Heading popup modal styles */
 .heading-popup-modal {
     position: fixed !important;
