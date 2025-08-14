@@ -253,28 +253,41 @@ export class HeadingPopupComponent {
         // Find the best place to insert the heading
         let insertIndex = 0;
         
-        // Strategy 1: Look for the first non-empty line that's not a heading
-        // This is usually where the backlink or content starts
+        // Strategy 1: Look for the first line that looks like a backlink or navigation
+        // This is usually the first line with content that's not a heading
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
             if (line && !line.startsWith('#')) {
-                insertIndex = i + 1; // Insert after this line
-                this.logger.debug('Found insertion point after non-heading line', { 
-                    lineIndex: i, 
-                    lineContent: line.substring(0, 50) + (line.length > 50 ? '...' : '') 
+                // Check if this line looks like a backlink or navigation
+                const isBacklink = this.isBacklinkLine(line);
+                this.logger.debug('Analyzing line for backlink detection', {
+                    lineIndex: i,
+                    lineContent: line.substring(0, 50) + (line.length > 50 ? '...' : ''),
+                    isBacklink,
+                    lineLength: line.length
                 });
-                break;
+                
+                if (isBacklink) {
+                    insertIndex = i + 1; // Insert after the backlink line
+                    this.logger.debug('Found insertion point after backlink line', { 
+                        lineIndex: i, 
+                        lineContent: line.substring(0, 50) + (line.length > 50 ? '...' : ''),
+                        isBacklink
+                    });
+                    break;
+                }
             }
         }
 
-        // Strategy 2: If we didn't find a good spot, look for the first line with content
+        // Strategy 2: If we didn't find a backlink, look for the first non-heading content line
         if (insertIndex === 0) {
             for (let i = 0; i < lines.length; i++) {
-                if (lines[i].trim()) {
+                const line = lines[i].trim();
+                if (line && !line.startsWith('#')) {
                     insertIndex = i + 1;
                     this.logger.debug('Found insertion point after first content line', { 
                         lineIndex: i, 
-                        lineContent: lines[i].substring(0, 50) + (lines[i].length > 50 ? '...' : '') 
+                        lineContent: line.substring(0, 50) + (line.length > 50 ? '...' : '') 
                     });
                     break;
                 }
@@ -300,12 +313,59 @@ export class HeadingPopupComponent {
             insertIndex,
             newHeadingLine,
             linesBefore: lines.slice(0, insertIndex).length,
-            linesAfter: lines.slice(insertIndex).length,
+            linesAfter: lines.slice(0, insertIndex).length,
             totalNewLines: newLines.length,
             insertionStrategy: insertIndex === 0 ? 'beginning' : 'after-content'
         });
 
         return newContent;
+    }
+
+    private isBacklinkLine(line: string): boolean {
+        // Check if the line looks like a backlink or navigation
+        // Common patterns for backlinks in Obsidian:
+        // - Lines starting with [[ and ending with ]]
+        // - Lines that look like file paths (containing / or \)
+        // - Lines that are just a few words and look like navigation
+        
+        const trimmedLine = line.trim();
+        
+        // Check for Obsidian wiki-links
+        if (trimmedLine.startsWith('[[') && trimmedLine.endsWith(']]')) {
+            return true;
+        }
+        
+        // Check for file paths (likely backlinks) - this catches "Topics/Rel/Church"
+        if (trimmedLine.includes('/') || trimmedLine.includes('\\')) {
+            return true;
+        }
+        
+        // Check for lines that look like navigation (short, descriptive text)
+        // This is more heuristic - if it's a short line that's not a heading, it's likely navigation
+        if (trimmedLine.length < 100 && !trimmedLine.includes('.')) {
+            // Additional check: if it looks like a category or section indicator
+            if (trimmedLine.includes('Topics') || trimmedLine.includes('Rel') || trimmedLine.includes('Church')) {
+                return true;
+            }
+            
+            // Check for other common navigation patterns
+            const navigationKeywords = [
+                'Topics', 'Rel', 'Church', 'Notes', 'References', 'Links', 
+                'Related', 'See also', 'Navigation', 'Menu', 'Index'
+            ];
+            
+            if (navigationKeywords.some(keyword => trimmedLine.includes(keyword))) {
+                return true;
+            }
+        }
+        
+        // Check for lines that are just a few words separated by slashes (like "Topics/Rel/Church")
+        const wordCount = trimmedLine.split(/[/\\]/).length;
+        if (wordCount >= 2 && wordCount <= 5 && trimmedLine.length < 50) {
+            return true;
+        }
+        
+        return false;
     }
 
     close(): void {
