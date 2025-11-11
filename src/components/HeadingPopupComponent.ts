@@ -17,7 +17,7 @@ export class HeadingPopupComponent {
 
         // Create modal container
         this.modal = document.createElement('div');
-        this.modal.className = 'heading-popup-modal';
+        this.modal.className = 'coalesce-heading-popup-modal';
         this.modal.style.cssText = `
             position: fixed;
             top: 0;
@@ -33,7 +33,7 @@ export class HeadingPopupComponent {
 
         // Create popup content
         const popup = document.createElement('div');
-        popup.className = 'heading-popup-content';
+        popup.className = 'coalesce-heading-popup-content';
         popup.style.cssText = `
             background: var(--background-primary);
             border: 1px solid var(--border-color);

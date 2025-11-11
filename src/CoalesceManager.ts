@@ -131,7 +131,7 @@ export class CoalesceManager {
         this.logger.debug("Initializing view", { leafId, path: file.path });
         
         // Before creating a new view, clean up any orphaned Coalesce containers in this view
-        const existingContainers = view.containerEl.querySelectorAll('.custom-backlinks-container');
+        const existingContainers = view.containerEl.querySelectorAll('.coalesce-custom-backlinks-container');
         if (existingContainers.length > 0) {
             this.logger.debug("Found orphaned Coalesce containers, cleaning up", { 
                 count: existingContainers.length,

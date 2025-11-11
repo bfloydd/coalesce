@@ -79,7 +79,7 @@ export class HeaderComponent {
 
         this.logger.debug("HeaderComponent aliases:", { count: aliases.length, aliases });
 
-        const header = container.createDiv({ cls: 'backlinks-header' });
+        const header = container.createDiv({ cls: 'coalesce-backlinks-header' });
 
         const leftContainer = this.createLeftContainer(aliases, unsavedAliases, currentAlias, onAliasSelect, sortDescending, onSortToggle, isCollapsed, onCollapseToggle, onFilterChange, currentFilter);
         const rightContainer = this.createRightContainer(
@@ -113,7 +113,7 @@ export class HeaderComponent {
     ): HTMLElement {
         // Create a temporary container to use createDiv
         const tempContainer = document.createElement('div');
-        const leftContainer = tempContainer.createDiv({ cls: 'backlinks-header-left' });
+        const leftContainer = tempContainer.createDiv({ cls: 'coalesce-backlinks-header-left' });
 
         // Create and add coalesce icon
         const svg = this.createCoalesceIcon();
@@ -236,7 +236,7 @@ export class HeaderComponent {
         onAliasSelect: (alias: string | null) => void
     ): HTMLSelectElement {
         const aliasDropdown = document.createElement('select');
-        aliasDropdown.classList.add('alias-dropdown');
+        aliasDropdown.classList.add('coalesce-alias-dropdown');
 
         // Add default option
         const defaultOption = document.createElement('option');
@@ -304,7 +304,7 @@ export class HeaderComponent {
     ): HTMLElement {
         // Create a temporary container to use createDiv
         const tempContainer = document.createElement('div');
-        const buttonGroup = tempContainer.createDiv({ cls: 'button-group' });
+        const buttonGroup = tempContainer.createDiv({ cls: 'coalesce-button-group' });
         
         // Create sort button
         const sortButton = this.createSortButton(sortDescending, onSortToggle);
@@ -322,7 +322,7 @@ export class HeaderComponent {
         // Create simple custom button with proper hover isolation
         const tempContainer = document.createElement('div');
         const sortButton = tempContainer.createEl('button', {
-            cls: 'sort-button',
+            cls: 'coalesce-sort-button',
             attr: { 
                 'aria-label': sortDescending ? 'Sort ascending' : 'Sort descending',
                 'type': 'button'
@@ -354,7 +354,7 @@ export class HeaderComponent {
         // Create simple custom button with proper hover isolation
         const tempContainer = document.createElement('div');
         const collapseButton = tempContainer.createEl('button', {
-            cls: 'collapse-button',
+            cls: 'coalesce-collapse-button',
             attr: { 
                 'aria-label': isCollapsed ? 'Expand all' : 'Collapse all',
                 'type': 'button'
@@ -382,12 +382,12 @@ export class HeaderComponent {
 
     private createFilterInput(onFilterChange: (filterText: string) => void, initialValue: string = ''): HTMLElement {
         const container = document.createElement('div');
-        container.classList.add('filter-input-container');
+        container.classList.add('coalesce-filter-input-container');
         
         const filterInput = document.createElement('input');
         filterInput.type = 'text';
         filterInput.placeholder = 'Filter...';
-        filterInput.classList.add('filter-input');
+        filterInput.classList.add('coalesce-filter-input');
         
         if (initialValue) {
             filterInput.value = initialValue;
@@ -395,7 +395,7 @@ export class HeaderComponent {
         }
         
         const clearButton = document.createElement('button');
-        clearButton.classList.add('filter-clear-button');
+        clearButton.classList.add('coalesce-filter-clear-button');
         clearButton.setAttribute('type', 'button');
         clearButton.setAttribute('aria-label', 'Clear filter');
         
@@ -441,7 +441,7 @@ export class HeaderComponent {
     }
 
     public focusFilterInput(header: HTMLElement): boolean {
-        const filterInput = header.querySelector('.filter-input') as HTMLInputElement;
+        const filterInput = header.querySelector('.coalesce-filter-input') as HTMLInputElement;
         
         this.logger.debug("Focusing filter input", {
             hasHeader: !!header,
@@ -482,7 +482,7 @@ export class HeaderComponent {
     ): HTMLElement {
         // Create a temporary container to use createDiv
         const tempContainer = document.createElement('div');
-        const rightContainer = tempContainer.createDiv({ cls: 'backlinks-header-right' });
+        const rightContainer = tempContainer.createDiv({ cls: 'coalesce-backlinks-header-right' });
 
         // Add settings button to right container
         const settingsButton = this.createSettingsButton(
@@ -512,7 +512,7 @@ export class HeaderComponent {
         
         // Create simple custom button with proper hover isolation
         const settingsButton = tempContainer.createEl('button', {
-            cls: 'settings-button',
+            cls: 'coalesce-settings-button',
             attr: { 
                 'aria-label': 'Settings',
                 'type': 'button'
@@ -527,7 +527,7 @@ export class HeaderComponent {
             e.stopPropagation(); // Prevent body click from being triggered immediately
             
             // Check if there's already a popup open
-            const existingPopup = document.querySelector('.settings-popup');
+            const existingPopup = document.querySelector('.coalesce-settings-popup');
             if (existingPopup) {
                 // If popup exists and is associated with this button, close it
                 existingPopup.remove();
@@ -581,11 +581,11 @@ export class HeaderComponent {
         
         // Create a temporary container to use createDiv
         const tempContainer = document.createElement('div');
-        const popup = tempContainer.createDiv({ cls: 'settings-popup' });
+        const popup = tempContainer.createDiv({ cls: 'coalesce-settings-popup' });
         
         // Set position values with custom attributes to be used by CSS via attr()
         // We use setCssStyles for dynamic positioning as it's more type-safe and readable
-        const settingsButton = document.querySelector('.settings-button') as HTMLElement;
+        const settingsButton = document.querySelector('.coalesce-settings-button') as HTMLElement;
         if (settingsButton) {
             const buttonRect = settingsButton.getBoundingClientRect();
             popup.setCssStyles({
@@ -632,11 +632,11 @@ export class HeaderComponent {
         const tempContainer = document.createElement('div');
         
         // Create header style settings header
-        const headerStyleHeader = popup.createDiv({ cls: 'settings-item settings-header' });
+        const headerStyleHeader = popup.createDiv({ cls: 'coalesce-settings-item coalesce-settings-header' });
         
         // Add header icon
         const headerIcon = tempContainer.createSvg('svg', {
-            cls: 'setting-item-icon',
+            cls: 'coalesce-setting-item-icon',
             attr: {
                 viewBox: '0 0 24 24',
                 width: '16',
@@ -676,21 +676,21 @@ export class HeaderComponent {
         const styleLabels = HeaderStyleFactory.getStyleLabels();
         
         validStyles.forEach(style => {
-            const item = popup.createDiv({ cls: 'settings-item settings-submenu-item' });
+            const item = popup.createDiv({ cls: 'coalesce-settings-item coalesce-settings-submenu-item' });
             item.setAttribute('data-style', style);
             
             // Add label
-            const itemLabel = item.createSpan({ cls: 'setting-item-label', text: styleLabels[style] || style });
+            const itemLabel = item.createSpan({ cls: 'coalesce-setting-item-label', text: styleLabels[style] || style });
             
             // Add checkmark container
-            const checkContainer = item.createDiv({ cls: 'checkmark-container' });
+            const checkContainer = item.createDiv({ cls: 'coalesce-checkmark-container' });
             if (style === currentHeaderStyle) {
                 checkContainer.classList.add('is-checked');
             }
             
             // Add checkmark
             const checkElement = tempContainer.createSvg('svg', {
-                cls: 'checkmark',
+                cls: 'coalesce-checkmark',
                 attr: {
                     viewBox: '0 0 24 24'
                 }
@@ -711,7 +711,7 @@ export class HeaderComponent {
             
             item.addEventListener('click', () => {
                 // Update all checkmarks in this section
-                popup.querySelectorAll('.settings-item[data-style]').forEach(el => {
+                popup.querySelectorAll('.coalesce-settings-item[data-style]').forEach(el => {
                     (el as HTMLElement).querySelector('.checkmark-container')?.classList.remove('is-checked');
                 });
                 checkContainer.classList.add('is-checked');
@@ -764,11 +764,11 @@ export class HeaderComponent {
         const tempContainer = document.createElement('div');
         
         // Add settings header
-        const header = popup.createDiv({ cls: 'settings-item settings-header' });
+        const header = popup.createDiv({ cls: 'coalesce-settings-item coalesce-settings-header' });
         
         // Add header icon
         const headerIcon = tempContainer.createSvg('svg', {
-            cls: 'setting-item-icon',
+            cls: 'coalesce-setting-item-icon',
             attr: {
                 viewBox: '0 0 24 24',
                 width: '16',
@@ -795,18 +795,18 @@ export class HeaderComponent {
         
         // Add each block style option
         validStrategies.forEach(strategyId => {
-            const item = popup.createDiv({ cls: 'settings-item settings-submenu-item' });
+            const item = popup.createDiv({ cls: 'coalesce-settings-item coalesce-settings-submenu-item' });
             item.setAttribute('data-strategy', strategyId);
             
-            const label = item.createSpan({ cls: 'setting-item-label', text: strategyLabels[strategyId] || strategyId });
+            const label = item.createSpan({ cls: 'coalesce-setting-item-label', text: strategyLabels[strategyId] || strategyId });
             
-            const checkContainer = item.createDiv({ cls: 'checkmark-container' });
+            const checkContainer = item.createDiv({ cls: 'coalesce-checkmark-container' });
             if (currentStrategy === strategyId) {
                 checkContainer.classList.add('is-checked');
             }
             
             const check = tempContainer.createSvg('svg', {
-                cls: 'checkmark',
+                cls: 'coalesce-checkmark',
                 attr: {
                     viewBox: '0 0 24 24'
                 }
@@ -825,7 +825,7 @@ export class HeaderComponent {
             item.appendChild(checkContainer);
             
             item.addEventListener('click', () => {
-                popup.querySelectorAll('.settings-item[data-strategy]').forEach(el => {
+                popup.querySelectorAll('.coalesce-settings-item[data-strategy]').forEach(el => {
                     (el as HTMLElement).querySelector('.checkmark-container')?.classList.remove('is-checked');
                 });
                 checkContainer.classList.add('is-checked');
@@ -851,11 +851,11 @@ export class HeaderComponent {
         const tempContainer = document.createElement('div');
         
         // Add settings header
-        const header = popup.createDiv({ cls: 'settings-item settings-header' });
+        const header = popup.createDiv({ cls: 'coalesce-settings-item coalesce-settings-header' });
         
         // Add header icon
         const headerIcon = tempContainer.createSvg('svg', {
-            cls: 'setting-item-icon',
+            cls: 'coalesce-setting-item-icon',
             attr: {
                 viewBox: '0 0 24 24',
                 width: '16',
@@ -886,18 +886,18 @@ export class HeaderComponent {
         
         // Add each theme option
         themes.forEach(theme => {
-            const item = popup.createDiv({ cls: 'settings-item settings-submenu-item' });
+            const item = popup.createDiv({ cls: 'coalesce-settings-item coalesce-settings-submenu-item' });
             item.setAttribute('data-theme', theme.id);
             
-            const label = item.createSpan({ cls: 'setting-item-label', text: theme.label });
+            const label = item.createSpan({ cls: 'coalesce-setting-item-label', text: theme.label });
             
-            const checkContainer = item.createDiv({ cls: 'checkmark-container' });
+            const checkContainer = item.createDiv({ cls: 'coalesce-checkmark-container' });
             if (currentTheme === theme.id) {
                 checkContainer.classList.add('is-checked');
             }
             
             const check = tempContainer.createSvg('svg', {
-                cls: 'checkmark',
+                cls: 'coalesce-checkmark',
                 attr: {
                     viewBox: '0 0 24 24'
                 }
@@ -916,7 +916,7 @@ export class HeaderComponent {
             item.appendChild(checkContainer);
             
             item.addEventListener('click', () => {
-                popup.querySelectorAll('.settings-item[data-theme]').forEach(el => {
+                popup.querySelectorAll('.coalesce-settings-item[data-theme]').forEach(el => {
                     (el as HTMLElement).querySelector('.checkmark-container')?.classList.remove('is-checked');
                 });
                 checkContainer.classList.add('is-checked');

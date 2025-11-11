@@ -1,8 +1,43 @@
 /* ============================
-   HeaderComponent Styles
-   ============================ */
+    Coalesce CSS Variables
+    ============================ */
 
-.block-header {
+.coalesce-custom-backlinks-container {
+    /* Common spacing values */
+    --coalesce-spacing-xs: 2px;
+    --coalesce-spacing-sm: 4px;
+    --coalesce-spacing-md: 6px;
+    --coalesce-spacing-lg: 8px;
+    --coalesce-spacing-xl: 12px;
+
+    /* Common border radius values */
+    --coalesce-radius-sm: 4px;
+    --coalesce-radius-md: 6px;
+    --coalesce-radius-lg: 8px;
+
+    /* Common shadows */
+    --coalesce-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --coalesce-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+    /* Common transitions */
+    --coalesce-transition-fast: 0.15s ease-out;
+    --coalesce-transition-normal: 0.2s ease;
+    --coalesce-transition-slow: 0.3s ease;
+
+    /* Icon sizing */
+    --coalesce-icon-size-sm: 16px;
+    --coalesce-icon-size-md: 21px;
+    --coalesce-icon-size-lg: 36px;
+    --coalesce-icon-size-xl: 48px;
+}
+
+/* ============================
+    HeaderComponent Styles
+    ============================ */
+
+/* Header container and layout */
+
+.coalesce-block-header {
     display: flex;
     align-items: center;
     cursor: pointer;
@@ -11,13 +46,13 @@
     transform: translateZ(0);
 }
 
-.block-header:hover {
+.coalesce-block-header:hover {
     background-color: var(--background-modifier-hover);
 }
 
 
 
-.toggle-arrow {
+.coalesce-toggle-arrow {
     cursor: pointer;
     margin-right: 5px;
     transition: transform 0.2s ease;
@@ -25,7 +60,7 @@
     line-height: 1;
 }
 
-.backlinks-header {
+.coalesce-backlinks-header {
     display: flex;
     align-items: center;
     gap: 2px;
@@ -39,7 +74,7 @@
     transform: translateZ(0);
 }
 
-.backlinks-header-left {
+.coalesce-backlinks-header-left {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -48,36 +83,34 @@
     flex: 1;
 }
 
-.backlinks-header-right {
+.coalesce-backlinks-header-right {
     display: flex;
     align-items: center;
     gap: 2px;
     flex-wrap: nowrap;
 }
 
-/* Let Obsidian's ButtonComponent and ExtraButtonComponent handle button styling */
+/* Button Components - Let Obsidian handle base button styling */
 
-
-
-/* Transform rules for button states - work with Obsidian's button components */
-.button-group svg:not(.is-collapsed) {
+/* Button state transforms - work with Obsidian's button components */
+.coalesce-button-group svg:not(.is-collapsed) {
     transform: none;
 }
 
-.button-group svg.is-collapsed {
+.coalesce-button-group svg.is-collapsed {
     transform: rotate(-90deg);
 }
 
-.button-group svg.sort-ascending {
+.coalesce-button-group svg.sort-ascending {
     transform: rotate(180deg);
 }
 
-.button-group svg.sort-descending {
+.coalesce-button-group svg.sort-descending {
     transform: none;
 }
 
 /* Button group for arrow controls */
-.button-group {
+.coalesce-button-group {
     display: flex;
     align-items: center;
     white-space: nowrap;
@@ -86,55 +119,45 @@
 }
 
 /* Override ExtraButtonComponent icon sizing to match Obsidian's small toolbar icons */
-.button-group {
-    --icon-size: 16px;
+.coalesce-button-group > *,
+.coalesce-button-group .extra-setting-item,
+.coalesce-button-group .clickable-icon {
+    --icon-size: var(--coalesce-icon-size-sm) !important;
 }
 
-.button-group svg {
-    width: 16px !important;
-    height: 16px !important;
+.coalesce-button-group > * svg,
+.coalesce-button-group .extra-setting-item svg,
+.coalesce-button-group .clickable-icon svg {
+    width: var(--coalesce-icon-size-sm) !important;
+    height: var(--coalesce-icon-size-sm) !important;
 }
 
-/* Ensure all button types in button group use smaller icons */
-.button-group > *,
-.button-group .extra-setting-item,
-.button-group .clickable-icon {
-    --icon-size: 16px !important;
-}
-
-.button-group > * svg,
-.button-group .extra-setting-item svg,
-.button-group .clickable-icon svg {
-    width: 16px !important;
-    height: 16px !important;
-}
-
-.sort-button, .collapse-button, .settings-button {
+.coalesce-sort-button, .coalesce-collapse-button, .coalesce-settings-button {
     background: none;
     border: none;
-    padding: 6px;
+    padding: var(--coalesce-spacing-md);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--text-muted);
-    border-radius: 4px;
+    border-radius: var(--coalesce-radius-sm);
 }
 
-.sort-button:hover, .collapse-button:hover, .settings-button:hover {
+.coalesce-sort-button:hover, .coalesce-collapse-button:hover, .coalesce-settings-button:hover {
     background-color: var(--background-modifier-hover);
     color: var(--text-normal);
 }
 
 /* Settings popup position - will be adjusted via JavaScript */
-.settings-popup {
+.coalesce-settings-popup {
     position: fixed;
     background-color: var(--background-primary);
     border: 1px solid var(--background-modifier-border);
-    border-radius: 6px;
-    padding: 6px 0;
+    border-radius: var(--coalesce-radius-md);
+    padding: var(--coalesce-spacing-md) 0;
     z-index: 1000;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--coalesce-shadow-sm);
     min-width: 180px;
     max-height: 80vh;
     overflow-y: auto;
@@ -144,7 +167,7 @@
     font-size: 14px;
 }
 
-.settings-item {
+.coalesce-settings-item {
     display: flex;
     align-items: center;
     padding: 2px 8px;
@@ -158,11 +181,11 @@
     gap: 4px;
 }
 
-.settings-item:hover {
+.coalesce-settings-item:hover {
     background-color: var(--background-modifier-hover);
 }
 
-.setting-item-icon {
+.coalesce-setting-item-icon {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -173,11 +196,11 @@
     flex-shrink: 0;
 }
 
-.settings-header .setting-item-icon {
+.coalesce-settings-header .coalesce-setting-item-icon {
     color: var(--text-faint);
 }
 
-.setting-item-label {
+.coalesce-setting-item-label {
     flex: 1;
     margin-left: 4px;
     color: var(--text-normal);
@@ -185,7 +208,7 @@
 }
 
 /* Obsidian-style section headers */
-.settings-header {
+.coalesce-settings-header {
     cursor: default !important;
     color: var(--text-faint);
     font-size: 12px;
@@ -199,25 +222,25 @@
     text-transform: uppercase;
 }
 
-.settings-header:hover {
+.coalesce-settings-header:hover {
     background-color: transparent !important;
 }
 
-.settings-header:first-child {
+.coalesce-settings-header:first-child {
     margin-top: 0;
 }
 
-.menu-separator {
+.coalesce-menu-separator {
     height: 1px;
     background-color: var(--background-modifier-border);
     margin: 4px 0;
 }
 
-.settings-popup .menu-separator {
+.coalesce-settings-popup .coalesce-menu-separator {
     margin: 2px 0;
 }
 
-.alias-dropdown {
+.coalesce-alias-dropdown {
     /* margin: 0 8px; */
     /* padding: 4px 8px; */
     /* border-radius: 4px; */
@@ -232,34 +255,34 @@
     text-overflow: ellipsis;
 }
 
-.is-mobile .alias-dropdown,
-.is-phone .alias-dropdown {
+.is-mobile .coalesce-alias-dropdown,
+.is-phone .coalesce-alias-dropdown {
     min-width: 100px;
     font-size: var(--font-ui-smallest);
     padding: 2px 4px;
     height: 20px;
 }
 
-.alias-dropdown:hover {
+.coalesce-alias-dropdown:hover {
     border-color: var(--background-modifier-border-hover);
 }
 
-.alias-dropdown:focus {
+.coalesce-alias-dropdown:focus {
     outline: none;
     border-color: var(--interactive-accent);
 }
 
-.alias-dropdown:disabled {
+.coalesce-alias-dropdown:disabled {
     opacity: 0.7;
     cursor: not-allowed;
     border-color: var(--background-modifier-border);
 }
 
 /* ============================
-   Filter Input Styles
-   ============================ */
+    Filter Input Component
+    ============================ */
 
-.filter-input-container {
+.coalesce-filter-input-container {
     position: relative;
     display: flex;
     align-items: center;
@@ -268,7 +291,7 @@
     flex-shrink: 1;
 }
 
-.filter-input {
+.coalesce-filter-input {
     padding: 4px 8px;
     padding-right: 28px;
     border-radius: 4px;
@@ -292,22 +315,22 @@
     background-clip: padding-box;
 }
 
-.filter-input::placeholder {
+.coalesce-filter-input::placeholder {
     color: var(--text-muted);
 }
 
-.filter-input:hover {
+.coalesce-filter-input:hover {
     border-color: var(--background-modifier-border-hover);
 }
 
-.filter-input:not([disabled]) {
+.coalesce-filter-input:not([disabled]) {
     pointer-events: auto;
     user-select: text;
     position: relative;
     z-index: 10;
 }
 
-.filter-input:focus {
+.coalesce-filter-input:focus {
     outline: none;
     border-color: var(--interactive-accent);
     box-shadow: 0 0 0 2px var(--interactive-accent-hover);
@@ -315,7 +338,7 @@
     z-index: 10;
 }
 
-.filter-clear-button {
+.coalesce-filter-clear-button {
     position: absolute;
     right: 6px;
     top: 50%;
@@ -344,21 +367,21 @@
     flex-grow: 0;
 }
 
-.filter-clear-button:hover {
+.coalesce-filter-clear-button:hover {
     background-color: var(--background-modifier-hover);
     color: var(--text-normal);
     border-color: var(--background-modifier-border-hover);
 }
 
-.filter-clear-button:active {
+.coalesce-filter-clear-button:active {
     background-color: var(--background-modifier-active);
 }
 
-.filter-input-container.has-value .filter-clear-button {
+.coalesce-filter-input-container.has-value .coalesce-filter-clear-button {
     opacity: 1;
 }
 
-.filter-clear-button svg {
+.coalesce-filter-clear-button svg {
     width: 10px;
     height: 10px;
     stroke: currentColor;
@@ -367,18 +390,18 @@
     display: block;
 }
 
-.backlinks-header:focus-within .filter-input {
+.coalesce-backlinks-header:focus-within .coalesce-filter-input {
     position: relative;
     z-index: 10;
 }
 
-.is-mobile .filter-input-container,
-.is-phone .filter-input-container {
+.is-mobile .coalesce-filter-input-container,
+.is-phone .coalesce-filter-input-container {
     min-width: 100px;
 }
 
-.is-mobile .filter-input,
-.is-phone .filter-input {
+.is-mobile .coalesce-filter-input,
+.is-phone .coalesce-filter-input {
     min-width: 100px;
     font-size: var(--font-ui-smallest);
     padding: 2px 4px;
@@ -391,7 +414,7 @@
    CoalesceView Styles
    ============================ */
 
-.content-preview {
+.coalesce-content-preview {
     color: var(--text-muted);
     font-size: 0.9em;
     padding: 5px;
@@ -400,13 +423,13 @@
     transform: translateZ(0);
 }
 
-.content-preview p {
+.coalesce-content-preview p {
     margin-top: 5px;
     margin-bottom: 5px;
     padding: 0;
 }
 
-.custom-backlinks-container {
+.coalesce-custom-backlinks-container {
     border-top: 1px solid var(--background-modifier-border);
     margin-top: 20px;
     position: relative;
@@ -429,9 +452,9 @@
     padding-bottom: unset !important;
 }
 
-.is-readable-line-width .custom-backlinks-container,
+.is-readable-line-width .coalesce-custom-backlinks-container,
 .is-readable-line-width .markdown-content,
-.is-readable-line-width .backlinks-header {
+.is-readable-line-width .coalesce-backlinks-header {
     max-width: var(--file-line-width);
     width: 100%;
 }
@@ -445,7 +468,7 @@
    BlockComponent Styles
    ============================ */
 
-.block-title {
+.coalesce-block-title {
     display: block;
     margin-bottom: 0px;
     text-decoration: none;
@@ -453,12 +476,12 @@
     transition: color 0.2s ease;
 }
 
-.block-title:hover {
+.coalesce-block-title:hover {
     color: var(--interactive-accent);
     text-decoration: underline;
 }
 
-.block-title:active {
+.coalesce-block-title:active {
     color: var(--interactive-accent-hover);
 }
 
@@ -467,7 +490,7 @@
    ============================ */
 
 /* Checkmark container - smaller and more compact */
-.checkmark-container {
+.coalesce-checkmark-container {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -477,7 +500,7 @@
 }
 
 /* Obsidian-style checkmark */
-.checkmark {
+.coalesce-checkmark {
     color: var(--interactive-accent);
     width: 16px;
     height: 16px;
@@ -486,23 +509,23 @@
 /* ============================
    Default theme
    ============================ */
-.theme-default .backlinks-header {
+.theme-default .coalesce-backlinks-header {
     padding: 8px;
     border-bottom: 1px solid var(--background-modifier-border);
 }
 
 
 
-.theme-default .block-header {
+.theme-default .coalesce-block-header {
     padding: 4px 8px;
     background: var(--background-primary);
 }
 
-.theme-default .backlink-item {
+.theme-default .coalesce-backlink-item {
     padding: 5px 10px;
 }
 
-.theme-default .backlink-item:not(:last-child) {
+.theme-default .coalesce-backlink-item:not(:last-child) {
     border-bottom: 1px solid var(--background-modifier-border);
     margin-bottom: 10px;
 }
@@ -510,14 +533,14 @@
 /* ============================
    Compact theme
    ============================ */
-.theme-compact .backlinks-header {
+.theme-compact .coalesce-backlinks-header {
     padding: 4px;
     border: none;
 }
 
 
 
-.theme-compact .block-header {
+.theme-compact .coalesce-block-header {
     padding: 2px 4px;
     background: transparent;
 }
@@ -525,7 +548,7 @@
 /* ============================
    Modern theme
    ============================ */
-.theme-modern .backlinks-header {
+.theme-modern .coalesce-backlinks-header {
     padding: 12px;
     border-radius: 8px;
     background: var(--background-secondary);
@@ -533,13 +556,13 @@
 
 
 
-.theme-modern .block-header {
+.theme-modern .coalesce-block-header {
     padding: 8px 12px;
     background: var(--background-secondary-alt);
     border-radius: 6px;
 }
 
-.theme-modern .backlink-item {
+.theme-modern .coalesce-backlink-item {
     padding: 3px 0px;
 }
 
@@ -547,28 +570,28 @@
    Naked theme
    ============================ */
 
-.theme-naked .backlinks-header {
+.theme-naked .coalesce-backlinks-header {
     margin-bottom: 1em;
 }
 
-.theme-naked .block-container {
+.theme-naked .coalesce-backlink-item {
     border: none;
     padding: 0;
     margin: 0;
     background: none;
 }
 
-.theme-naked .block-header {
+.theme-naked .coalesce-block-header {
     display: none;
 }
 
-.theme-naked .content-preview {
+.theme-naked .coalesce-content-preview {
     display: block !important;
     padding: 0;
     margin: 0;
 }
 
-.theme-naked .block-container:not(:last-child) {
+.theme-naked .coalesce-backlink-item:not(:last-child) {
     border-bottom: 1px solid var(--background-modifier-border);
     margin-bottom: 1em;
     padding-bottom: 1em;
@@ -578,37 +601,37 @@
    Responsive Layout Styles
    ============================ */
 
-.is-phone .backlinks-header,
-.is-mobile .backlinks-header {
+.is-phone .coalesce-backlinks-header,
+.is-mobile .coalesce-backlinks-header {
     flex-direction: row;
     align-items: center;
     gap: 4px;
     padding: 8px;
 }
 
-.is-phone .backlinks-header-left,
-.is-mobile .backlinks-header-left {
+.is-phone .coalesce-backlinks-header-left,
+.is-mobile .coalesce-backlinks-header-left {
     width: auto;
     justify-content: flex-start;
     flex: 1;
     gap: 4px;
 }
 
-.is-phone .backlinks-header-right,
-.is-mobile .backlinks-header-right {
+.is-phone .coalesce-backlinks-header-right,
+.is-mobile .coalesce-backlinks-header-right {
     width: auto;
     justify-content: flex-end;
 }
 
-.is-phone .button-group,
-.is-mobile .button-group {
+.is-phone .coalesce-button-group,
+.is-mobile .coalesce-button-group {
     margin-left: 4px;
     display: flex;
     gap: 2px;
 }
 
-.is-phone .alias-dropdown,
-.is-mobile .alias-dropdown {
+.is-phone .coalesce-alias-dropdown,
+.is-mobile .coalesce-alias-dropdown {
     min-width: 80px;
     max-width: 120px;
     font-size: var(--font-ui-smaller);
@@ -616,8 +639,8 @@
     height: 24px;
 }
 
-.is-phone .filter-input,
-.is-mobile .filter-input {
+.is-phone .coalesce-filter-input,
+.is-mobile .coalesce-filter-input {
     min-width: 80px;
     max-width: 120px;
     font-size: var(--font-ui-smaller);
@@ -628,45 +651,45 @@
 /* Mobile styles handled by Obsidian's button components */
 
 @media (max-width: 400px) {
-    .backlinks-header {
+    .coalesce-backlinks-header {
         flex-direction: row;
         align-items: center;
         gap: 4px;
         padding: 8px;
     }
     
-    .backlinks-header-left {
+    .coalesce-backlinks-header-left {
         width: auto;
         justify-content: flex-start;
         flex: 1;
         gap: 4px;
     }
     
-    .backlinks-header-right {
+    .coalesce-backlinks-header-right {
         width: auto;
         justify-content: flex-end;
     }
     
-    .alias-dropdown {
+    .coalesce-alias-dropdown {
         min-width: 80px;
         max-width: 120px;
         margin: 0 4px;
     }
     
-    .filter-input-container {
+    .coalesce-filter-input-container {
         min-width: 80px;
         max-width: 120px;
         margin: 0 4px;
     }
     
-    .filter-input {
+    .coalesce-filter-input {
         min-width: 80px;
         max-width: 120px;
         margin: 0;
         padding-right: 24px; /* Smaller padding for very small screens */
     }
     
-    .button-group {
+    .coalesce-button-group {
         margin-left: 4px;
         display: flex;
         gap: 2px;
@@ -677,19 +700,19 @@
 
 /* Medium-width screen styles */
 @media (max-width: 600px) and (min-width: 401px) {
-    .backlinks-header-left {
+    .coalesce-backlinks-header-left {
         flex-wrap: nowrap;
         gap: 4px;
     }
     
-    .button-group {
+    .coalesce-button-group {
         margin-left: 4px;
     }
 }
 
 
 
-.backlinks-header.compact > svg {
+.coalesce-backlinks-header.compact > svg {
     width: 36px;
     height: 36px;
     color: var(--text-faint);
@@ -697,23 +720,23 @@
     transition: all 0.3s ease;
 }
 
-.backlinks-header.compact > svg:hover {
+.coalesce-backlinks-header.compact > svg:hover {
     transform: scale(1.03);
 }
 
 /* Dark theme compact mode */
-.theme-dark .backlinks-header.compact > svg:hover {
+.theme-dark .coalesce-backlinks-header.compact > svg:hover {
     color: #ffffff;
     opacity: 0.9;
 }
 
 /* Light theme compact mode */
-.theme-light .backlinks-header.compact > svg:hover {
+.theme-light .coalesce-backlinks-header.compact > svg:hover {
     color: var(--text-normal);
     opacity: 0.9;
 }
 
-.backlinks-header.compact .button-group {
+.coalesce-backlinks-header.compact .coalesce-button-group {
     margin-left: 0;
 }
 
@@ -730,42 +753,42 @@
     display: block !important;
 }
 
-.is-collapsed .content-preview {
+.is-collapsed .coalesce-content-preview {
     display: none !important;
 }
 
 /* Checkmark states */
-.checkmark-container .checkmark {
+.coalesce-checkmark-container .coalesce-checkmark {
     display: none;
 }
 
-.checkmark-container.is-checked .checkmark {
+.coalesce-checkmark-container.is-checked .coalesce-checkmark {
     display: block;
     color: var(--interactive-accent);
 }
 
 /* Block states */
-.backlink-item {
+.coalesce-backlink-item {
     /* Performance optimization */
     will-change: transform;
     transform: translateZ(0);
     transition: opacity 0.15s ease-out;
 }
 
-.backlink-item.has-alias {
+.coalesce-backlink-item.has-alias {
     display: block;
     opacity: 1;
     pointer-events: auto;
 }
 
-.backlink-item.no-alias {
+.coalesce-backlink-item.no-alias {
     display: none;
     opacity: 0.3;
     pointer-events: none;
 }
 
 /* Logo SVG styling - only for the Coalesce icon, not button icons */
-.backlinks-header-left > svg {
+.coalesce-backlinks-header-left > svg {
     width: 48px;
     height: 48px;
     color: var(--text-faint);
@@ -773,25 +796,25 @@
     transition: all 0.3s ease;
 }
 
-.backlinks-header-left > svg:hover {
+.coalesce-backlinks-header-left > svg:hover {
     transform: scale(1.03);
 }
 
 /* Dark theme - get bright on hover */
-.theme-dark .backlinks-header-left > svg:hover {
+.theme-dark .coalesce-backlinks-header-left > svg:hover {
     color: #ffffff;
     opacity: 0.9;
 }
 
 /* Light theme - get darker on hover */
-.theme-light .backlinks-header-left > svg:hover {
+.theme-light .coalesce-backlinks-header-left > svg:hover {
     color: var(--text-normal);
     opacity: 0.9;
 }
 
 /* Android-specific SVG visibility fixes - only for the Coalesce icon */
-.is-mobile .backlinks-header-left > svg,
-.is-phone .backlinks-header-left > svg {
+.is-mobile .coalesce-backlinks-header-left > svg,
+.is-phone .coalesce-backlinks-header-left > svg {
     display: block;
     visibility: visible;
     opacity: 0.7;
@@ -802,15 +825,15 @@
 }
 
 /* Ensure SVG elements render properly on Android - only for the Coalesce icon */
-.is-mobile .backlinks-header-left > svg *,
-.is-phone .backlinks-header-left > svg * {
+.is-mobile .coalesce-backlinks-header-left > svg *,
+.is-phone .coalesce-backlinks-header-left > svg * {
     fill: inherit;
     stroke: none;
 }
 
 /* Compact mode on Android - only for the Coalesce icon */
-.is-mobile .backlinks-header.compact > svg,
-.is-phone .backlinks-header.compact > svg {
+.is-mobile .coalesce-backlinks-header.compact > svg,
+.is-phone .coalesce-backlinks-header.compact > svg {
     width: 36px;
     height: 36px;
     display: block;
@@ -821,46 +844,42 @@
 }
 
 /* Fix for settings popup checkmarks */
-.settings-item[data-style] .checkmark-container,
-.settings-item[data-position] .checkmark-container,
-.settings-item[data-strategy] .checkmark-container,
-.settings-item[data-theme] .checkmark-container {
+.coalesce-settings-item[data-style] .coalesce-checkmark-container,
+.coalesce-settings-item[data-position] .coalesce-checkmark-container,
+.coalesce-settings-item[data-strategy] .coalesce-checkmark-container,
+.coalesce-settings-item[data-theme] .coalesce-checkmark-container {
     margin-left: auto;
 }
 
-.settings-item[data-style] .checkmark-container .checkmark,
-.settings-item[data-position] .checkmark-container .checkmark,
-.settings-item[data-strategy] .checkmark-container .checkmark,
-.settings-item[data-theme] .checkmark-container .checkmark {
+.coalesce-settings-item[data-style] .coalesce-checkmark-container .coalesce-checkmark,
+.coalesce-settings-item[data-position] .coalesce-checkmark-container .coalesce-checkmark,
+.coalesce-settings-item[data-strategy] .coalesce-checkmark-container .coalesce-checkmark,
+.coalesce-settings-item[data-theme] .coalesce-checkmark-container .coalesce-checkmark {
     display: none;
 }
 
-.settings-item[data-style] .checkmark-container.is-checked .checkmark,
-.settings-item[data-position] .checkmark-container.is-checked .checkmark,
-.settings-item[data-strategy] .checkmark-container.is-checked .checkmark,
-.settings-item[data-theme] .checkmark-container.is-checked .checkmark {
+.coalesce-settings-item[data-style] .coalesce-checkmark-container.is-checked .coalesce-checkmark,
+.coalesce-settings-item[data-position] .coalesce-checkmark-container.is-checked .coalesce-checkmark,
+.coalesce-settings-item[data-strategy] .coalesce-checkmark-container.is-checked .coalesce-checkmark,
+.coalesce-settings-item[data-theme] .coalesce-checkmark-container.is-checked .coalesce-checkmark {
     display: block;
 }
 
-.settings-submenu-item {
+.coalesce-settings-submenu-item {
     padding-left: 24px;
 }
 
-.backlinks-header .button-group .sort-button svg, 
-.backlinks-header .button-group .collapse-button svg,
-html body .is-mobile .backlinks-header .button-group .sort-button svg, 
-html body .is-phone .backlinks-header .button-group .sort-button svg,
-html body .is-mobile .backlinks-header .button-group .collapse-button svg, 
-html body .is-phone .backlinks-header .button-group .collapse-button svg {
-    width: 21px;
-    height: 21px;
+.coalesce-backlinks-header .coalesce-button-group .coalesce-sort-button svg,
+.coalesce-backlinks-header .coalesce-button-group .coalesce-collapse-button svg {
+    width: var(--coalesce-icon-size-md);
+    height: var(--coalesce-icon-size-md);
 }
 
 /* ============================
    Add Heading Prompt Styles
    ============================ */
 
-.add-heading-prompt {
+.coalesce-add-heading-prompt {
     color: var(--text-muted) !important;
     cursor: pointer !important;
     text-decoration: underline !important;
@@ -868,17 +887,17 @@ html body .is-phone .backlinks-header .button-group .collapse-button svg {
     transition: all 0.2s ease !important;
 }
 
-.add-heading-prompt:hover {
+.coalesce-add-heading-prompt:hover {
     color: var(--text-accent) !important;
     text-decoration-color: var(--text-accent) !important;
 }
 
-.add-heading-prompt:active {
+.coalesce-add-heading-prompt:active {
     color: var(--text-accent-hover) !important;
 }
 
 /* Open note icon next to Add heading */
-.add-heading-open-note {
+.coalesce-add-heading-open-note {
     margin-left: 6px;
     padding: 2px;
     line-height: 0;
@@ -889,12 +908,12 @@ html body .is-phone .backlinks-header .button-group .collapse-button svg {
     vertical-align: middle;
 }
 
-.add-heading-open-note:hover {
+.coalesce-add-heading-open-note:hover {
     color: var(--text-accent);
 }
 
 /* Heading popup modal styles */
-.heading-popup-modal {
+.coalesce-heading-popup-modal {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
@@ -907,7 +926,7 @@ html body .is-phone .backlinks-header .button-group .collapse-button svg {
     z-index: 10000 !important;
 }
 
-.heading-popup-content {
+.coalesce-heading-popup-content {
     background: var(--background-primary) !important;
     border: 1px solid var(--border-color) !important;
     border-radius: 8px !important;

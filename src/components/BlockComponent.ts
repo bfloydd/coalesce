@@ -61,8 +61,8 @@ export class BlockComponent {
     }
 
     private createContainers(container: HTMLElement): void {
-        this.mainContainer = container.createDiv({ cls: 'backlink-item' });
-        this.headerContainer = this.mainContainer.createDiv({ cls: 'block-header' });
+        this.mainContainer = container.createDiv({ cls: 'coalesce-backlink-item' });
+        this.headerContainer = this.mainContainer.createDiv({ cls: 'coalesce-block-header' });
         
         // Make the entire header clickable for toggling
         this.headerContainer.addEventListener('click', (event) => {
@@ -76,7 +76,7 @@ export class BlockComponent {
 
     private createToggleButton(): void {
         this.toggleButton = this.headerContainer.createEl('span', {
-            cls: 'toggle-arrow',
+            cls: 'coalesce-toggle-arrow',
             text: '▼',
         });
 
@@ -95,7 +95,7 @@ export class BlockComponent {
             // Create clickable "Add a heading" text
             const addHeadingSpan = this.headerContainer.createEl('span', {
                 text: displayTitle,
-                cls: 'block-title add-heading-prompt',
+                cls: 'coalesce-block-title coalesce-add-heading-prompt',
             });
             
             addHeadingSpan.style.cssText = `
@@ -117,7 +117,7 @@ export class BlockComponent {
 
             // Add a small open-note icon next to the prompt
             const linkIcon = this.headerContainer.createEl('span', {
-                cls: 'add-heading-open-note',
+                cls: 'coalesce-add-heading-open-note',
                 attr: {
                     'role': 'button',
                     'tabindex': '0',
@@ -145,7 +145,7 @@ export class BlockComponent {
             // Create regular clickable title
             const blockTitle = this.headerContainer.createEl('a', {
                 text: displayTitle,
-                cls: 'block-title',
+                cls: 'coalesce-block-title',
                 href: '#',
             });
             
@@ -162,7 +162,7 @@ export class BlockComponent {
     }
 
     private async renderContent(view: MarkdownView): Promise<void> {
-        const contentPreview = this.mainContainer.createDiv('content-preview') as HTMLDivElement;
+        const contentPreview = this.mainContainer.createDiv('coalesce-content-preview') as HTMLDivElement;
         const contentToRender = this.getContentToRender();
 
         try {
@@ -278,7 +278,7 @@ export class BlockComponent {
     }
 
     private getContentPreviewElement(): HTMLDivElement | null {
-        return this.mainContainer.querySelector('.content-preview') as HTMLDivElement;
+        return this.mainContainer.querySelector('.coalesce-content-preview') as HTMLDivElement;
     }
 
     private updateCollapsedState(collapsed: boolean): void {
@@ -301,8 +301,8 @@ export class BlockComponent {
         const showsAddHeading = this.headerStyleInstance.showsAddHeadingPrompt();
         
         // Remove existing title elements
-        const existingTitle = this.headerContainer?.querySelector('.block-title');
-        const existingAddHeading = this.headerContainer?.querySelector('.add-heading-prompt');
+        const existingTitle = this.headerContainer?.querySelector('.coalesce-block-title');
+        const existingAddHeading = this.headerContainer?.querySelector('.coalesce-add-heading-prompt');
         
         if (existingTitle) existingTitle.remove();
         if (existingAddHeading) existingAddHeading.remove();
@@ -318,7 +318,7 @@ export class BlockComponent {
     private createAddHeadingPrompt(displayTitle: string): void {
         const addHeadingSpan = this.headerContainer!.createEl('span', {
             text: displayTitle,
-            cls: 'block-title add-heading-prompt',
+            cls: 'coalesce-block-title coalesce-add-heading-prompt',
         });
         
         addHeadingSpan.style.cssText = `
@@ -340,7 +340,7 @@ export class BlockComponent {
 
         // Add a small open-note icon next to the prompt
         const linkIcon = this.headerContainer!.createEl('span', {
-            cls: 'add-heading-open-note',
+            cls: 'coalesce-add-heading-open-note',
             attr: {
                 'role': 'button',
                 'tabindex': '0',
@@ -369,7 +369,7 @@ export class BlockComponent {
     private createRegularTitle(displayTitle: string): void {
         const blockTitle = this.headerContainer!.createEl('a', {
             text: displayTitle,
-            cls: 'block-title',
+            cls: 'coalesce-block-title',
             href: '#',
         });
         
