@@ -235,17 +235,17 @@ export class BlockRenderer implements IBlockRenderer {
     /**
      * Filter blocks by alias
      */
-    filterBlocksByAlias(blocks: BlockData[], alias: string | null): void {
-        this.logger.debug('Filtering blocks by alias', { blockCount: blocks.length, alias });
-        
+    filterBlocksByAlias(blocks: BlockData[], alias: string | null, currentNoteName: string): void {
+        this.logger.debug('Filtering blocks by alias', { blockCount: blocks.length, alias, currentNoteName });
+
         try {
             for (const blockData of blocks) {
                 const blockComponent = this.renderedBlocks.get(blockData.id);
                 if (blockComponent) {
                     const container = blockComponent.getContainer();
                     if (container) {
-                        const hasAlias = alias ? this.blockContainsAlias(blockData, alias) : true;
-                        
+                        const hasAlias = alias ? this.blockContainsAlias(blockData, alias, currentNoteName) : true;
+
                         if (hasAlias) {
                             container.classList.remove('no-alias');
                             container.classList.add('has-alias');
@@ -256,13 +256,14 @@ export class BlockRenderer implements IBlockRenderer {
                     }
                 }
             }
-            
-            this.logger.debug('Blocks filtered by alias successfully', { 
-                blockCount: blocks.length, 
-                alias 
+
+            this.logger.debug('Blocks filtered by alias successfully', {
+                blockCount: blocks.length,
+                alias,
+                currentNoteName
             });
         } catch (error) {
-            this.logger.error('Failed to filter blocks by alias', { blocks, alias, error });
+            this.logger.error('Failed to filter blocks by alias', { blocks, alias, currentNoteName, error });
         }
     }
 
@@ -330,27 +331,27 @@ export class BlockRenderer implements IBlockRenderer {
     /**
      * Check if a block contains an alias
      */
-    private blockContainsAlias(blockData: BlockData, alias: string): boolean {
+    private blockContainsAlias(blockData: BlockData, alias: string, currentNoteName: string): boolean {
         if (!alias) return true;
-        
+
         const content = blockData.content;
-        
+
         // Check for alias pattern in content
-        const escapedNoteName = this.escapeRegexChars(blockData.sourcePath);
+        const escapedNoteName = this.escapeRegexChars(currentNoteName);
         const regex = new RegExp(`\\[\\[(?:[^\\]|]*?/)?${escapedNoteName}\\|([^\\]]+)\\]\\]`, 'g');
         const matches = Array.from(content.matchAll(regex));
-        
+
         for (const match of matches) {
             const aliasString = match[1];
             if (!aliasString) continue;
-            
+
             // Split by | to get all aliases after the note name
             const aliases = aliasString.split('|');
             if (aliases.includes(alias)) {
                 return true;
             }
         }
-        
+
         return false;
     }
 

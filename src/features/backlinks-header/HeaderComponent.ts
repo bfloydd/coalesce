@@ -254,8 +254,8 @@ export class HeaderComponent {
             this.addUnsavedAliasesToDropdown(aliasDropdown, unsavedAliases, currentAlias);
         }
 
-        // Disable dropdown if no aliases at all
-        aliasDropdown.disabled = aliases.length === 0 && unsavedAliases.length === 0;
+        // Always enable dropdown to allow selection of "All content"
+        // aliasDropdown.disabled = aliases.length === 0 && unsavedAliases.length === 0;
 
         aliasDropdown.addEventListener('change', (e) => {
             const selectedAlias = (e.target as HTMLSelectElement).value;

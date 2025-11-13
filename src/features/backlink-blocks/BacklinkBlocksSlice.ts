@@ -284,15 +284,15 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
      */
     filterBlocksByAlias(currentNoteName: string, alias: string | null): void {
         this.logger.debug('Filtering blocks by alias', { currentNoteName, alias });
-        
+
         try {
             const blocks = this.getCurrentBlocks(currentNoteName);
-            this.blockRenderer.filterBlocksByAlias(blocks, alias);
-            
-            this.logger.debug('Blocks filtered by alias successfully', { 
-                currentNoteName, 
+            this.blockRenderer.filterBlocksByAlias(blocks, alias, currentNoteName);
+
+            this.logger.debug('Blocks filtered by alias successfully', {
+                currentNoteName,
                 alias,
-                blockCount: blocks.length 
+                blockCount: blocks.length
             });
         } catch (error) {
             this.logger.error('Failed to filter blocks by alias', { currentNoteName, alias, error });
@@ -362,6 +362,23 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
             this.logger.debug('Filter applied successfully', { filterText });
         } catch (error) {
             this.logger.error('Failed to handle filter change', { filterText, error });
+        }
+    }
+
+    /**
+     * Handle alias selection event from BacklinksHeader slice
+     */
+    public handleAliasSelection(payload: { alias: string | null }): void {
+        const alias = payload?.alias;
+        this.logger.debug('Handling alias selection', { alias });
+
+        try {
+            // Use the last render context to get the current note name
+            const currentNoteName = this.lastRenderContext?.currentNoteName || '';
+            this.filterBlocksByAlias(currentNoteName, alias);
+            this.logger.debug('Alias selection handled successfully', { alias, currentNoteName });
+        } catch (error) {
+            this.logger.error('Failed to handle alias selection', { alias, error });
         }
     }
 

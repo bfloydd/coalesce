@@ -267,28 +267,40 @@ export default class CoalescePlugin extends Plugin {
 						const container = document.createElement('div');
 						container.className = 'coalesce-custom-backlinks-container';
 
+						// Extract aliases from the current file's frontmatter
+						const frontmatter = this.app.metadataCache.getFileCache(data.file)?.frontmatter;
+						let fileAliases: string[] = [];
+						if (frontmatter) {
+						    const aliases = frontmatter.aliases || frontmatter.alias;
+						    if (Array.isArray(aliases)) {
+						        fileAliases = aliases;
+						    } else if (typeof aliases === 'string') {
+						        fileAliases = [aliases];
+						    }
+						}
+
 						// Create header with full callback wiring so controls work (including Block selector)
 						const headerElement = (backlinksHeader as any)?.createHeader?.(container, {
-							fileCount: backlinkFiles.length,
-							sortDescending: true,
-							isCollapsed: false,
-							currentStrategy: 'default',
-							currentTheme: 'default',
-							showFullPathTitle: false,
-							aliases: [],
-							currentAlias: null,
-							unsavedAliases: [],
-							currentHeaderStyle: 'full',
-							currentFilter: '',
-							onSortToggle: () => (backlinksHeader as any)?.handleSortToggle?.(),
-							onCollapseToggle: () => (backlinksHeader as any)?.handleCollapseToggle?.(),
-							onStrategyChange: (strategy: string) => (backlinksHeader as any)?.handleStrategyChange?.(strategy),
-							onThemeChange: (theme: string) => (backlinksHeader as any)?.handleThemeChange?.(theme),
-							onFullPathTitleChange: (show: boolean) => (backlinksHeader as any)?.updateHeaderState?.({ showFullPathTitle: show }),
-							onAliasSelect: (alias: string | null) => (backlinksHeader as any)?.handleAliasSelection?.(alias),
-							onHeaderStyleChange: (style: string) => (backlinksHeader as any)?.updateHeaderState?.({ currentHeaderStyle: style }),
-							onFilterChange: (filterText: string) => (backlinksHeader as any)?.handleFilterChange?.(filterText),
-							onSettingsClick: () => (backlinksHeader as any)?.handleSettingsClick?.()
+						    fileCount: backlinkFiles.length,
+						    sortDescending: true,
+						    isCollapsed: false,
+						    currentStrategy: 'default',
+						    currentTheme: 'default',
+						    showFullPathTitle: false,
+						    aliases: fileAliases,
+						    currentAlias: null,
+						    unsavedAliases: [],
+						    currentHeaderStyle: 'full',
+						    currentFilter: '',
+						    onSortToggle: () => (backlinksHeader as any)?.handleSortToggle?.(),
+						    onCollapseToggle: () => (backlinksHeader as any)?.handleCollapseToggle?.(),
+						    onStrategyChange: (strategy: string) => (backlinksHeader as any)?.handleStrategyChange?.(strategy),
+						    onThemeChange: (theme: string) => (backlinksHeader as any)?.handleThemeChange?.(theme),
+						    onFullPathTitleChange: (show: boolean) => (backlinksHeader as any)?.updateHeaderState?.({ showFullPathTitle: show }),
+						    onAliasSelect: (alias: string | null) => (backlinksHeader as any)?.handleAliasSelection?.(alias),
+						    onHeaderStyleChange: (style: string) => (backlinksHeader as any)?.updateHeaderState?.({ currentHeaderStyle: style }),
+						    onFilterChange: (filterText: string) => (backlinksHeader as any)?.handleFilterChange?.(filterText),
+						    onSettingsClick: () => (backlinksHeader as any)?.handleSettingsClick?.()
 						});
 
 						if (headerElement) {

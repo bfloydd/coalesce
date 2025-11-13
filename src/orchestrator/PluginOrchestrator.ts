@@ -515,6 +515,13 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                     handler: 'handleStrategyChange',
                     enabled: true
                 },
+                {
+                    source: 'backlinksHeader',
+                    target: 'backlinkBlocks',
+                    eventType: 'header:aliasSelected',
+                    handler: 'handleAliasSelection',
+                    enabled: true
+                },
                 // Navigation events
                 {
                     source: 'backlinkBlocks',
