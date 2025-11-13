@@ -196,7 +196,7 @@ export class HeaderUI implements IHeaderUI {
      */
     private updateSortButtonState(header: HTMLElement, sortDescending: boolean): void {
         try {
-            const sortButton = header.querySelector('.sort-button svg') as SVGElement;
+            const sortButton = header.querySelector('.coalesce-sort-button svg') as SVGElement;
             if (sortButton) {
                 if (sortDescending) {
                     sortButton.classList.remove('sort-ascending');

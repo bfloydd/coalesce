@@ -221,6 +221,11 @@ export class BacklinksHeaderSlice implements IBacklinksHeaderSlice {
                     break;
             }
 
+            // Update header UI to reflect the new state
+            for (const header of this.currentHeaders.values()) {
+                this.headerUI.updateHeader(header, this.currentState);
+            }
+
             // Emit event
             this.emitEvent({
                 type: 'header:sortToggled',

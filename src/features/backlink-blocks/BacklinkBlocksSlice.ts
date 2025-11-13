@@ -395,7 +395,8 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
      * Apply sorting to DOM elements
      */
     private applySortingToDOM(container: HTMLElement, descending: boolean): void {
-        const linksContainer = container.querySelector('.backlinks-list');
+        // The container might be the backlinks-list itself or contain it
+        const linksContainer = container.classList.contains('backlinks-list') ? container : container.querySelector('.backlinks-list');
         if (!linksContainer) return;
 
         const blockContainers = Array.from(linksContainer.querySelectorAll('.coalesce-backlink-item'));
