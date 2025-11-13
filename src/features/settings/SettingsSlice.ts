@@ -308,6 +308,22 @@ export class SettingsSlice implements ISettingsSlice {
 
 
     /**
+     * Handle collapse state change from header slice
+     */
+    handleCollapseStateChange(payload: { collapsed: boolean }): void {
+        const collapsed = payload?.collapsed || false;
+        this.logger.debug('Handling collapse state change', { collapsed });
+
+        try {
+            // Update the blocksCollapsed setting
+            this.updateSetting('blocksCollapsed', collapsed);
+            this.logger.debug('Collapse state saved to settings', { collapsed });
+        } catch (error) {
+            this.logger.error('Failed to save collapse state to settings', { collapsed, error });
+        }
+    }
+
+    /**
      * Update logging state based on settings
      */
     private updateLoggingState(enabled: boolean): void {

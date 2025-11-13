@@ -508,6 +508,14 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                     handler: 'handleCollapseToggle',
                     enabled: true
                 },
+                // BacklinksHeader -> Settings (save collapse state)
+                {
+                    source: 'backlinksHeader',
+                    target: 'settings',
+                    eventType: 'header:collapseToggled',
+                    handler: 'handleCollapseStateChange',
+                    enabled: true
+                },
                 {
                     source: 'backlinksHeader',
                     target: 'backlinkBlocks',

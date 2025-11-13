@@ -94,9 +94,14 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
                 }
             }
             
+            // Set initial collapsed state for all blocks based on global render options
+            allBlocks.forEach(block => {
+                block.isCollapsed = this.renderOptions.collapsed;
+            });
+
             // Store current blocks
             this.currentBlocks.set(currentNoteName, allBlocks);
-            
+
             // Sort blocks if requested
             if (this.renderOptions.sortByPath) {
                 this.sortBlocks(allBlocks, { by: 'path', descending: this.renderOptions.sortDescending });

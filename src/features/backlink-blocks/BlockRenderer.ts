@@ -305,15 +305,15 @@ export class BlockRenderer implements IBlockRenderer {
                 headingPopupComponent, // Pass through heading popup component
                 this.app
             );
-            
-            // Set initial collapsed state
-            blockComponent.setCollapsed(options.collapsed);
-            
+
             // Render the block (requires MarkdownView)
             await blockComponent.render(container, (view as any), (path: string, openInNewTab?: boolean) => {
                 // Handle link clicks - this will be wired up by the slice
                 this.logger.debug('Link clicked', { path, openInNewTab });
             });
+
+            // Set initial collapsed state after rendering
+            blockComponent.setCollapsed(options.collapsed);
             
             // Store the rendered block
             this.renderedBlocks.set(blockData.id, blockComponent);
