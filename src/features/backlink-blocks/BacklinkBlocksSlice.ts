@@ -25,17 +25,17 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
     // Persist context so header actions (e.g., Block strategy change) can re-render correctly
     private lastRenderContext?: { filePaths: string[]; currentNoteName: string; container: HTMLElement; view: MarkdownView };
 
-    constructor(app: App, renderOptions?: Partial<BlockRenderOptions>) {
+    constructor(app: App, renderOptions?: Partial<BlockRenderOptions>, initialCollapsed: boolean = false) {
         this.app = app;
         this.logger = new Logger('BacklinkBlocksSlice');
-        
+
         // Set default render options
         this.renderOptions = {
             headerStyle: 'full',
             hideBacklinkLine: false,
             hideFirstHeader: false,
             showFullPathTitle: false,
-            collapsed: false,
+            collapsed: initialCollapsed,
             sortByPath: false,
             sortDescending: true,
             ...renderOptions
@@ -232,6 +232,54 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
     }
 
     /**
+     * Apply collapse state to DOM elements
+     */
+    private applyCollapseStateToDOM(container: HTMLElement, collapsed: boolean): void {
+        // Try multiple selectors to find all block containers
+        let blockContainers: NodeListOf<Element>;
+
+        // First try within the specific container
+        blockContainers = container.querySelectorAll('.coalesce-backlink-item');
+
+        // If no blocks found in the specific container, try broader search
+        if (blockContainers.length === 0) {
+            // Try finding backlinks-list container first
+            const backlinksList = container.querySelector('.backlinks-list') || document.querySelector('.backlinks-list');
+            if (backlinksList) {
+                blockContainers = backlinksList.querySelectorAll('.coalesce-backlink-item');
+            }
+
+            // If still no blocks, search the entire document
+            if (blockContainers.length === 0) {
+                blockContainers = document.querySelectorAll('.coalesce-backlink-item');
+            }
+        }
+
+        blockContainers.forEach((blockContainer) => {
+            const blockElement = blockContainer as HTMLElement;
+
+            // Update the collapsed class on the container
+            if (collapsed) {
+                blockElement.classList.add('is-collapsed');
+            } else {
+                blockElement.classList.remove('is-collapsed');
+            }
+
+            // Update the toggle arrow icon
+            const toggleArrow = blockElement.querySelector('.coalesce-toggle-arrow') as HTMLElement;
+            if (toggleArrow) {
+                toggleArrow.textContent = collapsed ? '▶' : '▼';
+            }
+        });
+
+        this.logger.debug('Applied collapse state to DOM', {
+            collapsed,
+            totalBlocks: blockContainers.length,
+            containerFound: !!container
+        });
+    }
+
+    /**
      * Filter blocks by alias
      */
     filterBlocksByAlias(currentNoteName: string, alias: string | null): void {
@@ -320,23 +368,26 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
     /**
      * Handle sort toggle event from BacklinksHeader slice
      */
-    public handleSortToggle(payload: { descending: boolean }): void {
+    public handleSortToggle(payload: { sortByPath: boolean; descending: boolean }): void {
+        const sortByPath = payload?.sortByPath || false;
         const descending = payload?.descending || false;
-        this.logger.debug('Handling sort toggle', { descending });
+        this.logger.debug('Handling sort toggle', { sortByPath, descending });
 
         try {
             // Update render options
+            this.renderOptions.sortByPath = sortByPath;
             this.renderOptions.sortDescending = descending;
 
-            // Re-sort blocks in DOM if we have a render context
-            if (this.lastRenderContext) {
+            // Apply sorting to DOM if we have a render context and sorting is enabled
+            if (this.lastRenderContext && sortByPath) {
                 const { container } = this.lastRenderContext;
                 this.applySortingToDOM(container, descending);
             }
+            // When sortByPath is false, we leave the blocks in their current order (no re-rendering)
 
-            this.logger.debug('Sort toggle handled successfully', { descending });
+            this.logger.debug('Sort toggle handled successfully', { sortByPath, descending });
         } catch (error) {
-            this.logger.error('Failed to handle sort toggle', { descending, error });
+            this.logger.error('Failed to handle sort toggle', { sortByPath, descending, error });
         }
     }
 
@@ -349,12 +400,12 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
 
         const blockContainers = Array.from(linksContainer.querySelectorAll('.coalesce-backlink-item'));
 
-        // Sort blocks by their title text
+        // Sort blocks by their file path (stored in data-path attribute)
         blockContainers.sort((a, b) => {
-            const titleA = a.querySelector('.coalesce-block-title')?.textContent || '';
-            const titleB = b.querySelector('.coalesce-block-title')?.textContent || '';
+            const pathA = (a as HTMLElement).getAttribute('data-path') || '';
+            const pathB = (b as HTMLElement).getAttribute('data-path') || '';
 
-            const comparison = titleA.localeCompare(titleB);
+            const comparison = pathA.localeCompare(pathB);
             return descending ? -comparison : comparison;
         });
 
@@ -369,6 +420,8 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
         });
     }
 
+
+
     /**
      * Handle collapse toggle event from BacklinksHeader slice
      */
@@ -380,37 +433,19 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
             // Update render options
             this.renderOptions.collapsed = collapsed;
 
-            // Apply collapse state to DOM if we have a render context
+            // Apply collapse state to all current blocks
+            this.setAllBlocksCollapsed(collapsed);
+
+            // Also apply collapse state to DOM elements directly
             if (this.lastRenderContext) {
                 const { container } = this.lastRenderContext;
-                this.applyCollapseToDOM(container, collapsed);
+                this.applyCollapseStateToDOM(container, collapsed);
             }
 
             this.logger.debug('Collapse toggle handled successfully', { collapsed });
         } catch (error) {
             this.logger.error('Failed to handle collapse toggle', { collapsed, error });
         }
-    }
-
-    /**
-     * Apply collapse state to DOM elements
-     */
-    private applyCollapseToDOM(container: HTMLElement, collapsed: boolean): void {
-        const blockContainers = container.querySelectorAll('.coalesce-backlink-item');
-
-        blockContainers.forEach((blockContainer) => {
-            const blockElement = blockContainer as HTMLElement;
-            if (collapsed) {
-                blockElement.classList.add('is-collapsed');
-            } else {
-                blockElement.classList.remove('is-collapsed');
-            }
-        });
-
-        this.logger.debug('Applied collapse state to DOM', {
-            collapsed,
-            affectedBlocks: blockContainers.length
-        });
     }
 
     /**

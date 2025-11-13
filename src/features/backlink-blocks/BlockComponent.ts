@@ -57,7 +57,10 @@ export class BlockComponent {
     }
 
     private createContainers(container: HTMLElement): void {
-        this.mainContainer = container.createDiv({ cls: 'coalesce-backlink-item' });
+        this.mainContainer = container.createDiv({
+            cls: 'coalesce-backlink-item',
+            attr: { 'data-path': this.filePath }
+        });
         this.headerContainer = this.mainContainer.createDiv({ cls: 'coalesce-block-header' });
 
         // Make the entire header clickable for toggling

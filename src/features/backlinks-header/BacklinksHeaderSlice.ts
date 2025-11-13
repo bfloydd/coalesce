@@ -23,21 +23,23 @@ export class BacklinksHeaderSlice implements IBacklinksHeaderSlice {
     private eventHandlers: Map<string, EventHandler[]> = new Map();
     private statistics: HeaderStatistics;
     private currentState: HeaderState;
+    private sortMode: 'none' | 'ascending' | 'descending' = 'none';
 
-    constructor(app: App) {
+    constructor(app: App, initialCollapseState: boolean = false) {
         this.app = app;
         this.logger = new Logger('BacklinksHeaderSlice');
-        
+
         // Initialize components
         this.headerUI = new HeaderUI(app, this.logger);
         this.filterControls = new FilterControls(this.logger);
         this.settingsControls = new SettingsControls(this.logger);
-        
-        // Initialize state
+
+        // Initialize state with initial collapse state from settings
         this.currentState = {
             fileCount: 0,
+            sortByPath: false,
             sortDescending: true,
-            isCollapsed: false,
+            isCollapsed: initialCollapseState,
             currentStrategy: 'default',
             currentTheme: 'default',
             showFullPathTitle: false,
@@ -194,24 +196,43 @@ export class BacklinksHeaderSlice implements IBacklinksHeaderSlice {
      */
     handleSortToggle(): void {
         this.logger.debug('Handling sort toggle');
-        
+
         try {
             // Update statistics
             this.statistics.totalSortToggles++;
             this.statistics.lastSortToggle = new Date();
-            
-            // Update current state
-            this.currentState.sortDescending = !this.currentState.sortDescending;
-            
+
+            // Cycle through sort modes: none -> ascending -> descending -> none
+            switch (this.sortMode) {
+                case 'none':
+                    this.sortMode = 'ascending';
+                    this.currentState.sortByPath = true;
+                    this.currentState.sortDescending = false;
+                    break;
+                case 'ascending':
+                    this.sortMode = 'descending';
+                    this.currentState.sortByPath = true;
+                    this.currentState.sortDescending = true;
+                    break;
+                case 'descending':
+                    this.sortMode = 'none';
+                    this.currentState.sortByPath = false;
+                    this.currentState.sortDescending = false;
+                    break;
+            }
+
             // Emit event
             this.emitEvent({
                 type: 'header:sortToggled',
                 payload: {
+                    sortByPath: this.currentState.sortByPath,
                     descending: this.currentState.sortDescending
                 }
             });
-            
+
             this.logger.debug('Sort toggle handled successfully', {
+                sortMode: this.sortMode,
+                sortByPath: this.currentState.sortByPath,
                 descending: this.currentState.sortDescending
             });
         } catch (error) {
@@ -220,27 +241,40 @@ export class BacklinksHeaderSlice implements IBacklinksHeaderSlice {
     }
 
     /**
+     * Set initial collapse state from settings
+     */
+    setInitialCollapseState(collapsed: boolean): void {
+        this.logger.debug('Setting initial collapse state', { collapsed });
+        this.currentState.isCollapsed = collapsed;
+    }
+
+    /**
      * Handle collapse toggle
      */
     handleCollapseToggle(): void {
         this.logger.debug('Handling collapse toggle');
-        
+
         try {
             // Update statistics
             this.statistics.totalCollapseToggles++;
             this.statistics.lastCollapseToggle = new Date();
-            
+
             // Update current state
             this.currentState.isCollapsed = !this.currentState.isCollapsed;
-            
-            // Emit event
+
+            // Update header UI to reflect the new state
+            for (const header of this.currentHeaders.values()) {
+                this.headerUI.updateHeader(header, this.currentState);
+            }
+
+            // Emit event to notify backlink blocks slice
             this.emitEvent({
                 type: 'header:collapseToggled',
                 payload: {
                     collapsed: this.currentState.isCollapsed
                 }
             });
-            
+
             this.logger.debug('Collapse toggle handled successfully', {
                 collapsed: this.currentState.isCollapsed
             });
@@ -427,7 +461,8 @@ export class BacklinksHeaderSlice implements IBacklinksHeaderSlice {
     private updateCurrentState(options: HeaderCreateOptions): void {
         this.currentState = {
             fileCount: options.fileCount,
-            sortDescending: options.sortDescending,
+            sortByPath: this.currentState.sortByPath,
+            sortDescending: this.currentState.sortDescending,
             isCollapsed: options.isCollapsed,
             currentStrategy: options.currentStrategy,
             currentTheme: options.currentTheme,
@@ -521,7 +556,8 @@ export class BacklinksHeaderSlice implements IBacklinksHeaderSlice {
             // Reset state
             this.currentState = {
                 fileCount: 0,
-                sortDescending: true,
+                sortByPath: false,
+                sortDescending: false,
                 isCollapsed: false,
                 currentStrategy: 'default',
                 currentTheme: 'default',
@@ -531,6 +567,9 @@ export class BacklinksHeaderSlice implements IBacklinksHeaderSlice {
                 currentFilter: '',
                 isCompact: false
             };
+
+            // Reset sort mode
+            this.sortMode = 'none';
             
             // Reset statistics
             this.statistics = {

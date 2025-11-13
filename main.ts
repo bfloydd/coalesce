@@ -18,7 +18,7 @@ export default class CoalescePlugin extends Plugin {
 	async onload() {
 		try {
 			// Initialize orchestrator with configuration
-			this.orchestrator = new PluginOrchestrator(this.app, {
+			this.orchestrator = new PluginOrchestrator(this.app, this, {
 				enableLogging: true,
 				enableEventDebugging: false,
 				enablePerformanceMonitoring: true,
@@ -46,6 +46,9 @@ export default class CoalescePlugin extends Plugin {
 			// Add settings tab
 			const settingsSlice = this.orchestrator.getSlice('settings') as any;
 			if (settingsSlice) {
+				// Ensure settings are loaded before creating settings tab
+				await settingsSlice.loadSettings();
+				
 				const settingsUI = settingsSlice.getSettingsUI();
 				const settingsTab = settingsUI.createSettingsTab(
 					this,
@@ -250,6 +253,16 @@ export default class CoalescePlugin extends Plugin {
 					console.log('Coalesce: Discovered backlinks for', data.file.path, ':', backlinkFiles);
 
 					if (backlinkFiles.length > 0) {
+						// Get settings for initial state - ensure settings are loaded
+						const settingsSlice = this.orchestrator.getSlice('settings') as any;
+						let settings = settingsSlice?.getSettings?.() || {};
+
+						// If settings aren't loaded yet, load them now
+						if (!settings || Object.keys(settings).length === 0) {
+							await settingsSlice?.loadSettings?.();
+							settings = settingsSlice?.getSettings?.() || {};
+						}
+
 						// Create container for the UI
 						const container = document.createElement('div');
 						container.className = 'coalesce-custom-backlinks-container';
@@ -286,6 +299,11 @@ export default class CoalescePlugin extends Plugin {
 						const blocksContainer = document.createElement('div');
 						blocksContainer.className = 'backlinks-list';
 						container.appendChild(blocksContainer);
+
+						// Update block render options with default collapse state
+						(backlinkBlocks as any)?.updateRenderOptions?.({
+							collapsed: false
+						});
 
 						// Extract and render blocks
 						console.log('Coalesce: Extracting blocks from files:', backlinkFiles, 'for note:', data.file.basename);

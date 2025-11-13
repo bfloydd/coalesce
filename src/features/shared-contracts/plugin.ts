@@ -16,7 +16,6 @@ export enum LogLevel {
 export interface CoalescePluginSettings {
     mySetting: string;
     sortDescending: boolean;
-    blocksCollapsed: boolean;
     showInDailyNotes: boolean;
     blockBoundaryStrategy: string;
     theme: string;
@@ -27,6 +26,7 @@ export interface CoalescePluginSettings {
     hideFirstHeader: boolean;
     sortByFullPath: boolean; // If true, sort by full path; if false, sort by filename
     enableLogging: boolean; // Enable/disable debug logging
+    blocksCollapsed: boolean; // If true, blocks start collapsed by default
 }
 
 // ============================

@@ -255,38 +255,8 @@ class CoalesceSettingTab extends PluginSettingTab {
     private createBehaviorSettings(containerEl: HTMLElement): void {
         containerEl.createEl('h3', { text: 'Behavior' });
 
-        new Setting(containerEl)
-            .setName('Sort descending')
-            .setDesc('Sort backlinks in descending order (newest first)')
-            .addToggle(toggle => toggle
-                .setValue(this.currentSettings.sortDescending)
-                .onChange(async (value) => {
-                    this.logger.debug('Sort descending setting changed', { value });
-                    this.currentSettings.sortDescending = value;
-                    this.onSettingsChange({ sortDescending: value });
-                }));
-
-        new Setting(containerEl)
-            .setName('Sort by full path')
-            .setDesc('Sort by full file path instead of filename')
-            .addToggle(toggle => toggle
-                .setValue(this.currentSettings.sortByFullPath)
-                .onChange(async (value) => {
-                    this.logger.debug('Sort by full path setting changed', { value });
-                    this.currentSettings.sortByFullPath = value;
-                    this.onSettingsChange({ sortByFullPath: value });
-                }));
-
-        new Setting(containerEl)
-            .setName('Start with blocks collapsed')
-            .setDesc('Initially show all backlink blocks in collapsed state')
-            .addToggle(toggle => toggle
-                .setValue(this.currentSettings.blocksCollapsed)
-                .onChange(async (value) => {
-                    this.logger.debug('Blocks collapsed setting changed', { value });
-                    this.currentSettings.blocksCollapsed = value;
-                    this.onSettingsChange({ blocksCollapsed: value });
-                }));
+        // Behavior settings removed - sorting is still available in the UI
+        // but not configurable through settings
     }
 
     /**

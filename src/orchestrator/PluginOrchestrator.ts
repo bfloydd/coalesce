@@ -21,6 +21,7 @@ import { ViewIntegrationSlice } from '../features/view-integration/ViewIntegrati
  */
 export class PluginOrchestrator implements IPluginOrchestrator {
     private app: App;
+    private plugin: any;
     private config: OrchestratorConfig;
     private logger: Logger;
     private eventBus: EventBus;
@@ -30,8 +31,9 @@ export class PluginOrchestrator implements IPluginOrchestrator {
     private eventWiring: EventWiringConfig[];
     private startTime: Date;
 
-    constructor(app: App, config?: Partial<OrchestratorConfig>) {
+    constructor(app: App, plugin?: any, config?: Partial<OrchestratorConfig>) {
         this.app = app;
+        this.plugin = plugin;
         
         // Set default configuration
         this.config = {
@@ -140,33 +142,36 @@ export class PluginOrchestrator implements IPluginOrchestrator {
      */
     async start(): Promise<void> {
         this.logger.debug('Starting PluginOrchestrator');
-        
+
         try {
             if (!this.state.isInitialized) {
                 await this.initialize();
             }
-            
+
             // Update state
             this.state.isStarted = true;
             this.state.lastActivity = new Date();
-            
+
             // Start all slices
             await this.startSlices();
-            
+
+            // Initialize header collapse state from settings
+            await this.initializeHeaderCollapseState();
+
             // Emit event
             this.emitOrchestratorEvent('orchestrator:started', {
                 uptime: this.calculateUptime()
             });
-            
+
             this.logger.debug('PluginOrchestrator started successfully');
         } catch (error) {
             this.logger.error('Failed to start PluginOrchestrator', { error });
             this.state.errorCount++;
             this.state.lastError = error;
-            
+
             // Emit error event
             this.emitOrchestratorEvent('orchestrator:error', { error, context: 'startup' });
-            
+
             throw error;
         }
     }
@@ -412,7 +417,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                     slice = {};
                     break;
                 case 'settings':
-                    slice = new SettingsSlice(this.app, dependencies.sharedUtilities);
+                    slice = new SettingsSlice(this.app, this.plugin);
                     break;
                 case 'navigation':
                     slice = new NavigationSlice(this.app);
@@ -424,10 +429,14 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                     slice = new BacklinksSlice(this.app, dependencies.sharedUtilities);
                     break;
                 case 'backlinkBlocks':
-                    slice = new BacklinkBlocksSlice(this.app, dependencies.sharedUtilities);
+                    // Get initial collapse state from settings if available
+                    const initialCollapsed = dependencies.settings?.getSettings?.()?.blocksCollapsed || false;
+                    slice = new BacklinkBlocksSlice(this.app, dependencies.sharedUtilities, initialCollapsed);
                     break;
                 case 'backlinksHeader':
-                    slice = new BacklinksHeaderSlice(this.app);
+                    // Get initial collapse state from settings if available
+                    const headerInitialCollapsed = dependencies.settings?.getSettings?.()?.blocksCollapsed || false;
+                    slice = new BacklinksHeaderSlice(this.app, headerInitialCollapsed);
                     break;
                 case 'viewIntegration':
                     slice = new ViewIntegrationSlice(this.app);
@@ -593,12 +602,12 @@ export class PluginOrchestrator implements IPluginOrchestrator {
      */
     private async startSlices(): Promise<void> {
         this.logger.debug('Starting all slices');
-        
+
         try {
             for (const [sliceName, slice] of Object.entries(this.slices)) {
                 if (slice && typeof slice.start === 'function') {
                     await slice.start();
-                    
+
                     // Emit slice lifecycle event
                     this.emitSliceLifecycleEvent('slice:started', sliceName, {
                         slice: sliceName,
@@ -606,10 +615,34 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                     });
                 }
             }
-            
+
             this.logger.debug('All slices started successfully');
         } catch (error) {
             this.logger.error('Failed to start slices', { error });
+        }
+    }
+
+    /**
+     * Initialize header collapse state from settings
+     */
+    private async initializeHeaderCollapseState(): Promise<void> {
+        this.logger.debug('Initializing header collapse state');
+
+        try {
+            const settingsSlice = this.getSlice('settings') as any;
+            const headerSlice = this.getSlice('backlinksHeader') as any;
+
+            if (settingsSlice && headerSlice && typeof settingsSlice.getSettings === 'function' && typeof headerSlice.setInitialCollapseState === 'function') {
+                const settings = settingsSlice.getSettings();
+                const collapseState = settings.blocksCollapsed || false;
+                headerSlice.setInitialCollapseState(collapseState);
+
+                this.logger.debug('Header collapse state initialized', { collapseState });
+            } else {
+                this.logger.warn('Could not initialize header collapse state - missing slices or methods');
+            }
+        } catch (error) {
+            this.logger.error('Failed to initialize header collapse state', { error });
         }
     }
 

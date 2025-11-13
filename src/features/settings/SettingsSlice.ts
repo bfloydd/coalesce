@@ -16,23 +16,36 @@ export class SettingsSlice implements ISettingsSlice {
     private app: App;
     private plugin: PluginInterface;
     private logger: Logger;
-    private settingsStore: SettingsStore;
+    private settingsStore?: SettingsStore;
     private themeManager: ThemeManager;
     private settingsUI: SettingsUI;
     private currentSettings: CoalescePluginSettings;
 
-    constructor(app: App, plugin: PluginInterface) {
+    constructor(app: App, plugin?: PluginInterface) {
         this.app = app;
-        this.plugin = plugin;
+        this.plugin = plugin || (app as any); // Fallback to app if plugin not provided
         this.logger = new Logger('SettingsSlice');
-        
-        this.settingsStore = new SettingsStore(plugin, this.logger);
+
+        if (plugin) {
+            this.settingsStore = new SettingsStore(plugin, this.logger);
+        } else {
+            this.settingsStore = undefined;
+        }
         this.themeManager = new ThemeManager(this.logger);
         this.settingsUI = new SettingsUI(this.app, this.logger);
-        
+
         this.currentSettings = this.getDefaultSettings();
-        
+
         this.logger.debug('Settings slice initialized');
+    }
+
+    /**
+     * Start the settings slice (loads settings from storage)
+     */
+    async start(): Promise<void> {
+        this.logger.debug('Starting settings slice');
+        await this.loadSettings();
+        this.logger.debug('Settings slice started successfully');
     }
 
     /**
@@ -40,13 +53,19 @@ export class SettingsSlice implements ISettingsSlice {
      */
     async loadSettings(): Promise<void> {
         this.logger.debug('Loading settings from storage');
-        
+
+        if (!this.settingsStore) {
+            this.logger.warn('No settings store available - using default settings');
+            this.currentSettings = this.getDefaultSettings();
+            return;
+        }
+
         try {
             this.currentSettings = await this.settingsStore.load();
             this.themeManager.setCurrentTheme(this.currentSettings.theme);
-            this.logger.debug('Settings loaded successfully', { 
+            this.logger.debug('Settings loaded successfully', {
                 theme: this.currentSettings.theme,
-                enableLogging: this.currentSettings.enableLogging 
+                enableLogging: this.currentSettings.enableLogging
             });
         } catch (error) {
             this.logger.error('Failed to load settings', error);
@@ -60,7 +79,12 @@ export class SettingsSlice implements ISettingsSlice {
      */
     async saveSettings(): Promise<void> {
         this.logger.debug('Saving settings to storage');
-        
+
+        if (!this.settingsStore) {
+            this.logger.warn('No settings store available - settings not saved');
+            return;
+        }
+
         try {
             await this.settingsStore.save(this.currentSettings);
             this.logger.debug('Settings saved successfully');
@@ -253,11 +277,11 @@ export class SettingsSlice implements ISettingsSlice {
      */
     cleanup(): void {
         this.logger.debug('Cleaning up Settings slice');
-        
+
         this.settingsUI.cleanup();
         this.themeManager.cleanup();
-        this.settingsStore.cleanup();
-        
+        this.settingsStore?.cleanup();
+
         this.logger.debug('Settings slice cleanup completed');
     }
 
@@ -268,7 +292,6 @@ export class SettingsSlice implements ISettingsSlice {
         return {
             mySetting: 'default',
             sortDescending: true,
-            blocksCollapsed: true,
             showInDailyNotes: false,
             blockBoundaryStrategy: 'default',
             theme: this.themeManager.getDefaultTheme(),
@@ -278,16 +301,18 @@ export class SettingsSlice implements ISettingsSlice {
             hideBacklinkLine: false,
             hideFirstHeader: false,
             sortByFullPath: false,
-            enableLogging: false
+            enableLogging: false,
+            blocksCollapsed: false
         };
     }
+
 
     /**
      * Update logging state based on settings
      */
     private updateLoggingState(enabled: boolean): void {
         this.logger.debug('Updating logging state', { enabled });
-        
+
         if (enabled) {
             this.logger.on();
         } else {

@@ -27,7 +27,6 @@ export type {
     BlocksRenderedEvent,
     HeaderFilterChangedEvent,
     HeaderSortToggledEvent,
-    HeaderCollapseToggledEvent,
     HeaderStrategyChangedEvent,
     HeaderThemeChangedEvent,
     HeaderAliasSelectedEvent,

@@ -120,6 +120,7 @@ export interface HeaderCreateOptions {
 
 export interface HeaderState {
     fileCount: number;
+    sortByPath: boolean;
     sortDescending: boolean;
     isCollapsed: boolean;
     currentStrategy: string;

@@ -60,29 +60,18 @@ export interface HeaderFilterChangedEvent {
 
 /**
  * Emitted when header sort toggle is clicked
- * Payload: descending (boolean)
+ * Payload: sortByPath (boolean), descending (boolean)
  * Emitted by: BacklinksHeader slice
  * Consumed by: BacklinkBlocks
  */
 export interface HeaderSortToggledEvent {
     type: 'header:sortToggled';
     payload: {
+        sortByPath: boolean;
         descending: boolean;
     };
 }
 
-/**
- * Emitted when header collapse toggle is clicked
- * Payload: collapsed (boolean)
- * Emitted by: BacklinksHeader slice
- * Consumed by: BacklinkBlocks
- */
-export interface HeaderCollapseToggledEvent {
-    type: 'header:collapseToggled';
-    payload: {
-        collapsed: boolean;
-    };
-}
 
 /**
  * Emitted when header strategy changes
@@ -120,6 +109,19 @@ export interface HeaderAliasSelectedEvent {
     type: 'header:aliasSelected';
     payload: {
         alias: string | null;
+    };
+}
+
+/**
+ * Emitted when header collapse toggle is clicked
+ * Payload: collapsed (boolean)
+ * Emitted by: BacklinksHeader slice
+ * Consumed by: BacklinkBlocks
+ */
+export interface HeaderCollapseToggledEvent {
+    type: 'header:collapseToggled';
+    payload: {
+        collapsed: boolean;
     };
 }
 
@@ -163,15 +165,15 @@ export interface NoteEditingHeadingAddedEvent {
 // Union Type for All Events
 // ============================
 
-export type CoalesceEvent = 
+export type CoalesceEvent =
     | BacklinksUpdatedEvent
     | BlocksRenderedEvent
     | HeaderFilterChangedEvent
     | HeaderSortToggledEvent
-    | HeaderCollapseToggledEvent
     | HeaderStrategyChangedEvent
     | HeaderThemeChangedEvent
     | HeaderAliasSelectedEvent
+    | HeaderCollapseToggledEvent
     | NavigationOpenEvent
     | NoteEditingHeadingAddedEvent;
 

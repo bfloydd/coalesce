@@ -156,8 +156,8 @@ export class SettingsStore {
         
         // Validate boolean settings
         const booleanSettings = [
-            'sortDescending', 'blocksCollapsed', 'showInDailyNotes', 
-            'showFullPathTitle', 'onlyDailyNotes', 'hideBacklinkLine', 
+            'sortDescending', 'showInDailyNotes',
+            'showFullPathTitle', 'onlyDailyNotes', 'hideBacklinkLine',
             'hideFirstHeader', 'sortByFullPath', 'enableLogging'
         ];
         
@@ -223,7 +223,6 @@ export class SettingsStore {
         return {
             mySetting: 'default',
             sortDescending: true,
-            blocksCollapsed: true,
             showInDailyNotes: false,
             blockBoundaryStrategy: 'default',
             theme: 'default',
@@ -233,7 +232,8 @@ export class SettingsStore {
             hideBacklinkLine: false,
             hideFirstHeader: false,
             sortByFullPath: false,
-            enableLogging: false
+            enableLogging: false,
+            blocksCollapsed: false
         };
     }
 

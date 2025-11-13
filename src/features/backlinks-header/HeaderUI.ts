@@ -216,7 +216,7 @@ export class HeaderUI implements IHeaderUI {
      */
     private updateCollapseButtonState(header: HTMLElement, isCollapsed: boolean): void {
         try {
-            const collapseButton = header.querySelector('.collapse-button svg') as SVGElement;
+            const collapseButton = header.querySelector('.coalesce-collapse-button svg') as SVGElement;
             if (collapseButton) {
                 if (isCollapsed) {
                     collapseButton.classList.add('is-collapsed');
