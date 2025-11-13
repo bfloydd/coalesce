@@ -324,6 +324,22 @@ export class SettingsSlice implements ISettingsSlice {
     }
 
     /**
+     * Handle sort state change from header slice
+     */
+    handleSortStateChange(payload: { sortByPath: boolean; descending: boolean }): void {
+        const descending = payload?.descending || false;
+        this.logger.debug('Handling sort state change', { descending });
+
+        try {
+            // Update only the sort direction setting
+            this.updateSetting('sortDescending', descending);
+            this.logger.debug('Sort direction saved to settings', { descending });
+        } catch (error) {
+            this.logger.error('Failed to save sort direction to settings', { descending, error });
+        }
+    }
+
+    /**
      * Update logging state based on settings
      */
     private updateLoggingState(enabled: boolean): void {

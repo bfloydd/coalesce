@@ -158,6 +158,9 @@ export class PluginOrchestrator implements IPluginOrchestrator {
             // Initialize header collapse state from settings
             await this.initializeHeaderCollapseState();
 
+            // Initialize header sort state from settings
+            await this.initializeHeaderSortState();
+
             // Emit event
             this.emitOrchestratorEvent('orchestrator:started', {
                 uptime: this.calculateUptime()
@@ -431,7 +434,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                 case 'backlinkBlocks':
                     // Get initial collapse state from settings if available
                     const initialCollapsed = dependencies.settings?.getSettings?.()?.blocksCollapsed || false;
-                    slice = new BacklinkBlocksSlice(this.app, dependencies.sharedUtilities, initialCollapsed);
+                    slice = new BacklinkBlocksSlice(this.app, {}, initialCollapsed);
                     break;
                 case 'backlinksHeader':
                     // Get initial collapse state from settings if available
@@ -514,6 +517,14 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                     target: 'settings',
                     eventType: 'header:collapseToggled',
                     handler: 'handleCollapseStateChange',
+                    enabled: true
+                },
+                // BacklinksHeader -> Settings (save sort state)
+                {
+                    source: 'backlinksHeader',
+                    target: 'settings',
+                    eventType: 'header:sortToggled',
+                    handler: 'handleSortStateChange',
                     enabled: true
                 },
                 {
@@ -658,6 +669,31 @@ export class PluginOrchestrator implements IPluginOrchestrator {
             }
         } catch (error) {
             this.logger.error('Failed to initialize header collapse state', { error });
+        }
+    }
+
+    /**
+     * Initialize header sort state from settings
+     */
+    private async initializeHeaderSortState(): Promise<void> {
+        this.logger.debug('Initializing header sort state');
+
+        try {
+            const settingsSlice = this.getSlice('settings') as any;
+            const headerSlice = this.getSlice('backlinksHeader') as any;
+
+            if (settingsSlice && headerSlice && typeof settingsSlice.getSettings === 'function' && typeof headerSlice.setInitialSortState === 'function') {
+                const settings = settingsSlice.getSettings();
+                const sortByPath = settings.sortByFullPath || false;
+                const sortDescending = settings.sortDescending || true;
+                headerSlice.setInitialSortState(sortByPath, sortDescending);
+
+                this.logger.debug('Header sort state initialized', { sortByPath, sortDescending });
+            } else {
+                this.logger.warn('Could not initialize header sort state - missing slices or methods');
+            }
+        } catch (error) {
+            this.logger.error('Failed to initialize header sort state', { error });
         }
     }
 

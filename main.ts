@@ -282,10 +282,16 @@ export default class CoalescePlugin extends Plugin {
 						// Get current collapse state from settings to maintain state across file navigation
 						const currentCollapsed = settings.blocksCollapsed || false;
 
+						// Sorting is always enabled, just set the direction
+						const sortByPath = true;
+
+						// Update header slice with correct sort state
+						(backlinksHeader as any)?.setInitialSortState?.(sortByPath, settings.sortDescending || true);
+
 						// Create header with full callback wiring so controls work (including Block selector)
 						const headerElement = (backlinksHeader as any)?.createHeader?.(container, {
 						    fileCount: backlinkFiles.length,
-						    sortDescending: true,
+						    sortDescending: settings.sortDescending || true,
 						    isCollapsed: currentCollapsed,
 						    currentStrategy: 'default',
 						    currentTheme: 'default',
@@ -315,9 +321,11 @@ export default class CoalescePlugin extends Plugin {
 						blocksContainer.className = 'backlinks-list';
 						container.appendChild(blocksContainer);
 
-						// Update block render options with current collapse state
+						// Update block render options with current state
 						(backlinkBlocks as any)?.updateRenderOptions?.({
-							collapsed: currentCollapsed
+							collapsed: currentCollapsed,
+							sortByPath: sortByPath,
+							sortDescending: settings.sortDescending || true
 						});
 
 						// Extract and render blocks

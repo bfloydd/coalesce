@@ -202,24 +202,10 @@ export class BacklinksHeaderSlice implements IBacklinksHeaderSlice {
             this.statistics.totalSortToggles++;
             this.statistics.lastSortToggle = new Date();
 
-            // Cycle through sort modes: none -> ascending -> descending -> none
-            switch (this.sortMode) {
-                case 'none':
-                    this.sortMode = 'ascending';
-                    this.currentState.sortByPath = true;
-                    this.currentState.sortDescending = false;
-                    break;
-                case 'ascending':
-                    this.sortMode = 'descending';
-                    this.currentState.sortByPath = true;
-                    this.currentState.sortDescending = true;
-                    break;
-                case 'descending':
-                    this.sortMode = 'none';
-                    this.currentState.sortByPath = false;
-                    this.currentState.sortDescending = false;
-                    break;
-            }
+            // Toggle between ascending and descending (always sort)
+            this.currentState.sortDescending = !this.currentState.sortDescending;
+            this.currentState.sortByPath = true;
+            this.sortMode = this.currentState.sortDescending ? 'descending' : 'ascending';
 
             // Update header UI to reflect the new state
             for (const header of this.currentHeaders.values()) {
@@ -251,6 +237,18 @@ export class BacklinksHeaderSlice implements IBacklinksHeaderSlice {
     setInitialCollapseState(collapsed: boolean): void {
         this.logger.debug('Setting initial collapse state', { collapsed });
         this.currentState.isCollapsed = collapsed;
+    }
+
+    /**
+     * Set initial sort state from settings
+     */
+    setInitialSortState(sortByPath: boolean, sortDescending: boolean): void {
+        this.logger.debug('Setting initial sort state', { sortByPath, sortDescending });
+        this.currentState.sortByPath = true; // Always enable sorting
+        this.currentState.sortDescending = sortDescending;
+
+        // Update sort mode based on the direction
+        this.sortMode = sortDescending ? 'descending' : 'ascending';
     }
 
     /**
