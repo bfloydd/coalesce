@@ -27,7 +27,9 @@ export class BlockComponent {
         private hideBacklinkLine: boolean = false,
         private hideFirstHeader: boolean = false,
         private headingPopupComponent?: HeadingPopupComponent,
-        app?: any
+        app?: any,
+        private blockId?: string,
+        private startLine?: number
     ) {
         this.logger.debug('Creating block component', {
             filePath,
@@ -133,7 +135,7 @@ export class BlockComponent {
                 event.stopPropagation();
                 const openInNewTab = (event as MouseEvent).ctrlKey || (event as MouseEvent).metaKey;
                 const navigationEvent = new CustomEvent('coalesce-navigate', {
-                    detail: { filePath: this.filePath, openInNewTab },
+                    detail: { filePath: this.filePath, openInNewTab, blockId: this.blockId },
                     bubbles: true
                 });
                 this.headerContainer!.dispatchEvent(navigationEvent);
@@ -157,9 +159,51 @@ export class BlockComponent {
                 event.stopPropagation(); // Prevent header click from also triggering
                 this.logger.debug('Block title clicked', {
                     filePath: this.filePath,
-                    ctrlKey: event.ctrlKey
+                    ctrlKey: event.ctrlKey,
+                    blockId: this.blockId
                 });
-                onLinkClick(this.filePath, event.ctrlKey);
+
+                // Handle navigation directly
+                const cleanFilePath = this.filePath.replace(/^\[\[|\]\]$/g, ''); // Remove surrounding brackets if present
+                if (this.startLine && this.app) {
+                    // Open file and scroll to the block's start line
+                    const file = this.app.vault.getAbstractFileByPath(cleanFilePath);
+                    if (file && file instanceof TFile) {
+                        // Open the file in current tab or new tab
+                        const leaf = event.ctrlKey ?
+                            this.app.workspace.getLeaf(true) :
+                            this.app.workspace.getLeaf(false);
+
+                        leaf.openFile(file).then(() => {
+                            // Ensure the leaf is active for UI updates
+                            this.app.workspace.setActiveLeaf(leaf, { focus: true });
+
+                            // Emit event to update Coalesce UI for the new file
+                            const navCompleteEvent = new CustomEvent('coalesce-navigate-complete', {
+                                detail: { filePath: cleanFilePath },
+                                bubbles: true
+                            });
+                            document.dispatchEvent(navCompleteEvent);
+
+                            // Delay scrolling to ensure view is ready
+                            setTimeout(() => {
+                                const view = leaf.view;
+                                if (view && view instanceof MarkdownView) {
+                                    const editor = view.editor;
+                                    if (editor) {
+                                        const lineIndex = Math.max(0, this.startLine! - 1);
+                                        const lineStart = { line: lineIndex, ch: 0 };
+                                        editor.setCursor(lineStart);
+                                        editor.scrollIntoView({ from: lineStart, to: lineStart }, true);
+                                    }
+                                }
+                            }, 100);
+                        });
+                    }
+                } else {
+                    // Fallback to the provided onLinkClick
+                    onLinkClick(cleanFilePath, event.ctrlKey);
+                }
             });
         }
     }
@@ -382,12 +426,12 @@ export class BlockComponent {
         blockTitle.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
-            this.logger.debug('Block title clicked', { filePath: this.filePath });
+            this.logger.debug('Block title clicked', { filePath: this.filePath, blockId: this.blockId });
 
-            // Trigger navigation by dispatching a custom event
-            // The CoalesceView will handle this event
+            // Use Obsidian's built-in navigation for reliable block scrolling
+            console.log('Coalesce: Dispatching navigation event for block', this.blockId, 'in file', this.filePath);
             const navigationEvent = new CustomEvent('coalesce-navigate', {
-                detail: { filePath: this.filePath, openInNewTab: event.ctrlKey },
+                detail: { filePath: this.filePath, openInNewTab: event.ctrlKey, blockId: this.blockId },
                 bubbles: true
             });
             this.headerContainer!.dispatchEvent(navigationEvent);

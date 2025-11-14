@@ -5,6 +5,7 @@ import { CoalescePluginSettings, CoalescePluginInstance, ObsidianPlugins, Extend
 
 export default class CoalescePlugin extends Plugin {
 	private orchestrator: PluginOrchestrator;
+	private lastProcessedFile: { path: string; timestamp: number } | null = null;
 	private logger: any = {
 		debug: () => {},
 		info: () => {},
@@ -185,19 +186,225 @@ export default class CoalescePlugin extends Plugin {
 		};
 	}
 
+	private shouldProcessFile(filePath: string): boolean {
+		const now = Date.now();
+		const minInterval = 1000; // 1 second minimum between processing the same file
+
+		if (this.lastProcessedFile &&
+			this.lastProcessedFile.path === filePath &&
+			(now - this.lastProcessedFile.timestamp) < minInterval) {
+			this.logger?.debug("Skipping duplicate file processing", { filePath, timeSinceLast: now - this.lastProcessedFile.timestamp });
+			return false;
+		}
+
+		this.lastProcessedFile = { path: filePath, timestamp: now };
+		return true;
+	}
+
+	private async updateCoalesceUIForFile(filePath: string) {
+		// Prevent duplicate processing
+		if (!this.shouldProcessFile(filePath)) {
+			return;
+		}
+
+		try {
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (activeView && activeView.file) {
+				// Get slices first
+				const backlinksSlice = this.orchestrator.getSlice('backlinks') as any;
+				const backlinkBlocksSlice = this.orchestrator.getSlice('backlinkBlocks') as any;
+				const viewIntegration = this.orchestrator.getSlice('viewIntegration') as any;
+				const settingsSlice = this.orchestrator.getSlice('settings') as any;
+
+				if (backlinksSlice && backlinkBlocksSlice && viewIntegration && settingsSlice) {
+					// Initialize view integration first
+					await viewIntegration.initializeView?.(activeView.file, activeView);
+
+					// Always clear existing coalesce containers from the active view
+					const existingContainers = activeView.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
+					existingContainers.forEach(container => container.remove());
+
+					// Get current settings - ensure settings are loaded
+					let settings = settingsSlice.getSettings();
+
+					// If settings aren't loaded yet, load them now
+					if (!settings || Object.keys(settings).length === 0) {
+						await settingsSlice.loadSettings?.();
+						settings = settingsSlice.getSettings() || {};
+					}
+
+					// Extract display name from frontmatter
+					const frontmatter = this.app.metadataCache.getFileCache(activeView.file)?.frontmatter;
+					let displayName = activeView.file.basename;
+					if (frontmatter?.title) {
+						displayName = frontmatter.title;
+					}
+
+					const currentFilePath = activeView.file.path;
+
+					// Discover backlinks (with delay to allow metadata cache to update)
+					await new Promise(resolve => setTimeout(resolve, 100));
+					const backlinkFiles = await backlinksSlice.discoverBacklinks(currentFilePath);
+					console.log('Coalesce: Discovered backlinks for', currentFilePath, ':', backlinkFiles);
+
+					// Only render UI if there are backlinks
+					if (backlinkFiles.length > 0) {
+						const currentCollapsed = settings.blocksCollapsed || false;
+						const sortByPath = true; // Always sort by path
+
+						// Create container for the UI
+						const container = document.createElement('div');
+						container.className = 'coalesce-custom-backlinks-container';
+
+						// Extract aliases and title from the current file's frontmatter
+						const frontmatter = this.app.metadataCache.getFileCache(activeView.file)?.frontmatter;
+						let fileAliases: string[] = [];
+						let displayName = activeView.file.basename;
+						if (frontmatter) {
+						    const aliases = frontmatter.aliases || frontmatter.alias;
+						    if (Array.isArray(aliases)) {
+						        fileAliases = aliases;
+						    } else if (typeof aliases === 'string') {
+						        fileAliases = [aliases];
+						    }
+
+						    // Use title from frontmatter if available
+						    if (frontmatter.title) {
+						        displayName = frontmatter.title;
+						    }
+						}
+
+						// Update header slice with correct sort state
+						const backlinksHeader = this.orchestrator.getSlice('backlinksHeader') as any;
+						backlinksHeader?.setInitialSortState?.(sortByPath, settings.sortDescending);
+
+						// Create header with full callback wiring
+						const headerElement = backlinksHeader?.createHeader?.(container, {
+						    fileCount: backlinkFiles.length,
+						    sortDescending: settings.sortDescending,
+						    isCollapsed: currentCollapsed,
+						    currentStrategy: 'default',
+						    currentTheme: settings.theme || 'default',
+						    showFullPathTitle: false,
+						    aliases: fileAliases,
+						    currentAlias: null,
+						    unsavedAliases: [],
+						    currentHeaderStyle: 'full',
+						    currentFilter: '',
+						    onSortToggle: () => backlinksHeader?.handleSortToggle?.(),
+						    onCollapseToggle: () => backlinksHeader?.handleCollapseToggle?.(),
+						    onStrategyChange: (strategy: string) => backlinksHeader?.handleStrategyChange?.(strategy),
+						    onThemeChange: (theme: string) => {
+						        backlinksHeader?.handleThemeChange?.(theme);
+						        // Save theme to settings
+						        settingsSlice?.updateSettings?.({ theme });
+						    },
+						    onFullPathTitleChange: (show: boolean) => backlinksHeader?.updateHeaderState?.({ showFullPathTitle: show }),
+						    onAliasSelect: (alias: string | null) => backlinksHeader?.handleAliasSelection?.(alias),
+						    onHeaderStyleChange: (style: string) => backlinksHeader?.updateHeaderState?.({ currentHeaderStyle: style }),
+						    onFilterChange: (filterText: string) => backlinksHeader?.handleFilterChange?.(filterText),
+						    onSettingsClick: () => backlinksHeader?.handleSettingsClick?.()
+						});
+
+						if (headerElement) {
+							container.appendChild(headerElement);
+						}
+
+						// Set initial theme on backlink blocks slice
+						backlinkBlocksSlice.setCurrentTheme?.(settings.theme || 'default');
+
+						// Create blocks container
+						const blocksContainer = document.createElement('div');
+						blocksContainer.className = 'backlinks-list';
+						container.appendChild(blocksContainer);
+
+						// Update block render options with current state
+						backlinkBlocksSlice.updateRenderOptions?.({
+							collapsed: currentCollapsed,
+							sortByPath: sortByPath,
+							sortDescending: settings.sortDescending
+						});
+
+						// Extract and render blocks
+						console.log('Coalesce: Extracting blocks from files:', backlinkFiles, 'for note:', displayName, 'using file path:', currentFilePath);
+						if (backlinkFiles.length > 0) {
+							backlinkBlocksSlice.extractAndRenderBlocks?.(
+								backlinkFiles,
+								currentFilePath, // Use full file path for block extraction to match links
+								blocksContainer
+							);
+							console.log('Coalesce: Block extraction completed, container children:', blocksContainer.children.length);
+						} else {
+							console.log('Coalesce: No backlink files to extract blocks from');
+						}
+
+						// Attach container to view
+						const success = viewIntegration.attachToView?.(activeView, container);
+						if (success) {
+							console.log('Coalesce UI attached successfully');
+						}
+					} else {
+						console.log('Coalesce: No backlinks found for', currentFilePath, '- UI not rendered');
+					}
+				}
+			}
+		} catch (error) {
+			this.logger?.error("Failed to update Coalesce UI for file", { filePath, error });
+		}
+	}
+
 	private registerEventHandlers() {
-		// Register file open handler
+		// Register coalesce-navigate event handler
+		document.addEventListener('coalesce-navigate', (event: CustomEvent) => {
+			const { filePath, openInNewTab, blockId } = event.detail;
+			console.log('Coalesce: Received coalesce-navigate event for scrolling to block location', { filePath, openInNewTab, blockId });
+			this.logger?.debug("Coalesce navigate event", { filePath, openInNewTab, blockId });
+
+			try {
+				if (blockId) {
+				    // Use Obsidian's built-in link handling for block references
+				    const linkText = `[[${filePath}#^${blockId}]]`;
+				    console.log('Coalesce: Attempting to scroll to block location using Obsidian link:', linkText);
+				    this.app.workspace.openLinkText(linkText, '', openInNewTab || false);
+				    console.log('Coalesce: Block reference navigation initiated for', filePath, 'block', blockId);
+				} else {
+					// Fallback to navigation slice for regular file navigation
+					console.log('Coalesce: No blockId provided, using regular navigation for', filePath);
+					const navigation = this.orchestrator.getSlice('navigation');
+					if (navigation) {
+						(navigation as any).handleLinkClick(filePath, openInNewTab || false);
+					}
+				}
+			} catch (error) {
+				this.logger?.error("Failed to handle coalesce-navigate event", { filePath, openInNewTab, blockId, error });
+			}
+		});
+
+		// Register coalesce-navigate-complete event handler
+		document.addEventListener('coalesce-navigate-complete', (event: CustomEvent) => {
+			const { filePath } = event.detail;
+			this.logger?.debug("Coalesce navigate complete event", { filePath });
+
+			try {
+				// Manually update Coalesce UI for the new file
+				this.updateCoalesceUIForFile(filePath);
+			} catch (error) {
+				this.logger?.error("Failed to handle coalesce-navigate-complete event", { filePath, error });
+			}
+		});
+
+		// Register file open handler as fallback
 		this.registerEvent(
 			this.app.workspace.on('file-open', (file: TFile) => {
 				if (file) {
-					this.logger?.debug("File open event", { 
+					this.logger?.debug("File open event (fallback)", {
 						path: file.path,
 						extension: file.extension,
 						basename: file.basename
 					});
-					
-					// Handle through orchestrator
-					this.orchestrator.emit('file:opened', { file });
+
+					// Update Coalesce UI for the opened file (with duplicate prevention)
+					this.updateCoalesceUIForFile(file.path);
 				}
 			})
 		);
@@ -263,19 +470,29 @@ export default class CoalescePlugin extends Plugin {
 							settings = settingsSlice?.getSettings?.() || {};
 						}
 
+						// Detach any existing coalesce containers from the active view
+						const existingContainers = activeView.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
+						existingContainers.forEach(container => container.remove());
+
 						// Create container for the UI
 						const container = document.createElement('div');
 						container.className = 'coalesce-custom-backlinks-container';
 
-						// Extract aliases from the current file's frontmatter
+						// Extract aliases and title from the current file's frontmatter
 						const frontmatter = this.app.metadataCache.getFileCache(data.file)?.frontmatter;
 						let fileAliases: string[] = [];
+						let displayName = data.file.basename; // Default to basename
 						if (frontmatter) {
 						    const aliases = frontmatter.aliases || frontmatter.alias;
 						    if (Array.isArray(aliases)) {
 						        fileAliases = aliases;
 						    } else if (typeof aliases === 'string') {
 						        fileAliases = [aliases];
+						    }
+
+						    // Use title from frontmatter if available
+						    if (frontmatter.title) {
+						        displayName = frontmatter.title;
 						    }
 						}
 
@@ -336,10 +553,10 @@ export default class CoalescePlugin extends Plugin {
 						});
 
 						// Extract and render blocks
-						console.log('Coalesce: Extracting blocks from files:', backlinkFiles, 'for note:', data.file.basename);
+						console.log('Coalesce: Extracting blocks from files:', backlinkFiles, 'for note:', displayName);
 						await (backlinkBlocks as any)?.extractAndRenderBlocks?.(
 							backlinkFiles,
-							data.file.basename,
+							displayName,
 							blocksContainer
 						);
 						console.log('Coalesce: Block extraction completed, container children:', blocksContainer.children.length);

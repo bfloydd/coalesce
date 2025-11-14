@@ -35,7 +35,12 @@ export class BlockExtractor implements IBlockExtractor {
      * Extract blocks from file content
      */
     async extractBlocks(content: string, currentNoteName: string, strategy: string): Promise<BlockData[]> {
-        this.logger.debug('Extracting blocks', { contentLength: content.length, currentNoteName, strategy });
+        this.logger.debug('Extracting blocks', {
+            contentLength: content.length,
+            currentNoteName,
+            strategy,
+            contentPreview: content.substring(0, 200) + (content.length > 200 ? '...' : '')
+        });
         
         const startTime = Date.now();
         const result: BlockData[] = [];
@@ -56,16 +61,19 @@ export class BlockExtractor implements IBlockExtractor {
                 const { start, end } = boundaries[i];
                 const blockContent = content.substring(start, end);
                 
+                // Extract block ID from content if present
+                const { content: cleanContent, blockId } = this.extractBlockId(blockContent);
+
                 // Create block data
                 const blockData: BlockData = {
-                    id: this.generateBlockId(currentNoteName, i),
-                    content: blockContent,
+                    id: blockId || this.generateBlockId(currentNoteName, i),
+                    content: cleanContent,
                     sourcePath: currentNoteName,
                     startLine: this.getLineNumber(content, start),
                     endLine: this.getLineNumber(content, end),
-                    heading: this.extractHeading(blockContent),
-                    headingLevel: this.extractHeadingLevel(blockContent),
-                    hasBacklinkLine: this.hasBacklinkLine(blockContent, currentNoteName),
+                    heading: this.extractHeading(cleanContent),
+                    headingLevel: this.extractHeadingLevel(cleanContent),
+                    hasBacklinkLine: this.hasBacklinkLine(cleanContent, currentNoteName),
                     isVisible: true,
                     isCollapsed: false
                 };
@@ -198,6 +206,20 @@ export class BlockExtractor implements IBlockExtractor {
      */
     private getStrategy(strategy: string): BlockBoundaryStrategy | null {
         return this.strategies.get(strategy) || null;
+    }
+
+    /**
+     * Extract block ID from content if present
+     */
+    private extractBlockId(content: string): { content: string; blockId: string | null } {
+        // Check if content ends with ^block-id
+        const blockIdMatch = content.match(/\s*\^([^\s]+)\s*$/);
+        if (blockIdMatch) {
+            const blockId = blockIdMatch[1];
+            const cleanContent = content.replace(/\s*\^([^\s]+)\s*$/, '').trim();
+            return { content: cleanContent, blockId };
+        }
+        return { content, blockId: null };
     }
 
     /**

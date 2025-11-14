@@ -303,7 +303,9 @@ export class BlockRenderer implements IBlockRenderer {
                 options.hideBacklinkLine,
                 options.hideFirstHeader,
                 headingPopupComponent, // Pass through heading popup component
-                this.app
+                this.app,
+                blockData.id, // Pass the block ID for navigation
+                blockData.startLine // Pass the start line for navigation
             );
 
             // Render the block (requires MarkdownView)
@@ -338,7 +340,7 @@ export class BlockRenderer implements IBlockRenderer {
 
         // Check for alias pattern in content
         const escapedNoteName = this.escapeRegexChars(currentNoteName);
-        const regex = new RegExp(`\\[\\[(?:[^\\]|]*?/)?${escapedNoteName}\\|([^\\]]+)\\]\\]`, 'g');
+        const regex = new RegExp(`\\[\\[(?:[^\\]|]*?/)?${escapedNoteName}\\|([^\\]]+)\\]\\]`, 'gi');
         const matches = Array.from(content.matchAll(regex));
 
         for (const match of matches) {
@@ -347,7 +349,7 @@ export class BlockRenderer implements IBlockRenderer {
 
             // Split by | to get all aliases after the note name
             const aliases = aliasString.split('|');
-            if (aliases.includes(alias)) {
+            if (aliases.some(a => a.toLowerCase() === alias.toLowerCase())) {
                 return true;
             }
         }

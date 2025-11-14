@@ -39,21 +39,26 @@ export interface IBlockRenderer {
      * Render blocks to DOM container
      */
     renderBlocks(
-        container: HTMLElement, 
-        blocks: BlockData[], 
+        container: HTMLElement,
+        blocks: BlockData[],
         options: BlockRenderOptions
     ): Promise<void>;
-    
+
     /**
      * Update block visibility
      */
     updateBlockVisibility(blocks: BlockData[], visible: boolean): void;
-    
+
     /**
      * Update block collapsed state
      */
     updateBlockCollapsedState(blocks: BlockData[], collapsed: boolean): void;
-    
+
+    /**
+     * Filter blocks by alias
+     */
+    filterBlocksByAlias(blocks: BlockData[], alias: string | null, currentNoteName: string): void;
+
     /**
      * Clear rendered blocks
      */
@@ -107,6 +112,7 @@ export interface BlockData {
     isVisible: boolean;
     isCollapsed: boolean;
     container?: HTMLElement;
+    alias?: string;
 }
 
 // ============================
