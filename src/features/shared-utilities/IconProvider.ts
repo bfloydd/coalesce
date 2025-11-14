@@ -23,7 +23,10 @@ export class IconProvider {
      */
     static readonly ICONS = {
         // Navigation and sorting
-        sort: 'arrow-up-down',
+        sort: 'arrow-up-down',  // Toggle button showing both directions
+        sortAsc: 'arrow-up-a-z',
+        sortDesc: 'arrow-down-a-z',
+        sortToggle: 'arrow-up-down',  // For toggle buttons
         chevronDown: 'chevron-down',
         chevronUp: 'chevron-up',
 
