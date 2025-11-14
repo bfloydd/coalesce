@@ -1,9 +1,9 @@
 import { ThemeManager } from '../settings/ThemeManager';
 import { Logger } from '../shared-utilities/Logger';
 import { IconProvider } from '../shared-utilities/IconProvider';
-import { HeaderStyleManager } from '../backlink-blocks/header-styles/HeaderStyleManager';
-import { BlockFinderFactory } from '../backlink-blocks/block-finders/BlockFinderFactory';
-import { HeaderStyleFactory } from '../backlink-blocks/header-styles/HeaderStyleFactory';
+import { HeaderStyleManager } from './header-styles/HeaderStyleManager';
+import { BlockFinderFactory } from './block-finders/BlockFinderFactory';
+import { HeaderStyleFactory } from './header-styles/HeaderStyleFactory';
 import { ButtonComponent, ExtraButtonComponent, Menu } from 'obsidian';
 import { SettingsControls } from './SettingsControls';
 

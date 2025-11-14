@@ -24,12 +24,6 @@ export type {
 // Event contracts for inter-slice communication
 export type {
     BacklinksUpdatedEvent,
-    BlocksRenderedEvent,
-    HeaderFilterChangedEvent,
-    HeaderSortToggledEvent,
-    HeaderStrategyChangedEvent,
-    HeaderThemeChangedEvent,
-    HeaderAliasSelectedEvent,
     NavigationOpenEvent,
     NoteEditingHeadingAddedEvent
 } from './events';
@@ -38,8 +32,6 @@ export type {
 export type {
     IViewIntegrationSlice,
     IBacklinksSlice,
-    IBacklinkBlocksSlice,
-    IBacklinksHeaderSlice,
     ISettingsSlice,
     INavigationSlice,
     INoteEditingSlice,

@@ -210,13 +210,12 @@ export default class CoalescePlugin extends Plugin {
 		try {
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 			if (activeView && activeView.file) {
-				// Get slices first
+				// Get consolidated backlinks slice and other necessary slices
 				const backlinksSlice = this.orchestrator.getSlice('backlinks') as any;
-				const backlinkBlocksSlice = this.orchestrator.getSlice('backlinkBlocks') as any;
 				const viewIntegration = this.orchestrator.getSlice('viewIntegration') as any;
 				const settingsSlice = this.orchestrator.getSlice('settings') as any;
 
-				if (backlinksSlice && backlinkBlocksSlice && viewIntegration && settingsSlice) {
+				if (backlinksSlice && viewIntegration && settingsSlice) {
 					// Initialize view integration first
 					await viewIntegration.initializeView?.(activeView.file, activeView);
 
@@ -233,119 +232,27 @@ export default class CoalescePlugin extends Plugin {
 						settings = settingsSlice.getSettings() || {};
 					}
 
-					// Extract display name from frontmatter
-					const frontmatter = this.app.metadataCache.getFileCache(activeView.file)?.frontmatter;
-					let displayName = activeView.file.basename;
-					if (frontmatter?.title) {
-						displayName = frontmatter.title;
-					}
-
 					const currentFilePath = activeView.file.path;
 
-					// Discover backlinks (with delay to allow metadata cache to update)
-					await new Promise(resolve => setTimeout(resolve, 100));
-					const backlinkFiles = await backlinksSlice.discoverBacklinks(currentFilePath);
-					console.log('Coalesce: Discovered backlinks for', currentFilePath, ':', backlinkFiles);
+					// Use the consolidated backlinks slice to attach the complete UI
+					// The slice will handle backlink discovery, block extraction, header UI, and rendering
+					await backlinksSlice.attachToDOM?.(
+						activeView.contentEl, // Attach directly to content element
+						currentFilePath,
+						activeView
+					);
 
-					// Only render UI if there are backlinks
-					if (backlinkFiles.length > 0) {
-						const currentCollapsed = settings.blocksCollapsed || false;
-						const sortByPath = true; // Always sort by path
+					// Apply current settings to the backlinks UI
+					backlinksSlice.setOptions?.({
+						sort: settings.sortByFullPath || false,
+						collapsed: settings.blocksCollapsed || false,
+						strategy: 'default', // Default strategy
+						theme: settings.theme || 'default',
+						alias: null, // No alias filter by default
+						filter: '' // No text filter by default
+					});
 
-						// Create container for the UI
-						const container = document.createElement('div');
-						container.className = 'coalesce-custom-backlinks-container';
-
-						// Extract aliases and title from the current file's frontmatter
-						const frontmatter = this.app.metadataCache.getFileCache(activeView.file)?.frontmatter;
-						let fileAliases: string[] = [];
-						let displayName = activeView.file.basename;
-						if (frontmatter) {
-						    const aliases = frontmatter.aliases || frontmatter.alias;
-						    if (Array.isArray(aliases)) {
-						        fileAliases = aliases;
-						    } else if (typeof aliases === 'string') {
-						        fileAliases = [aliases];
-						    }
-
-						    // Use title from frontmatter if available
-						    if (frontmatter.title) {
-						        displayName = frontmatter.title;
-						    }
-						}
-
-						// Update header slice with correct sort state
-						const backlinksHeader = this.orchestrator.getSlice('backlinksHeader') as any;
-						backlinksHeader?.setInitialSortState?.(sortByPath, settings.sortDescending);
-
-						// Create header with full callback wiring
-						const headerElement = backlinksHeader?.createHeader?.(container, {
-						    fileCount: backlinkFiles.length,
-						    sortDescending: settings.sortDescending,
-						    isCollapsed: currentCollapsed,
-						    currentStrategy: 'default',
-						    currentTheme: settings.theme || 'default',
-						    showFullPathTitle: false,
-						    aliases: fileAliases,
-						    currentAlias: null,
-						    unsavedAliases: [],
-						    currentHeaderStyle: 'full',
-						    currentFilter: '',
-						    onSortToggle: () => backlinksHeader?.handleSortToggle?.(),
-						    onCollapseToggle: () => backlinksHeader?.handleCollapseToggle?.(),
-						    onStrategyChange: (strategy: string) => backlinksHeader?.handleStrategyChange?.(strategy),
-						    onThemeChange: (theme: string) => {
-						        backlinksHeader?.handleThemeChange?.(theme);
-						        // Save theme to settings
-						        settingsSlice?.updateSettings?.({ theme });
-						    },
-						    onFullPathTitleChange: (show: boolean) => backlinksHeader?.updateHeaderState?.({ showFullPathTitle: show }),
-						    onAliasSelect: (alias: string | null) => backlinksHeader?.handleAliasSelection?.(alias),
-						    onHeaderStyleChange: (style: string) => backlinksHeader?.handleHeaderStyleChange?.(style),
-						    onFilterChange: (filterText: string) => backlinksHeader?.handleFilterChange?.(filterText),
-						    onSettingsClick: () => backlinksHeader?.handleSettingsClick?.()
-						});
-
-						if (headerElement) {
-							container.appendChild(headerElement);
-						}
-
-						// Set initial theme on backlink blocks slice
-						backlinkBlocksSlice.setCurrentTheme?.(settings.theme || 'default');
-
-						// Create blocks container
-						const blocksContainer = document.createElement('div');
-						blocksContainer.className = 'backlinks-list';
-						container.appendChild(blocksContainer);
-
-						// Update block render options with current state
-						backlinkBlocksSlice.updateRenderOptions?.({
-							collapsed: currentCollapsed,
-							sortByPath: sortByPath,
-							sortDescending: settings.sortDescending
-						});
-
-						// Extract and render blocks
-						console.log('Coalesce: Extracting blocks from files:', backlinkFiles, 'for note:', displayName, 'using file path:', currentFilePath);
-						if (backlinkFiles.length > 0) {
-							backlinkBlocksSlice.extractAndRenderBlocks?.(
-								backlinkFiles,
-								currentFilePath, // Use full file path for block extraction to match links
-								blocksContainer
-							);
-							console.log('Coalesce: Block extraction completed, container children:', blocksContainer.children.length);
-						} else {
-							console.log('Coalesce: No backlink files to extract blocks from');
-						}
-
-						// Attach container to view
-						const success = viewIntegration.attachToView?.(activeView, container);
-						if (success) {
-							console.log('Coalesce UI attached successfully');
-						}
-					} else {
-						console.log('Coalesce: No backlinks found for', currentFilePath, '- UI not rendered');
-					}
+					console.log('Coalesce: Consolidated backlinks UI attached for', currentFilePath);
 				}
 			}
 		} catch (error) {
@@ -354,26 +261,19 @@ export default class CoalescePlugin extends Plugin {
 	}
 
 	private registerEventHandlers() {
-		// Register coalesce-navigate event handler
+		// Register coalesce-navigate event handler - now handled by consolidated backlinks slice
 		document.addEventListener('coalesce-navigate', (event: CustomEvent) => {
 			const { filePath, openInNewTab, blockId } = event.detail;
-			console.log('Coalesce: Received coalesce-navigate event for scrolling to block location', { filePath, openInNewTab, blockId });
-			this.logger?.debug("Coalesce navigate event", { filePath, openInNewTab, blockId });
+			console.log('Coalesce: Received coalesce-navigate event for navigation', { filePath, openInNewTab, blockId });
 
 			try {
-				if (blockId) {
-				    // Use Obsidian's built-in link handling for block references
-				    const linkText = `[[${filePath}#^${blockId}]]`;
-				    console.log('Coalesce: Attempting to scroll to block location using Obsidian link:', linkText);
-				    this.app.workspace.openLinkText(linkText, '', openInNewTab || false);
-				    console.log('Coalesce: Block reference navigation initiated for', filePath, 'block', blockId);
+				const backlinks = this.orchestrator.getSlice('backlinks') as any;
+				if (backlinks && typeof backlinks.handleNavigation === 'function') {
+					backlinks.handleNavigation(filePath, openInNewTab || false, blockId);
 				} else {
-					// Fallback to navigation slice for regular file navigation
-					console.log('Coalesce: No blockId provided, using regular navigation for', filePath);
-					const navigation = this.orchestrator.getSlice('navigation');
-					if (navigation) {
-						(navigation as any).handleLinkClick(filePath, openInNewTab || false);
-					}
+					// Fallback to direct navigation if backlinks slice not available
+					const linkText = blockId ? `[[${filePath}#^${blockId}]]` : `[[${filePath}]]`;
+					this.app.workspace.openLinkText(linkText, '', openInNewTab || false);
 				}
 			} catch (error) {
 				this.logger?.error("Failed to handle coalesce-navigate event", { filePath, openInNewTab, blockId, error });
@@ -444,129 +344,42 @@ export default class CoalescePlugin extends Plugin {
 		// Register orchestrator event listeners for slice coordination
 		this.orchestrator.on('file:opened', async (data: any) => {
 			const viewIntegration = this.orchestrator.getSlice('viewIntegration');
-			const backlinks = this.orchestrator.getSlice('backlinks');
-			const backlinkBlocks = this.orchestrator.getSlice('backlinkBlocks');
-			const backlinksHeader = this.orchestrator.getSlice('backlinksHeader');
+			const backlinks = this.orchestrator.getSlice('backlinks'); // Consolidated slice
 
-			if (viewIntegration && backlinks && backlinkBlocks && backlinksHeader && data.file) {
+			if (viewIntegration && backlinks && data.file) {
 				// Initialize view for the file
 				const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 				if (activeView && activeView.file?.path === data.file.path) {
 					// Initialize view integration
 					await (viewIntegration as any)?.initializeView?.(data.file, activeView);
 
-					// Get backlinks for the file
-					const backlinkFiles = await (backlinks as any)?.discoverBacklinks?.(data.file.path) || [];
-					console.log('Coalesce: Discovered backlinks for', data.file.path, ':', backlinkFiles);
+					// Use the consolidated backlinks slice to attach the complete UI
+					await (backlinks as any)?.attachToDOM?.(
+						activeView.contentEl, // Attach directly to content element
+						data.file.path,
+						activeView
+					);
 
-					if (backlinkFiles.length > 0) {
-						// Get settings for initial state - ensure settings are loaded
-						const settingsSlice = this.orchestrator.getSlice('settings') as any;
-						let settings = settingsSlice?.getSettings?.() || {};
+					// Apply current settings to the backlinks UI
+					const settingsSlice = this.orchestrator.getSlice('settings') as any;
+					let settings = settingsSlice?.getSettings?.() || {};
 
-						// If settings aren't loaded yet, load them now
-						if (!settings || Object.keys(settings).length === 0) {
-							await settingsSlice?.loadSettings?.();
-							settings = settingsSlice?.getSettings?.() || {};
-						}
-
-						// Detach any existing coalesce containers from the active view
-						const existingContainers = activeView.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
-						existingContainers.forEach(container => container.remove());
-
-						// Create container for the UI
-						const container = document.createElement('div');
-						container.className = 'coalesce-custom-backlinks-container';
-
-						// Extract aliases and title from the current file's frontmatter
-						const frontmatter = this.app.metadataCache.getFileCache(data.file)?.frontmatter;
-						let fileAliases: string[] = [];
-						let displayName = data.file.basename; // Default to basename
-						if (frontmatter) {
-						    const aliases = frontmatter.aliases || frontmatter.alias;
-						    if (Array.isArray(aliases)) {
-						        fileAliases = aliases;
-						    } else if (typeof aliases === 'string') {
-						        fileAliases = [aliases];
-						    }
-
-						    // Use title from frontmatter if available
-						    if (frontmatter.title) {
-						        displayName = frontmatter.title;
-						    }
-						}
-
-						// Get current collapse state from settings to maintain state across file navigation
-						const currentCollapsed = settings.blocksCollapsed || false;
-
-						// Sorting is always enabled, just set the direction
-						const sortByPath = true;
-
-						// Update header slice with correct sort state
-						(backlinksHeader as any)?.setInitialSortState?.(sortByPath, settings.sortDescending);
-
-						// Create header with full callback wiring so controls work (including Block selector)
-						const headerElement = (backlinksHeader as any)?.createHeader?.(container, {
-						    fileCount: backlinkFiles.length,
-						    sortDescending: settings.sortDescending,
-						    isCollapsed: currentCollapsed,
-						    currentStrategy: 'default',
-						    currentTheme: settings.theme || 'default',
-						    showFullPathTitle: false,
-						    aliases: fileAliases,
-						    currentAlias: null,
-						    unsavedAliases: [],
-						    currentHeaderStyle: 'full',
-						    currentFilter: '',
-						    onSortToggle: () => (backlinksHeader as any)?.handleSortToggle?.(),
-						    onCollapseToggle: () => (backlinksHeader as any)?.handleCollapseToggle?.(),
-						    onStrategyChange: (strategy: string) => (backlinksHeader as any)?.handleStrategyChange?.(strategy),
-						    onThemeChange: (theme: string) => {
-						        (backlinksHeader as any)?.handleThemeChange?.(theme);
-						        // Save theme to settings
-						        settingsSlice?.updateSettings?.({ theme });
-						    },
-						    onFullPathTitleChange: (show: boolean) => (backlinksHeader as any)?.updateHeaderState?.({ showFullPathTitle: show }),
-						    onAliasSelect: (alias: string | null) => (backlinksHeader as any)?.handleAliasSelection?.(alias),
-						    onHeaderStyleChange: (style: string) => (backlinksHeader as any)?.handleHeaderStyleChange?.(style),
-						    onFilterChange: (filterText: string) => (backlinksHeader as any)?.handleFilterChange?.(filterText),
-						    onSettingsClick: () => (backlinksHeader as any)?.handleSettingsClick?.()
-						});
-
-						if (headerElement) {
-							container.appendChild(headerElement);
-						}
-
-						// Set initial theme on backlink blocks slice
-						(backlinkBlocks as any)?.setCurrentTheme?.(settings.theme || 'default');
-
-						// Create blocks container
-						const blocksContainer = document.createElement('div');
-						blocksContainer.className = 'backlinks-list';
-						container.appendChild(blocksContainer);
-
-						// Update block render options with current state
-						(backlinkBlocks as any)?.updateRenderOptions?.({
-							collapsed: currentCollapsed,
-							sortByPath: sortByPath,
-							sortDescending: settings.sortDescending
-						});
-
-						// Extract and render blocks
-						console.log('Coalesce: Extracting blocks from files:', backlinkFiles, 'for note:', displayName);
-						await (backlinkBlocks as any)?.extractAndRenderBlocks?.(
-							backlinkFiles,
-							displayName,
-							blocksContainer
-						);
-						console.log('Coalesce: Block extraction completed, container children:', blocksContainer.children.length);
-
-						// Attach container to view
-						const success = (viewIntegration as any)?.attachToView?.(activeView, container);
-						if (success) {
-							console.log('Coalesce UI attached successfully');
-						}
+					// If settings aren't loaded yet, load them now
+					if (!settings || Object.keys(settings).length === 0) {
+						await settingsSlice?.loadSettings?.();
+						settings = settingsSlice?.getSettings?.() || {};
 					}
+
+					(backlinks as any)?.setOptions?.({
+						sort: settings.sortByFullPath || false,
+						collapsed: settings.blocksCollapsed || false,
+						strategy: 'default',
+						theme: settings.theme || 'default',
+						alias: null,
+						filter: ''
+					});
+
+					console.log('Coalesce: Consolidated backlinks UI attached for', data.file.path);
 				}
 			}
 		});

@@ -118,14 +118,6 @@ export class ViewIntegrationSlice implements IViewIntegrationSlice {
             this.statistics.totalViewsCleanup++;
             this.statistics.activeViewCount = this.viewManager.getActiveViews().size;
             
-            // Emit event
-            this.emitEvent({
-                type: 'blocks:rendered',
-                payload: {
-                    count: 0,
-                    leafId
-                }
-            });
             
             this.logger.debug('View cleaned up successfully', { leafId });
         } catch (error) {
@@ -146,13 +138,6 @@ export class ViewIntegrationSlice implements IViewIntegrationSlice {
             // Update statistics
             this.statistics.totalModeSwitches++;
             
-            // Emit event
-            this.emitEvent({
-                type: 'header:filterChanged',
-                payload: {
-                    text: 'mode switched'
-                }
-            });
             
             this.logger.debug('Mode switch handled successfully', { filePath: file.path });
         } catch (error) {
@@ -176,13 +161,6 @@ export class ViewIntegrationSlice implements IViewIntegrationSlice {
             // Update statistics
             this.statistics.totalFocusChanges++;
             
-            // Emit event
-            this.emitEvent({
-                type: 'header:filterChanged',
-                payload: {
-                    text: focused ? 'focused' : 'unfocused'
-                }
-            });
             
             this.logger.debug('Focus change handled successfully', { 
                 filePath: view.file?.path, 
@@ -209,14 +187,6 @@ export class ViewIntegrationSlice implements IViewIntegrationSlice {
             // Update statistics
             this.statistics.totalLeafActivations++;
             
-            // Emit event
-            this.emitEvent({
-                type: 'blocks:rendered',
-                payload: {
-                    count: 0,
-                    leafId: (leaf as WorkspaceLeafWithID).id
-                }
-            });
             
             this.logger.debug('Leaf activation handled successfully');
         } catch (error) {
@@ -239,13 +209,6 @@ export class ViewIntegrationSlice implements IViewIntegrationSlice {
             // Update statistics
             this.statistics.totalViewRefreshes++;
             
-            // Emit event
-            this.emitEvent({
-                type: 'header:filterChanged',
-                payload: {
-                    text: 'view refreshed'
-                }
-            });
             
             this.logger.debug('View refresh handled successfully', { 
                 filePath: view.file?.path 
@@ -274,13 +237,6 @@ export class ViewIntegrationSlice implements IViewIntegrationSlice {
                 // Update statistics
                 this.statistics.totalDOMAttachments++;
                 
-                // Emit event
-                this.emitEvent({
-                    type: 'header:filterChanged',
-                    payload: {
-                        text: 'dom attached'
-                    }
-                });
                 
                 this.logger.debug('Container attached successfully', { 
                     filePath: view.file?.path 
@@ -313,13 +269,6 @@ export class ViewIntegrationSlice implements IViewIntegrationSlice {
                 // Update statistics
                 this.statistics.totalDOMDetachments++;
                 
-                // Emit event
-                this.emitEvent({
-                    type: 'header:filterChanged',
-                    payload: {
-                        text: 'dom detached'
-                    }
-                });
                 
                 this.logger.debug('Container detached successfully', { 
                     filePath: view.file?.path 

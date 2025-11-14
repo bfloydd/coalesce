@@ -27,9 +27,7 @@ export interface SliceRegistry {
     settings: any;
     navigation: any;
     noteEditing: any;
-    backlinks: any;
-    backlinkBlocks: any;
-    backlinksHeader: any;
+    backlinks: any; // Consolidated slice - includes blocks and header functionality
     viewIntegration: any;
 }
 

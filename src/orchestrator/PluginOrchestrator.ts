@@ -9,8 +9,6 @@ import { SettingsSlice } from '../features/settings/SettingsSlice';
 import { NavigationSlice } from '../features/navigation/NavigationSlice';
 import { NoteEditingSlice } from '../features/note-editing/NoteEditingSlice';
 import { BacklinksSlice } from '../features/backlinks/BacklinksSlice';
-import { BacklinkBlocksSlice } from '../features/backlink-blocks/BacklinkBlocksSlice';
-import { BacklinksHeaderSlice } from '../features/backlinks-header/BacklinksHeaderSlice';
 import { ViewIntegrationSlice } from '../features/view-integration/ViewIntegrationSlice';
 
 /**
@@ -59,9 +57,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
             settings: null,
             navigation: null,
             noteEditing: null,
-            backlinks: null,
-            backlinkBlocks: null,
-            backlinksHeader: null,
+            backlinks: null, // Now consolidated - includes blocks and header functionality
             viewIntegration: null
         };
         
@@ -154,12 +150,6 @@ export class PluginOrchestrator implements IPluginOrchestrator {
 
             // Start all slices
             await this.startSlices();
-
-            // Initialize header collapse state from settings
-            await this.initializeHeaderCollapseState();
-
-            // Initialize header sort state from settings
-            await this.initializeHeaderSortState();
 
             // Emit event
             this.emitOrchestratorEvent('orchestrator:started', {
@@ -378,9 +368,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                 'settings',
                 'navigation',
                 'noteEditing',
-                'backlinks',
-                'backlinkBlocks',
-                'backlinksHeader',
+                'backlinks', // Now consolidated - includes blocks and header functionality
                 'viewIntegration'
             ];
             
@@ -429,17 +417,8 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                     slice = new NoteEditingSlice(this.app, dependencies.sharedUtilities);
                     break;
                 case 'backlinks':
+                    // Consolidated slice - includes blocks and header functionality
                     slice = new BacklinksSlice(this.app, dependencies.sharedUtilities);
-                    break;
-                case 'backlinkBlocks':
-                    // Get initial collapse state from settings if available
-                    const initialCollapsed = dependencies.settings?.getSettings?.()?.blocksCollapsed || false;
-                    slice = new BacklinkBlocksSlice(this.app, {}, initialCollapsed);
-                    break;
-                case 'backlinksHeader':
-                    // Get initial collapse state from settings if available
-                    const headerInitialCollapsed = dependencies.settings?.getSettings?.()?.blocksCollapsed || false;
-                    slice = new BacklinksHeaderSlice(this.app, headerInitialCollapsed);
                     break;
                 case 'viewIntegration':
                     slice = new ViewIntegrationSlice(this.app);
@@ -480,104 +459,20 @@ export class PluginOrchestrator implements IPluginOrchestrator {
         
         try {
             // Define event wiring configuration
+            // Note: Backlinks functionality is now consolidated within the Backlinks slice,
+            // so most inter-slice event wiring for backlinks is no longer needed.
+            // Only keep essential cross-cutting event wiring.
             this.eventWiring = [
-                // Backlinks -> BacklinkBlocks
+                // NoteEditing events (still needed for cross-slice communication)
                 {
                     source: 'backlinks',
-                    target: 'backlinkBlocks',
-                    eventType: 'backlinks:updated',
-                    handler: 'handleBacklinksUpdate',
-                    enabled: true
-                },
-                // BacklinksHeader -> BacklinkBlocks
-                {
-                    source: 'backlinksHeader',
-                    target: 'backlinkBlocks',
-                    eventType: 'header:filterChanged',
-                    handler: 'handleFilterChange',
-                    enabled: true
-                },
-                {
-                    source: 'backlinksHeader',
-                    target: 'backlinkBlocks',
-                    eventType: 'header:sortToggled',
-                    handler: 'handleSortToggle',
-                    enabled: true
-                },
-                {
-                    source: 'backlinksHeader',
-                    target: 'backlinkBlocks',
-                    eventType: 'header:collapseToggled',
-                    handler: 'handleCollapseToggle',
-                    enabled: true
-                },
-                // BacklinksHeader -> Settings (save collapse state)
-                {
-                    source: 'backlinksHeader',
-                    target: 'settings',
-                    eventType: 'header:collapseToggled',
-                    handler: 'handleCollapseStateChange',
-                    enabled: true
-                },
-                // BacklinksHeader -> Settings (save sort state)
-                {
-                    source: 'backlinksHeader',
-                    target: 'settings',
-                    eventType: 'header:sortToggled',
-                    handler: 'handleSortStateChange',
-                    enabled: true
-                },
-                {
-                    source: 'backlinksHeader',
-                    target: 'backlinkBlocks',
-                    eventType: 'header:strategyChanged',
-                    handler: 'handleStrategyChange',
-                    enabled: true
-                },
-                {
-                    source: 'backlinksHeader',
-                    target: 'backlinkBlocks',
-                    eventType: 'header:themeChanged',
-                    handler: 'handleThemeChange',
-                    enabled: true
-                },
-                {
-                    source: 'backlinksHeader',
-                    target: 'backlinkBlocks',
-                    eventType: 'header:aliasSelected',
-                    handler: 'handleAliasSelection',
-                    enabled: true
-                },
-                {
-                    source: 'backlinksHeader',
-                    target: 'backlinkBlocks',
-                    eventType: 'header:headerStyleChanged',
-                    handler: 'handleHeaderStyleChange',
-                    enabled: true
-                },
-                // Navigation events
-                {
-                    source: 'backlinkBlocks',
-                    target: 'navigation',
-                    eventType: 'navigation:open',
-                    handler: 'handleNavigation',
-                    enabled: true
-                },
-                {
-                    source: 'backlinksHeader',
-                    target: 'navigation',
-                    eventType: 'navigation:open',
-                    handler: 'handleNavigation',
-                    enabled: true
-                },
-                // NoteEditing events
-                {
-                    source: 'backlinksHeader',
                     target: 'noteEditing',
                     eventType: 'noteEditing:headingAdded',
                     handler: 'handleHeadingAdded',
                     enabled: true
-                }
+                },
+                // Navigation events from backlinks (now handled internally by backlinks slice)
+                // The backlinks slice handles its own navigation, so no external wiring needed
             ];
             
             // Apply event wiring
@@ -662,54 +557,6 @@ export class PluginOrchestrator implements IPluginOrchestrator {
         }
     }
 
-    /**
-     * Initialize header collapse state from settings
-     */
-    private async initializeHeaderCollapseState(): Promise<void> {
-        this.logger.debug('Initializing header collapse state');
-
-        try {
-            const settingsSlice = this.getSlice('settings') as any;
-            const headerSlice = this.getSlice('backlinksHeader') as any;
-
-            if (settingsSlice && headerSlice && typeof settingsSlice.getSettings === 'function' && typeof headerSlice.setInitialCollapseState === 'function') {
-                const settings = settingsSlice.getSettings();
-                const collapseState = settings.blocksCollapsed || false;
-                headerSlice.setInitialCollapseState(collapseState);
-
-                this.logger.debug('Header collapse state initialized', { collapseState });
-            } else {
-                this.logger.warn('Could not initialize header collapse state - missing slices or methods');
-            }
-        } catch (error) {
-            this.logger.error('Failed to initialize header collapse state', { error });
-        }
-    }
-
-    /**
-     * Initialize header sort state from settings
-     */
-    private async initializeHeaderSortState(): Promise<void> {
-        this.logger.debug('Initializing header sort state');
-
-        try {
-            const settingsSlice = this.getSlice('settings') as any;
-            const headerSlice = this.getSlice('backlinksHeader') as any;
-
-            if (settingsSlice && headerSlice && typeof settingsSlice.getSettings === 'function' && typeof headerSlice.setInitialSortState === 'function') {
-                const settings = settingsSlice.getSettings();
-                const sortByPath = settings.sortByFullPath || false;
-                const sortDescending = settings.sortDescending || true;
-                headerSlice.setInitialSortState(sortByPath, sortDescending);
-
-                this.logger.debug('Header sort state initialized', { sortByPath, sortDescending });
-            } else {
-                this.logger.warn('Could not initialize header sort state - missing slices or methods');
-            }
-        } catch (error) {
-            this.logger.error('Failed to initialize header sort state', { error });
-        }
-    }
 
     /**
      * Stop all slices
@@ -756,9 +603,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                 settings: null,
                 navigation: null,
                 noteEditing: null,
-                backlinks: null,
-                backlinkBlocks: null,
-                backlinksHeader: null,
+                backlinks: null, // Consolidated slice
                 viewIntegration: null
             };
             

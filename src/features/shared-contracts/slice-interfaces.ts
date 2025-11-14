@@ -165,80 +165,6 @@ export interface IBacklinksSlice {
     };
 }
 
-// ============================
-// Backlink Blocks Interface
-// ============================
-
-export interface IBacklinkBlocksSlice {
-    /**
-     * Extract blocks from files
-     */
-    extractBlocks(files: string[], noteName: string): Promise<Array<{
-        content: string;
-        filePath: string;
-        blockId: string;
-    }>>;
-
-    /**
-     * Render blocks to container
-     */
-    renderBlocks(blocks: Array<any>, container: HTMLElement, options: BlockRenderOptions): Promise<void>;
-
-    /**
-     * Apply filter to blocks
-     */
-    filterBlocks(blocks: Array<any>, filter: FilterOptions): Array<any>;
-
-    /**
-     * Sort blocks
-     */
-    sortBlocks(blocks: Array<any>, sort: SortOptions): Array<any>;
-
-    /**
-     * Set collapsed state for all blocks
-     */
-    setAllBlocksCollapsed(collapsed: boolean): void;
-
-    /**
-     * Get block statistics
-     */
-    getBlockStatistics(): {
-        totalBlocks: number;
-        visibleBlocks: number;
-        collapsedBlocks: number;
-    };
-}
-
-// ============================
-// Backlinks Header Interface
-// ============================
-
-export interface IBacklinksHeaderSlice {
-    /**
-     * Create header element
-     */
-    createHeader(container: HTMLElement, options: HeaderRenderOptions): HTMLElement;
-
-    /**
-     * Focus filter input
-     */
-    focusFilterInput(): boolean;
-
-    /**
-     * Update header state
-     */
-    updateHeaderState(updates: Partial<HeaderState>): void;
-
-    /**
-     * Get current header state
-     */
-    getHeaderState(): HeaderState;
-
-    /**
-     * Cleanup header resources
-     */
-    cleanup(): void;
-}
 
 // ============================
 // View Integration Interface
@@ -337,8 +263,6 @@ export interface ISliceFactory {
     createNavigationSlice(app: App): INavigationSlice;
     createNoteEditingSlice(app: App): INoteEditingSlice;
     createBacklinksSlice(app: App): IBacklinksSlice;
-    createBacklinkBlocksSlice(): IBacklinkBlocksSlice;
-    createBacklinksHeaderSlice(): IBacklinksHeaderSlice;
     createViewIntegrationSlice(app: App): IViewIntegrationSlice;
 }
 
@@ -366,8 +290,6 @@ export interface IPluginOrchestrator extends EventDispatcher {
         navigation: INavigationSlice;
         noteEditing: INoteEditingSlice;
         backlinks: IBacklinksSlice;
-        backlinkBlocks: IBacklinkBlocksSlice;
-        backlinksHeader: IBacklinksHeaderSlice;
         viewIntegration: IViewIntegrationSlice;
     };
 

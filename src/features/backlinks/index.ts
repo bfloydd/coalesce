@@ -1,12 +1,11 @@
 // ============================
-// Backlinks Slice Exports
+// Backlinks Header Components Exports
 // ============================
+// Note: BacklinksHeaderSlice has been consolidated into BacklinksSlice
 
-export { BacklinksSlice } from './BacklinksSlice';
-export { BacklinkDiscoverer } from './BacklinkDiscoverer';
-export { LinkResolver } from './LinkResolver';
-export { BacklinkCache } from './BacklinkCache';
+export { HeaderUI } from './HeaderUI';
+export { FilterControls } from './FilterControls';
+export { SettingsControls } from './SettingsControls';
 
 // Export interfaces for external use
-export type { IBacklinksSlice } from '../shared-contracts/slice-interfaces';
-export type { IBacklinkDiscoverer, ILinkResolver, IBacklinkCache } from './types';
+export type { IHeaderUI, IFilterControls, ISettingsControls } from './types';
