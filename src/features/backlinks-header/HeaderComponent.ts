@@ -4,7 +4,7 @@ import { IconProvider } from '../shared-utilities/IconProvider';
 import { HeaderStyleManager } from '../backlink-blocks/header-styles/HeaderStyleManager';
 import { BlockFinderFactory } from '../backlink-blocks/block-finders/BlockFinderFactory';
 import { HeaderStyleFactory } from '../backlink-blocks/header-styles/HeaderStyleFactory';
-import { ButtonComponent, ExtraButtonComponent } from 'obsidian';
+import { ButtonComponent, ExtraButtonComponent, Menu } from 'obsidian';
 import { SettingsControls } from './SettingsControls';
 
 export class HeaderComponent {
@@ -13,6 +13,16 @@ export class HeaderComponent {
     private observedContainer: HTMLElement | null = null;
     private settingsManager: any = null;
     private settingsControls: SettingsControls;
+
+    // Current state for menu selections
+    private currentHeaderStyleState: string = 'full';
+    private currentStrategyState: string = 'default';
+    private currentThemeState: string = 'default';
+
+    // Change handlers
+    private onHeaderStyleChangeHandler: (style: string) => void = () => {};
+    private onStrategyChangeHandler: (strategy: string) => void = () => {};
+    private onThemeChangeHandler: (theme: string) => void = () => {};
 
     constructor(private logger: Logger, settingsControls: SettingsControls) {
         this.settingsControls = settingsControls;
@@ -59,8 +69,8 @@ export class HeaderComponent {
     }
 
     createHeader(
-        container: HTMLElement, 
-        fileCount: number, 
+        container: HTMLElement,
+        fileCount: number,
         sortDescending: boolean,
         onSortToggle: () => void,
         onCollapseToggle: () => void,
@@ -82,20 +92,47 @@ export class HeaderComponent {
     ): HTMLElement {
         HeaderComponent.currentHeaderStyle = currentHeaderStyle;
 
+        // Initialize current state
+        this.currentHeaderStyleState = currentHeaderStyle;
+        this.currentStrategyState = currentStrategy;
+        this.currentThemeState = currentTheme;
+
+        // Store change handlers
+        this.onHeaderStyleChangeHandler = onHeaderStyleChange;
+        this.onStrategyChangeHandler = onStrategyChange;
+        this.onThemeChangeHandler = onThemeChange;
+
         this.logger.debug("HeaderComponent aliases:", { count: aliases.length, aliases });
 
         const header = container.createDiv({ cls: 'coalesce-backlinks-header' });
 
+        // Create wrapped change handlers that update state
+        const wrappedHeaderStyleChange = (style: string) => {
+            this.currentHeaderStyleState = style;
+            HeaderComponent.currentHeaderStyle = style;
+            this.onHeaderStyleChangeHandler(style);
+        };
+
+        const wrappedStrategyChange = (strategy: string) => {
+            this.currentStrategyState = strategy;
+            this.onStrategyChangeHandler(strategy);
+        };
+
+        const wrappedThemeChange = (theme: string) => {
+            this.currentThemeState = theme;
+            this.onThemeChangeHandler(theme);
+        };
+
         const leftContainer = this.createLeftContainer(aliases, unsavedAliases, currentAlias, onAliasSelect, sortDescending, onSortToggle, isCollapsed, onCollapseToggle, onFilterChange, currentFilter);
         const rightContainer = this.createRightContainer(
-            currentHeaderStyle, 
-            onHeaderStyleChange,
+            currentHeaderStyle,
+            wrappedHeaderStyleChange,
             currentStrategy,
-            onStrategyChange,
+            wrappedStrategyChange,
             currentTheme,
-            onThemeChange
+            wrappedThemeChange
         );
-        
+
         header.appendChild(leftContainer);
         header.appendChild(rightContainer);
 
@@ -530,42 +567,15 @@ export class HeaderComponent {
         // Use IconProvider for the icon
         IconProvider.setIcon(settingsButton, 'settings', { size: 'md' });
 
-        // Create the click handler function for the settings popup
+        // Create the click handler function for the settings menu
         const handleSettingsClick = (e: MouseEvent) => {
             e.stopPropagation(); // Prevent body click from being triggered immediately
-            
-            // Check if there's already a popup open
-            const existingPopup = document.querySelector('.coalesce-settings-popup');
-            if (existingPopup) {
-                // If popup exists and is associated with this button, close it
-                existingPopup.remove();
-                return;
-            }
 
-            // Create settings popup
-            const popup = this.createSettingsPopup(
-                currentHeaderStyle,
-                onHeaderStyleChange,
-                currentStrategy,
-                onStrategyChange,
-                currentTheme,
-                onThemeChange
-            );
+            // Create native Obsidian menu
+            const menu = this.createSettingsMenu();
 
-            // Add the popup to the document body for proper positioning
-            document.body.appendChild(popup);
-            
-            // Get the button element for positioning
-            const buttonRect = settingsButton.getBoundingClientRect();
-            
-            // Position the popup below the button using setCssStyles
-            popup.setCssStyles({
-                top: `${buttonRect.bottom}px`,
-                right: `${window.innerWidth - buttonRect.right}px`
-            });
-            
-            // Close popup when clicking outside
-            this.setupPopupClickOutsideHandler(popup, settingsButton);
+            // Show the menu at the mouse event position
+            menu.showAtMouseEvent(e);
         };
         
         // Add click handler
@@ -574,315 +584,88 @@ export class HeaderComponent {
         return settingsButton;
     }
 
-    private createSettingsPopup(
-        currentHeaderStyle: string,
-        onHeaderStyleChange: (style: string) => void,
-        currentStrategy: string = 'default',
-        onStrategyChange: (strategy: string) => void = () => {},
-        currentTheme: string = 'default',
-        onThemeChange: (theme: string) => void = () => {}
-    ): HTMLElement {
-        // Get current values from settings manager if available
-        const currentHeaderStyleValue = this.settingsManager?.settings?.headerStyle || currentHeaderStyle;
-        const currentStrategyValue = this.settingsManager?.settings?.blockBoundaryStrategy || currentStrategy;
-        const currentThemeValue = this.settingsManager?.settings?.theme || currentTheme;
-        
-        // Create a temporary container to use createDiv
-        const tempContainer = document.createElement('div');
-        const popup = tempContainer.createDiv({ cls: 'coalesce-settings-popup' });
-        
-        // Set position values with custom attributes to be used by CSS via attr()
-        // We use setCssStyles for dynamic positioning as it's more type-safe and readable
-        const settingsButton = document.querySelector('.coalesce-settings-button') as HTMLElement;
-        if (settingsButton) {
-            const buttonRect = settingsButton.getBoundingClientRect();
-            popup.setCssStyles({
-                top: `${buttonRect.bottom}px`,
-                right: `${window.innerWidth - buttonRect.right}px`
-            });
-        }
+    private createSettingsMenu(): Menu {
+        // Create the main menu
+        const menu = new Menu();
 
-        // Add sections to the popup
+        // Add Header section
+        menu.addItem((item) =>
+            item
+                .setTitle('Header Style')
+                .setIcon('heading')
+        );
+        this.addHeaderStyleMenuItems(menu);
 
-        // Add separator after top options
-        const separator1 = popup.createDiv({ cls: 'menu-separator' });
+        menu.addSeparator();
 
-        this.addHeaderStyleSettings(popup, currentHeaderStyleValue, onHeaderStyleChange);
+        // Add Block section
+        menu.addItem((item) =>
+            item
+                .setTitle('Block Strategy')
+                .setIcon('blocks')
+        );
+        this.addBlockStyleMenuItems(menu);
 
-        // Add separator after header style
-        const separator2 = popup.createDiv({ cls: 'menu-separator' });
+        menu.addSeparator();
 
-        // Add block style settings (radio select with checkmarks)
-        this.addBlockStyleSettings(popup, currentStrategyValue, onStrategyChange);
+        // Add Theme section
+        menu.addItem((item) =>
+            item
+                .setTitle('Theme')
+                .setIcon('palette')
+        );
+        this.addThemeMenuItems(menu);
 
-        // Add separator after strategy
-        const separator3 = popup.createDiv({ cls: 'menu-separator' });
-
-        // Add theme settings (radio select with checkmarks)
-        this.addThemeSettings(popup, currentThemeValue, onThemeChange);
-        
-        this.setupPopupClickOutsideHandler(popup, settingsButton);
-
-        return popup;
+        return menu;
     }
 
 
 
 
 
-    private addHeaderStyleSettings(
-        popup: HTMLElement,
-        currentHeaderStyle: string,
-        onHeaderStyleChange: (style: string) => void
-    ): void {
-        // Create a temporary container to use createSvg
-        const tempContainer = document.createElement('div');
-        
-        // Create header style settings header
-        const headerStyleHeader = popup.createDiv({ cls: 'coalesce-settings-item coalesce-settings-header' });
-        
-        // Add header icon
-        const headerIcon = tempContainer.createSvg('svg', {
-            cls: 'coalesce-setting-item-icon',
-            attr: {
-                viewBox: '0 0 24 24',
-                width: '16',
-                height: '16'
-            }
-        });
-        
-        const iconPath = tempContainer.createSvg('path', {
-            attr: {
-                fill: 'currentColor',
-                d: 'M3 7h6v6H3V7m0 10h6v-2H3v2m8 0h10v-2H11v2m0-4h10v-2H11v2m0-4h10V7H11v2z'
-            }
-        });
-        
-        headerIcon.appendChild(iconPath);
-        
-        headerStyleHeader.appendChild(headerIcon);
-        
-        const headerText = headerStyleHeader.createSpan({ text: 'Header' });
-        
-        popup.appendChild(headerStyleHeader);
 
-        // Add header style options
-        this.addHeaderStyleOptions(popup, currentHeaderStyle, onHeaderStyleChange);
-    }
-
-    private addHeaderStyleOptions(
-        popup: HTMLElement,
-        currentHeaderStyle: string,
-        onHeaderStyleChange: (style: string) => void
-    ): void {
-        // Create a temporary container to use createSvg
-        const tempContainer = document.createElement('div');
-        
+    private addHeaderStyleMenuItems(menu: Menu): void {
         // Get available header styles dynamically from HeaderStyleFactory
         const validStyles = HeaderStyleFactory.getValidStyles();
         const styleLabels = HeaderStyleFactory.getStyleLabels();
-        
+
         validStyles.forEach(style => {
-            const item = popup.createDiv({ cls: 'coalesce-settings-item coalesce-settings-submenu-item' });
-            item.setAttribute('data-style', style);
-            
-            // Add label
-            const itemLabel = item.createSpan({ cls: 'coalesce-setting-item-label', text: styleLabels[style] || style });
-            
-            // Add checkmark container
-            const checkContainer = item.createDiv({ cls: 'coalesce-checkmark-container' });
-            if (style === currentHeaderStyle) {
-                checkContainer.classList.add('is-checked');
-            }
-            
-            // Add checkmark
-            const checkElement = tempContainer.createSvg('svg', {
-                cls: 'coalesce-checkmark',
-                attr: {
-                    viewBox: '0 0 24 24'
-                }
-            });
-            
-            const checkPath = tempContainer.createSvg('path', {
-                attr: {
-                    fill: 'currentColor',
-                    d: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z'
-                }
-            });
-            
-            checkElement.appendChild(checkPath);
-            checkContainer.appendChild(checkElement);
-            
-            item.appendChild(itemLabel);
-            item.appendChild(checkContainer);
-            
-            item.addEventListener('click', () => {
-                // Update all checkmarks in this section
-                popup.querySelectorAll('.coalesce-settings-item[data-style]').forEach(el => {
-                    (el as HTMLElement).querySelector('.coalesce-checkmark-container')?.classList.remove('is-checked');
-                });
-                checkContainer.classList.add('is-checked');
-                
-                // Set our internal tracking of current style
-                HeaderComponent.currentHeaderStyle = style;
-                
-                // Call the change handler with the new style
-                onHeaderStyleChange(style);
-                
-                // Close the popup after a brief delay so user can see the checkmark change
-                setTimeout(() => popup.remove(), 150);
-            });
-
-            popup.appendChild(item);
+            const isSelected = style === this.currentHeaderStyleState;
+            menu.addItem((item) =>
+                item
+                    .setTitle(styleLabels[style] || style)
+                    .setIcon(isSelected ? 'check-circle' : 'circle')
+                    .onClick(() => {
+                        // Update stored state and call change handler
+                        this.currentHeaderStyleState = style;
+                        HeaderComponent.currentHeaderStyle = style;
+                        this.onHeaderStyleChangeHandler(style);
+                    })
+            );
         });
     }
 
-    private setupPopupClickOutsideHandler(popup: HTMLElement, settingsButton: HTMLElement): void {
-        const closePopup = (e: MouseEvent) => {
-            const target = e.target as HTMLElement;
-            
-            // Add null checks to prevent errors
-            if (!target || !popup || !settingsButton) {
-                return;
-            }
-            
-            // Only close if clicking outside both popup and settings button
-            if (!popup.contains(target) && target !== settingsButton && !settingsButton.contains(target)) {
-                document.removeEventListener('click', closePopup);
-                popup.remove();
-            }
-        };
-        
-        // Use setTimeout to avoid closing immediately due to the click that opened it
-        window.setTimeout(() => {
-            document.addEventListener('click', closePopup);
-        }, 10);
-    }
-
-    /**
-     * Adds block style settings section to the popup
-     */
-    private addBlockStyleSettings(
-        popup: HTMLElement,
-        currentStrategy: string,
-        onStrategyChange: (strategy: string) => void
-    ): void {
-        // Create a temporary container to use createSvg
-        const tempContainer = document.createElement('div');
-        
-        // Add settings header
-        const header = popup.createDiv({ cls: 'coalesce-settings-item coalesce-settings-header' });
-        
-        // Add header icon
-        const headerIcon = tempContainer.createSvg('svg', {
-            cls: 'coalesce-setting-item-icon',
-            attr: {
-                viewBox: '0 0 24 24',
-                width: '16',
-                height: '16'
-            }
-        });
-        
-        const iconPath = tempContainer.createSvg('path', {
-            attr: {
-                fill: 'currentColor',
-                d: 'M3 5h18v4H3V5m0 10h18v4H3v-4z'
-            }
-        });
-        
-        headerIcon.appendChild(iconPath);
-        
-        const headerText = header.createSpan({ text: 'Block' });
-        
-        popup.appendChild(header);
-        
+    private addBlockStyleMenuItems(menu: Menu): void {
         // Get available block styles dynamically from BlockFinderFactory
         const validStrategies = BlockFinderFactory.getValidStrategies();
         const strategyLabels = BlockFinderFactory.getStrategyLabels();
-        
-        // Add each block style option
+
         validStrategies.forEach(strategyId => {
-            const item = popup.createDiv({ cls: 'coalesce-settings-item coalesce-settings-submenu-item' });
-            item.setAttribute('data-strategy', strategyId);
-            
-            const label = item.createSpan({ cls: 'coalesce-setting-item-label', text: strategyLabels[strategyId] || strategyId });
-            
-            const checkContainer = item.createDiv({ cls: 'coalesce-checkmark-container' });
-            if (currentStrategy === strategyId) {
-                checkContainer.classList.add('is-checked');
-            }
-            
-            const check = tempContainer.createSvg('svg', {
-                cls: 'coalesce-checkmark',
-                attr: {
-                    viewBox: '0 0 24 24'
-                }
-            });
-            
-            const checkPath = tempContainer.createSvg('path', {
-                attr: {
-                    fill: 'currentColor',
-                    d: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z'
-                }
-            });
-            
-            check.appendChild(checkPath);
-            checkContainer.appendChild(check);
-            item.appendChild(label);
-            item.appendChild(checkContainer);
-            
-            item.addEventListener('click', () => {
-                popup.querySelectorAll('.coalesce-settings-item[data-strategy]').forEach(el => {
-                    (el as HTMLElement).querySelector('.coalesce-checkmark-container')?.classList.remove('is-checked');
-                });
-                checkContainer.classList.add('is-checked');
-                onStrategyChange(strategyId);
-                
-                // Close the popup after a brief delay so user can see the checkmark change
-                setTimeout(() => popup.remove(), 150);
-            });
-            
-            popup.appendChild(item);
+            const isSelected = strategyId === this.currentStrategyState;
+            menu.addItem((item) =>
+                item
+                    .setTitle(strategyLabels[strategyId] || strategyId)
+                    .setIcon(isSelected ? 'check-circle' : 'circle')
+                    .onClick(() => {
+                        // Update stored state and call change handler
+                        this.currentStrategyState = strategyId;
+                        this.onStrategyChangeHandler(strategyId);
+                    })
+            );
         });
     }
-    
-    /**
-     * Adds theme settings section to the popup
-     */
-    private addThemeSettings(
-        popup: HTMLElement,
-        currentTheme: string,
-        onThemeChange: (theme: string) => void
-    ): void {
-        // Create a temporary container to use createSvg
-        const tempContainer = document.createElement('div');
-        
-        // Add settings header
-        const header = popup.createDiv({ cls: 'coalesce-settings-item coalesce-settings-header' });
-        
-        // Add header icon
-        const headerIcon = tempContainer.createSvg('svg', {
-            cls: 'coalesce-setting-item-icon',
-            attr: {
-                viewBox: '0 0 24 24',
-                width: '16',
-                height: '16'
-            }
-        });
-        
-        const iconPath = tempContainer.createSvg('path', {
-            attr: {
-                fill: 'currentColor',
-                d: 'M17.5,12A1.5,1.5 0 0,1 16,10.5A1.5,1.5 0 0,1 17.5,9A1.5,1.5 0 0,1 19,10.5A1.5,1.5 0 0,1 17.5,12M14.5,8A1.5,1.5 0 0,1 13,6.5A1.5,1.5 0 0,1 14.5,5A1.5,1.5 0 0,1 16,6.5A1.5,1.5 0 0,1 14.5,8M9.5,8A1.5,1.5 0 0,1 8,6.5A1.5,1.5 0 0,1 9.5,5A1.5,1.5 0 0,1 11,6.5A1.5,1.5 0 0,1 9.5,8M6.5,12A1.5,1.5 0 0,1 5,10.5A1.5,1.5 0 0,1 6.5,9A1.5,1.5 0 0,1 8,10.5A1.5,1.5 0 0,1 6.5,12M12,3A9,9 0 0,0 3,12A9,9 0 0,0 12,21A9,9 0 0,0 21,12A9,9 0 0,0 12,3Z'
-            }
-        });
-        
-        headerIcon.appendChild(iconPath);
-        
-        const headerText = header.createSpan({ text: 'Theme' });
-        
-        popup.appendChild(header);
-        
+
+    private addThemeMenuItems(menu: Menu): void {
         // Define themes
         const themes = [
             { id: 'default', label: 'Default' },
@@ -890,50 +673,21 @@ export class HeaderComponent {
             { id: 'compact', label: 'Compact' },
             { id: 'naked', label: 'Naked' }
         ];
-        
-        // Add each theme option
+
         themes.forEach(theme => {
-            const item = popup.createDiv({ cls: 'coalesce-settings-item coalesce-settings-submenu-item' });
-            item.setAttribute('data-theme', theme.id);
-            
-            const label = item.createSpan({ cls: 'coalesce-setting-item-label', text: theme.label });
-            
-            const checkContainer = item.createDiv({ cls: 'coalesce-checkmark-container' });
-            if (currentTheme === theme.id) {
-                checkContainer.classList.add('is-checked');
-            }
-            
-            const check = tempContainer.createSvg('svg', {
-                cls: 'coalesce-checkmark',
-                attr: {
-                    viewBox: '0 0 24 24'
-                }
-            });
-            
-            const checkPath = tempContainer.createSvg('path', {
-                attr: {
-                    fill: 'currentColor',
-                    d: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z'
-                }
-            });
-            
-            check.appendChild(checkPath);
-            checkContainer.appendChild(check);
-            item.appendChild(label);
-            item.appendChild(checkContainer);
-            
-            item.addEventListener('click', () => {
-                popup.querySelectorAll('.coalesce-settings-item[data-theme]').forEach(el => {
-                    (el as HTMLElement).querySelector('.coalesce-checkmark-container')?.classList.remove('is-checked');
-                });
-                checkContainer.classList.add('is-checked');
-                onThemeChange(theme.id);
-                
-                // Close the popup after a brief delay so user can see the checkmark change
-                setTimeout(() => popup.remove(), 150);
-            });
-            
-            popup.appendChild(item);
+            const isSelected = theme.id === this.currentThemeState;
+            menu.addItem((item) =>
+                item
+                    .setTitle(theme.label)
+                    .setIcon(isSelected ? 'check-circle' : 'circle')
+                    .onClick(() => {
+                        // Update stored state and call change handler
+                        this.currentThemeState = theme.id;
+                        this.onThemeChangeHandler(theme.id);
+                    })
+            );
         });
     }
+
+
 }

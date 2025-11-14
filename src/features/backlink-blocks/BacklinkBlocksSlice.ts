@@ -24,6 +24,7 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
     private renderOptions: BlockRenderOptions;
     // Persist context so header actions (e.g., Block strategy change) can re-render correctly
     private lastRenderContext?: { filePaths: string[]; currentNoteName: string; container: HTMLElement; view: MarkdownView };
+    private currentTheme: string = 'default';
 
     constructor(app: App, renderOptions?: Partial<BlockRenderOptions>, initialCollapsed: boolean = false) {
         this.app = app;
@@ -117,7 +118,10 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
                 undefined, // headingPopupComponent - can be added later if needed
                 this.lastRenderContext.view
             );
-            
+
+            // Apply the current theme to the container
+            this.applyThemeToContainer(this.currentTheme);
+
             // Emit event
             this.emitEvent({
                 type: 'blocks:rendered',
@@ -513,26 +517,35 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
         this.logger.debug('Handling theme change', { theme });
 
         try {
-            // Apply theme to the container if we have a render context
-            if (this.lastRenderContext) {
-                const { container } = this.lastRenderContext as any;
-
-                // Remove existing theme classes
-                container.classList.forEach((className: string) => {
-                    if (className.startsWith('theme-')) {
-                        container.classList.remove(className);
-                    }
-                });
-
-                // Add new theme class
-                container.classList.add(`theme-${theme}`);
-
-                this.logger.debug('Applied theme to container', { theme, container });
-            } else {
-                this.logger.debug('No render context available yet; theme stored for next render', { theme });
-            }
+            // Store the current theme
+            this.currentTheme = theme;
+            // Apply theme to the current container
+            this.applyThemeToContainer(theme);
         } catch (error) {
             this.logger.error('Failed to handle theme change', { theme, error });
+        }
+    }
+
+    /**
+     * Apply theme to the container
+     */
+    private applyThemeToContainer(theme: string): void {
+        if (this.lastRenderContext) {
+            const { container } = this.lastRenderContext as any;
+
+            // Remove existing theme classes
+            container.classList.forEach((className: string) => {
+                if (className.startsWith('theme-')) {
+                    container.classList.remove(className);
+                }
+            });
+
+            // Add new theme class
+            container.classList.add(`theme-${theme}`);
+
+            this.logger.debug('Applied theme to container', { theme, container });
+        } else {
+            this.logger.debug('No render context available yet; theme stored for next render', { theme });
         }
     }
 
@@ -596,13 +609,23 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
     }
 
     /**
+     * Set the current theme
+     */
+    setCurrentTheme(theme: string): void {
+        this.logger.debug('Setting current theme', { theme });
+        this.currentTheme = theme;
+        // Apply theme to current container if it exists
+        this.applyThemeToContainer(theme);
+    }
+
+    /**
      * Update render options
      */
     updateRenderOptions(options: Partial<BlockRenderOptions>): void {
         this.logger.debug('Updating render options', { options });
-        
+
         this.renderOptions = { ...this.renderOptions, ...options };
-        
+
         this.logger.debug('Render options updated successfully', { options: this.renderOptions });
     }
 

@@ -294,7 +294,7 @@ export default class CoalescePlugin extends Plugin {
 						    sortDescending: settings.sortDescending,
 						    isCollapsed: currentCollapsed,
 						    currentStrategy: 'default',
-						    currentTheme: 'default',
+						    currentTheme: settings.theme || 'default',
 						    showFullPathTitle: false,
 						    aliases: fileAliases,
 						    currentAlias: null,
@@ -304,7 +304,11 @@ export default class CoalescePlugin extends Plugin {
 						    onSortToggle: () => (backlinksHeader as any)?.handleSortToggle?.(),
 						    onCollapseToggle: () => (backlinksHeader as any)?.handleCollapseToggle?.(),
 						    onStrategyChange: (strategy: string) => (backlinksHeader as any)?.handleStrategyChange?.(strategy),
-						    onThemeChange: (theme: string) => (backlinksHeader as any)?.handleThemeChange?.(theme),
+						    onThemeChange: (theme: string) => {
+						        (backlinksHeader as any)?.handleThemeChange?.(theme);
+						        // Save theme to settings
+						        settingsSlice?.updateSettings?.({ theme });
+						    },
 						    onFullPathTitleChange: (show: boolean) => (backlinksHeader as any)?.updateHeaderState?.({ showFullPathTitle: show }),
 						    onAliasSelect: (alias: string | null) => (backlinksHeader as any)?.handleAliasSelection?.(alias),
 						    onHeaderStyleChange: (style: string) => (backlinksHeader as any)?.updateHeaderState?.({ currentHeaderStyle: style }),
@@ -315,6 +319,9 @@ export default class CoalescePlugin extends Plugin {
 						if (headerElement) {
 							container.appendChild(headerElement);
 						}
+
+						// Set initial theme on backlink blocks slice
+						(backlinkBlocks as any)?.setCurrentTheme?.(settings.theme || 'default');
 
 						// Create blocks container
 						const blocksContainer = document.createElement('div');
