@@ -1,5 +1,6 @@
-import { MarkdownRenderer, MarkdownView, TFile, setIcon } from 'obsidian';
+import { MarkdownRenderer, MarkdownView, TFile } from 'obsidian';
 import { Logger } from '../shared-utilities/Logger';
+import { IconProvider } from '../shared-utilities/IconProvider';
 import { HeaderStyleFactory } from './header-styles/HeaderStyleFactory';
 import { AbstractHeaderStyle } from './header-styles/base/AbstractHeaderStyle';
 import { HeadingPopupComponent } from '../note-editing/HeadingPopupComponent';
@@ -126,7 +127,7 @@ export class BlockComponent {
                     'aria-label': 'Open note'
                 }
             });
-            setIcon(linkIcon, 'external-link');
+            IconProvider.setIcon(linkIcon, 'external-link', { size: 'sm' });
             linkIcon.addEventListener('click', (event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -352,7 +353,7 @@ export class BlockComponent {
                 'aria-label': 'Open note'
             }
         });
-        setIcon(linkIcon, 'external-link');
+        IconProvider.setIcon(linkIcon, 'external-link', { size: 'sm' });
         linkIcon.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();

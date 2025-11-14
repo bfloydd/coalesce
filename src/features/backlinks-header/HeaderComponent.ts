@@ -1,9 +1,10 @@
 import { ThemeManager } from '../settings/ThemeManager';
 import { Logger } from '../shared-utilities/Logger';
+import { IconProvider } from '../shared-utilities/IconProvider';
 import { HeaderStyleManager } from '../backlink-blocks/header-styles/HeaderStyleManager';
 import { BlockFinderFactory } from '../backlink-blocks/block-finders/BlockFinderFactory';
 import { HeaderStyleFactory } from '../backlink-blocks/header-styles/HeaderStyleFactory';
-import { setIcon, ButtonComponent, ExtraButtonComponent } from 'obsidian';
+import { ButtonComponent, ExtraButtonComponent } from 'obsidian';
 
 export class HeaderComponent {
     private static currentHeaderStyle: string = HeaderStyleFactory.getValidStyles()[0];
@@ -323,15 +324,18 @@ export class HeaderComponent {
         const tempContainer = document.createElement('div');
         const sortButton = tempContainer.createEl('button', {
             cls: 'coalesce-sort-button',
-            attr: { 
-                'aria-label': sortDescending ? 'Sort ascending' : 'Sort descending',
+            attr: {
+                'aria-label': sortDescending ? 'Descending' : 'Ascending',
                 'type': 'button'
             }
         });
-        
-        // Use Obsidian's setIcon for the icon
-        setIcon(sortButton, 'arrow-up-down');
-        
+
+        // Add text content
+        sortButton.textContent = sortDescending ? 'Descending' : 'Ascending';
+
+        // Use IconProvider for the icon (add after text)
+        IconProvider.setIcon(sortButton, 'sort', { size: 'md' });
+
         // Add classes for custom rotation based on state
         const svg = sortButton.querySelector('svg');
         if (svg) {
@@ -339,14 +343,14 @@ export class HeaderComponent {
                 svg.classList.add('sort-descending');
                 svg.classList.remove('sort-ascending');
             } else {
-                svg.classList.add('sort-ascending'); 
+                svg.classList.add('sort-ascending');
                 svg.classList.remove('sort-descending');
             }
         }
-        
+
         // Add click handler
         sortButton.addEventListener('click', onSortToggle);
-        
+
         return sortButton;
     }
 
@@ -361,8 +365,8 @@ export class HeaderComponent {
             }
         });
         
-        // Use Obsidian's setIcon for the icon
-        setIcon(collapseButton, 'chevron-down');
+        // Use IconProvider for the icon
+        IconProvider.setIcon(collapseButton, 'chevronDown', { size: 'md' });
         
         // Add classes for custom rotation based on state
         const svg = collapseButton.querySelector('svg');
@@ -519,8 +523,8 @@ export class HeaderComponent {
             }
         });
         
-        // Use Obsidian's setIcon for the icon
-        setIcon(settingsButton, 'more-horizontal');
+        // Use IconProvider for the icon
+        IconProvider.setIcon(settingsButton, 'settings', { size: 'md' });
 
         // Create the click handler function for the settings popup
         const handleSettingsClick = (e: MouseEvent) => {

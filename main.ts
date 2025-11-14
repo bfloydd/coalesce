@@ -286,12 +286,12 @@ export default class CoalescePlugin extends Plugin {
 						const sortByPath = true;
 
 						// Update header slice with correct sort state
-						(backlinksHeader as any)?.setInitialSortState?.(sortByPath, settings.sortDescending || true);
+						(backlinksHeader as any)?.setInitialSortState?.(sortByPath, settings.sortDescending);
 
 						// Create header with full callback wiring so controls work (including Block selector)
 						const headerElement = (backlinksHeader as any)?.createHeader?.(container, {
 						    fileCount: backlinkFiles.length,
-						    sortDescending: settings.sortDescending || true,
+						    sortDescending: settings.sortDescending,
 						    isCollapsed: currentCollapsed,
 						    currentStrategy: 'default',
 						    currentTheme: 'default',
@@ -325,7 +325,7 @@ export default class CoalescePlugin extends Plugin {
 						(backlinkBlocks as any)?.updateRenderOptions?.({
 							collapsed: currentCollapsed,
 							sortByPath: sortByPath,
-							sortDescending: settings.sortDescending || true
+							sortDescending: settings.sortDescending
 						});
 
 						// Extract and render blocks

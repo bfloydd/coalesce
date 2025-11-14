@@ -72,7 +72,7 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
                 view: view || (this.app.workspace.getActiveViewOfType(MarkdownView) as MarkdownView)
             };
 
-            const allBlocks: BlockData[] = [];
+            let allBlocks: BlockData[] = [];
             
             // Extract blocks from each file
             for (const filePath of filePaths) {
@@ -104,7 +104,7 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
 
             // Sort blocks if requested
             if (this.renderOptions.sortByPath) {
-                this.sortBlocks(allBlocks, { by: 'path', descending: this.renderOptions.sortDescending });
+                allBlocks = this.sortBlocks(allBlocks, { by: 'path', descending: this.renderOptions.sortDescending });
             }
             
             // Render blocks
@@ -423,12 +423,16 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
 
         const blockContainers = Array.from(linksContainer.querySelectorAll('.coalesce-backlink-item'));
 
-        // Sort blocks by their file path (stored in data-path attribute)
+        // Sort blocks by their filename only (stored in data-path attribute)
         blockContainers.sort((a, b) => {
             const pathA = (a as HTMLElement).getAttribute('data-path') || '';
             const pathB = (b as HTMLElement).getAttribute('data-path') || '';
 
-            const comparison = pathA.localeCompare(pathB);
+            // Extract filename from path
+            const fileNameA = pathA.split('/').pop() || '';
+            const fileNameB = pathB.split('/').pop() || '';
+
+            const comparison = fileNameA.localeCompare(fileNameB);
             return descending ? -comparison : comparison;
         });
 
@@ -582,13 +586,16 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
      */
     sortBlocks(blocks: any[], sort: { by?: string; descending: boolean }): any[] {
         this.logger.debug('Sorting blocks', { blockCount: blocks.length, sort });
-        
+
         const sortedBlocks = [...blocks].sort((a, b) => {
             let comparison = 0;
-            
+
             switch (sort.by) {
                 case 'path':
-                    comparison = a.sourcePath?.localeCompare(b.sourcePath) || 0;
+                    // Sort by filename only, not full path
+                    const fileNameA = a.sourcePath?.split('/').pop() || '';
+                    const fileNameB = b.sourcePath?.split('/').pop() || '';
+                    comparison = fileNameA.localeCompare(fileNameB);
                     break;
                 case 'heading':
                     comparison = (a.heading || '').localeCompare(b.heading || '');
@@ -596,10 +603,10 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
                 default:
                     comparison = 0;
             }
-            
+
             return sort.descending ? -comparison : comparison;
         });
-        
+
         this.logger.debug('Blocks sorted successfully');
         return sortedBlocks;
     }

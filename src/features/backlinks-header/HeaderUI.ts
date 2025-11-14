@@ -1,5 +1,6 @@
 import { App } from 'obsidian';
 import { Logger } from '../shared-utilities/Logger';
+import { IconProvider } from '../shared-utilities/IconProvider';
 import { IHeaderUI, HeaderCreateOptions, HeaderState, HeaderStatistics } from './types';
 import { HeaderComponent } from './HeaderComponent';
 
@@ -196,15 +197,23 @@ export class HeaderUI implements IHeaderUI {
      */
     private updateSortButtonState(header: HTMLElement, sortDescending: boolean): void {
         try {
-            const sortButton = header.querySelector('.coalesce-sort-button svg') as SVGElement;
+            const sortButton = header.querySelector('.coalesce-sort-button') as HTMLElement;
             if (sortButton) {
-                if (sortDescending) {
-                    sortButton.classList.remove('sort-ascending');
-                    sortButton.classList.add('sort-descending');
-                } else {
-                    sortButton.classList.remove('sort-descending');
-                    sortButton.classList.add('sort-ascending');
+                // Update button text
+                const textNode = Array.from(sortButton.childNodes).find(node =>
+                    node.nodeType === Node.TEXT_NODE
+                );
+                if (textNode) {
+                    textNode.textContent = sortDescending ? 'Descending' : 'Ascending';
                 }
+
+                // Update aria-label
+                sortButton.setAttribute('aria-label', sortDescending ? 'Descending' : 'Ascending');
+
+                // Update SVG icon classes using IconProvider
+                const classesToAdd = sortDescending ? ['sort-descending'] : ['sort-ascending'];
+                const classesToRemove = sortDescending ? ['sort-ascending'] : ['sort-descending'];
+                IconProvider.updateIconClasses(sortButton, classesToAdd, classesToRemove);
             }
         } catch (error) {
             this.logger.error('Failed to update sort button state', { header, sortDescending, error });
@@ -216,13 +225,11 @@ export class HeaderUI implements IHeaderUI {
      */
     private updateCollapseButtonState(header: HTMLElement, isCollapsed: boolean): void {
         try {
-            const collapseButton = header.querySelector('.coalesce-collapse-button svg') as SVGElement;
+            const collapseButton = header.querySelector('.coalesce-collapse-button') as HTMLElement;
             if (collapseButton) {
-                if (isCollapsed) {
-                    collapseButton.classList.add('is-collapsed');
-                } else {
-                    collapseButton.classList.remove('is-collapsed');
-                }
+                const classesToAdd = isCollapsed ? ['is-collapsed'] : [];
+                const classesToRemove = isCollapsed ? [] : ['is-collapsed'];
+                IconProvider.updateIconClasses(collapseButton, classesToAdd, classesToRemove);
             }
         } catch (error) {
             this.logger.error('Failed to update collapse button state', { header, isCollapsed, error });

@@ -144,6 +144,13 @@
     border-radius: var(--coalesce-radius-sm);
 }
 
+.coalesce-sort-button {
+    gap: 4px;
+    font-size: var(--font-ui-smaller);
+    font-weight: 500;
+    padding: var(--coalesce-spacing-sm) var(--coalesce-spacing-md);
+}
+
 .coalesce-sort-button:hover, .coalesce-collapse-button:hover, .coalesce-settings-button:hover {
     background-color: var(--background-modifier-hover);
     color: var(--text-normal);

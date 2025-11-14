@@ -243,12 +243,12 @@ export class BacklinksHeaderSlice implements IBacklinksHeaderSlice {
      * Set initial sort state from settings
      */
     setInitialSortState(sortByPath: boolean, sortDescending: boolean): void {
-        this.logger.debug('Setting initial sort state', { sortByPath, sortDescending });
-        this.currentState.sortByPath = true; // Always enable sorting
-        this.currentState.sortDescending = sortDescending;
-
-        // Update sort mode based on the direction
-        this.sortMode = sortDescending ? 'descending' : 'ascending';
+    	this.logger.debug('Setting initial sort state', { sortByPath, sortDescending });
+    	this.currentState.sortByPath = true; // Always enable sorting
+    	this.currentState.sortDescending = sortDescending;
+   
+    	// Update sort mode based on the direction
+    	this.sortMode = sortDescending ? 'descending' : 'ascending';
     }
 
     /**
