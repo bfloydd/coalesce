@@ -548,6 +548,13 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                     handler: 'handleAliasSelection',
                     enabled: true
                 },
+                {
+                    source: 'backlinksHeader',
+                    target: 'backlinkBlocks',
+                    eventType: 'header:headerStyleChanged',
+                    handler: 'handleHeaderStyleChange',
+                    enabled: true
+                },
                 // Navigation events
                 {
                     source: 'backlinkBlocks',

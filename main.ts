@@ -301,7 +301,7 @@ export default class CoalescePlugin extends Plugin {
 						    },
 						    onFullPathTitleChange: (show: boolean) => backlinksHeader?.updateHeaderState?.({ showFullPathTitle: show }),
 						    onAliasSelect: (alias: string | null) => backlinksHeader?.handleAliasSelection?.(alias),
-						    onHeaderStyleChange: (style: string) => backlinksHeader?.updateHeaderState?.({ currentHeaderStyle: style }),
+						    onHeaderStyleChange: (style: string) => backlinksHeader?.handleHeaderStyleChange?.(style),
 						    onFilterChange: (filterText: string) => backlinksHeader?.handleFilterChange?.(filterText),
 						    onSettingsClick: () => backlinksHeader?.handleSettingsClick?.()
 						});
@@ -528,7 +528,7 @@ export default class CoalescePlugin extends Plugin {
 						    },
 						    onFullPathTitleChange: (show: boolean) => (backlinksHeader as any)?.updateHeaderState?.({ showFullPathTitle: show }),
 						    onAliasSelect: (alias: string | null) => (backlinksHeader as any)?.handleAliasSelection?.(alias),
-						    onHeaderStyleChange: (style: string) => (backlinksHeader as any)?.updateHeaderState?.({ currentHeaderStyle: style }),
+						    onHeaderStyleChange: (style: string) => (backlinksHeader as any)?.handleHeaderStyleChange?.(style),
 						    onFilterChange: (filterText: string) => (backlinksHeader as any)?.handleFilterChange?.(filterText),
 						    onSettingsClick: () => (backlinksHeader as any)?.handleSettingsClick?.()
 						});

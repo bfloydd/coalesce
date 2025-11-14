@@ -125,6 +125,19 @@ export interface HeaderCollapseToggledEvent {
     };
 }
 
+/**
+ * Emitted when header style changes
+ * Payload: styleId (string)
+ * Emitted by: BacklinksHeader slice
+ * Consumed by: BacklinkBlocks
+ */
+export interface HeaderHeaderStyleChangedEvent {
+    type: 'header:headerStyleChanged';
+    payload: {
+        styleId: string;
+    };
+}
+
 // ============================
 // Navigation Events
 // ============================
@@ -174,6 +187,7 @@ export type CoalesceEvent =
     | HeaderThemeChangedEvent
     | HeaderAliasSelectedEvent
     | HeaderCollapseToggledEvent
+    | HeaderHeaderStyleChangedEvent
     | NavigationOpenEvent
     | NoteEditingHeadingAddedEvent;
 

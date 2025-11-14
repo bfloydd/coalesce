@@ -527,6 +527,25 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
     }
 
     /**
+     * Handle header style change event from BacklinksHeader slice
+     * Updates the block title display style.
+     */
+    public handleHeaderStyleChange(payload: { styleId: string }): void {
+        const style = payload?.styleId || 'full';
+        this.logger.debug('Handling header style change', { style });
+
+        try {
+            // Update render options
+            this.renderOptions.headerStyle = style;
+
+            // Update block title display
+            this.updateBlockTitleDisplay(style);
+        } catch (error) {
+            this.logger.error('Failed to handle header style change', { style, error });
+        }
+    }
+
+    /**
      * Apply theme to the container
      */
     private applyThemeToContainer(theme: string): void {

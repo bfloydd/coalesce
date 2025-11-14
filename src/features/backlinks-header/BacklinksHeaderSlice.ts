@@ -58,7 +58,8 @@ export class BacklinksHeaderSlice implements IBacklinksHeaderSlice {
             totalStrategyChanges: 0,
             totalThemeChanges: 0,
             totalAliasSelections: 0,
-            totalSettingsClicks: 0
+            totalSettingsClicks: 0,
+            totalHeaderStyleChanges: 0
         };
         
         this.logger.debug('BacklinksHeaderSlice initialized');
@@ -319,15 +320,15 @@ export class BacklinksHeaderSlice implements IBacklinksHeaderSlice {
      */
     handleThemeChange(theme: string): void {
         this.logger.debug('Handling theme change', { theme });
-        
+
         try {
             // Update statistics
             this.statistics.totalThemeChanges++;
             this.statistics.lastThemeChange = new Date();
-            
+
             // Update current state
             this.currentState.currentTheme = theme;
-            
+
             // Emit event
             this.emitEvent({
                 type: 'header:themeChanged',
@@ -335,10 +336,38 @@ export class BacklinksHeaderSlice implements IBacklinksHeaderSlice {
                     themeId: theme
                 }
             });
-            
+
             this.logger.debug('Theme change handled successfully', { theme });
         } catch (error) {
             this.logger.error('Failed to handle theme change', { theme, error });
+        }
+    }
+
+    /**
+     * Handle header style change
+     */
+    handleHeaderStyleChange(style: string): void {
+        this.logger.debug('Handling header style change', { style });
+
+        try {
+            // Update statistics
+            this.statistics.totalHeaderStyleChanges++;
+            this.statistics.lastHeaderStyleChange = new Date();
+
+            // Update current state
+            this.currentState.currentHeaderStyle = style;
+
+            // Emit event
+            this.emitEvent({
+                type: 'header:headerStyleChanged',
+                payload: {
+                    styleId: style
+                }
+            });
+
+            this.logger.debug('Header style change handled successfully', { style });
+        } catch (error) {
+            this.logger.error('Failed to handle header style change', { style, error });
         }
     }
 
@@ -583,7 +612,8 @@ export class BacklinksHeaderSlice implements IBacklinksHeaderSlice {
                 totalStrategyChanges: 0,
                 totalThemeChanges: 0,
                 totalAliasSelections: 0,
-                totalSettingsClicks: 0
+                totalSettingsClicks: 0,
+                totalHeaderStyleChanges: 0
             };
             
             this.logger.debug('BacklinksHeaderSlice cleanup completed');

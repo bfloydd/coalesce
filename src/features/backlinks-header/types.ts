@@ -224,6 +224,7 @@ export interface HeaderStatistics {
     totalThemeChanges: number;
     totalAliasSelections: number;
     totalSettingsClicks: number;
+    totalHeaderStyleChanges: number;
     lastFilterChange?: Date;
     lastSortToggle?: Date;
     lastCollapseToggle?: Date;
@@ -231,6 +232,7 @@ export interface HeaderStatistics {
     lastThemeChange?: Date;
     lastAliasSelection?: Date;
     lastSettingsClick?: Date;
+    lastHeaderStyleChange?: Date;
 }
 
 // ============================

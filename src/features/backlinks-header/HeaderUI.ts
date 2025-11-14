@@ -32,7 +32,8 @@ export class HeaderUI implements IHeaderUI {
             totalStrategyChanges: 0,
             totalThemeChanges: 0,
             totalAliasSelections: 0,
-            totalSettingsClicks: 0
+            totalSettingsClicks: 0,
+            totalHeaderStyleChanges: 0
         };
         
         this.logger.debug('HeaderUI initialized');
@@ -278,7 +279,8 @@ export class HeaderUI implements IHeaderUI {
             totalStrategyChanges: 0,
             totalThemeChanges: 0,
             totalAliasSelections: 0,
-            totalSettingsClicks: 0
+            totalSettingsClicks: 0,
+            totalHeaderStyleChanges: 0
         };
         
         this.logger.debug('Statistics reset successfully');
