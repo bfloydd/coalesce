@@ -3,6 +3,7 @@ import { Logger } from '../shared-utilities/Logger';
 import { IconProvider } from '../shared-utilities/IconProvider';
 import { IHeaderUI, HeaderCreateOptions, HeaderState, HeaderStatistics } from './types';
 import { HeaderComponent } from './HeaderComponent';
+import { SettingsControls } from './SettingsControls';
 
 /**
  * Header UI for Backlinks Header Slice
@@ -18,10 +19,10 @@ export class HeaderUI implements IHeaderUI {
     private resizeObserver: ResizeObserver | null = null;
     private observedContainer: HTMLElement | null = null;
 
-    constructor(app: App, logger: Logger) {
+    constructor(app: App, logger: Logger, settingsControls: SettingsControls) {
         this.app = app;
         this.logger = logger.child('HeaderUI');
-        this.headerComponent = new HeaderComponent(this.logger as any);
+        this.headerComponent = new HeaderComponent(this.logger as any, settingsControls);
         
         this.statistics = {
             totalHeadersCreated: 0,

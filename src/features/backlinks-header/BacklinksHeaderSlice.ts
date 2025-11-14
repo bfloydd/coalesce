@@ -30,9 +30,9 @@ export class BacklinksHeaderSlice implements IBacklinksHeaderSlice {
         this.logger = new Logger('BacklinksHeaderSlice');
 
         // Initialize components
-        this.headerUI = new HeaderUI(app, this.logger);
-        this.filterControls = new FilterControls(this.logger);
         this.settingsControls = new SettingsControls(this.logger);
+        this.headerUI = new HeaderUI(app, this.logger, this.settingsControls);
+        this.filterControls = new FilterControls(this.logger);
 
         // Initialize state with initial collapse state from settings
         this.currentState = {

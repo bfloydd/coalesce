@@ -537,6 +537,13 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                 {
                     source: 'backlinksHeader',
                     target: 'backlinkBlocks',
+                    eventType: 'header:themeChanged',
+                    handler: 'handleThemeChange',
+                    enabled: true
+                },
+                {
+                    source: 'backlinksHeader',
+                    target: 'backlinkBlocks',
                     eventType: 'header:aliasSelected',
                     handler: 'handleAliasSelection',
                     enabled: true

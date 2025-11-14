@@ -5,14 +5,18 @@ import { HeaderStyleManager } from '../backlink-blocks/header-styles/HeaderStyle
 import { BlockFinderFactory } from '../backlink-blocks/block-finders/BlockFinderFactory';
 import { HeaderStyleFactory } from '../backlink-blocks/header-styles/HeaderStyleFactory';
 import { ButtonComponent, ExtraButtonComponent } from 'obsidian';
+import { SettingsControls } from './SettingsControls';
 
 export class HeaderComponent {
     private static currentHeaderStyle: string = HeaderStyleFactory.getValidStyles()[0];
     private resizeObserver: ResizeObserver | null = null;
     private observedContainer: HTMLElement | null = null;
     private settingsManager: any = null;
+    private settingsControls: SettingsControls;
 
-    constructor(private logger: Logger) {}
+    constructor(private logger: Logger, settingsControls: SettingsControls) {
+        this.settingsControls = settingsControls;
+    }
 
     public setSettingsManager(settingsManager: any): void {
         this.settingsManager = settingsManager;
@@ -599,23 +603,22 @@ export class HeaderComponent {
         }
 
         // Add sections to the popup
-        
+
         // Add separator after top options
         const separator1 = popup.createDiv({ cls: 'menu-separator' });
-        
+
         this.addHeaderStyleSettings(popup, currentHeaderStyleValue, onHeaderStyleChange);
-        
+
         // Add separator after header style
         const separator2 = popup.createDiv({ cls: 'menu-separator' });
 
-        // Add separator after position
-        const separator3 = popup.createDiv({ cls: 'menu-separator' });
-        
+        // Add block style settings (radio select with checkmarks)
         this.addBlockStyleSettings(popup, currentStrategyValue, onStrategyChange);
-        
-        // Add separator after block style
-        const separator4 = popup.createDiv({ cls: 'menu-separator' });
-        
+
+        // Add separator after strategy
+        const separator3 = popup.createDiv({ cls: 'menu-separator' });
+
+        // Add theme settings (radio select with checkmarks)
         this.addThemeSettings(popup, currentThemeValue, onThemeChange);
         
         this.setupPopupClickOutsideHandler(popup, settingsButton);

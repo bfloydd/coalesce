@@ -505,6 +505,38 @@ export class BacklinkBlocksSlice implements IBacklinkBlocksSlice {
     }
 
     /**
+     * Handle theme change event from BacklinksHeader slice
+     * Applies the selected theme to the backlinks container.
+     */
+    public handleThemeChange(payload: { themeId: string }): void {
+        const theme = payload?.themeId || 'default';
+        this.logger.debug('Handling theme change', { theme });
+
+        try {
+            // Apply theme to the container if we have a render context
+            if (this.lastRenderContext) {
+                const { container } = this.lastRenderContext as any;
+
+                // Remove existing theme classes
+                container.classList.forEach((className: string) => {
+                    if (className.startsWith('theme-')) {
+                        container.classList.remove(className);
+                    }
+                });
+
+                // Add new theme class
+                container.classList.add(`theme-${theme}`);
+
+                this.logger.debug('Applied theme to container', { theme, container });
+            } else {
+                this.logger.debug('No render context available yet; theme stored for next render', { theme });
+            }
+        } catch (error) {
+            this.logger.error('Failed to handle theme change', { theme, error });
+        }
+    }
+
+    /**
      * Update block title display
      */
     updateBlockTitleDisplay(headerStyle: string): void {
