@@ -1,0 +1,10 @@
+- When opening a file, backlinks are discovered and displayed in coalesce UI.
+- What and how much to show is known as a "block".
+- Each file will clear coalesce UI and rebuild it.
+- Coalesce UI will display below the text of the note.
+- Case-insensitive matching: [[Note|FOO]] matches "foo" selection.
+- Proper filtering: Only shows blocks containing the selected alias.
+- "All content": Shows all blocks when no alias is selected.
+- Multiple aliases: Handles [[Note|alias1|alias2]] syntax.
+- "No backlinks found for note" will be displayed when none are found.
+- The state of collapsed and sorting will maintain, saved to data.json.

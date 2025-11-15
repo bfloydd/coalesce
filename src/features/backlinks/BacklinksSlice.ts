@@ -57,6 +57,9 @@ export class BacklinksSlice implements IBacklinksSlice {
     private headerStatistics: HeaderStatistics;
     private currentHeaderState: HeaderState;
 
+    // UI state tracking for consistency
+    private attachedViews: Map<string, { container: HTMLElement; lastUpdate: number }> = new Map();
+
     constructor(app: App, options?: Partial<BacklinkDiscoveryOptions>) {
         this.app = app;
         this.logger = new Logger('BacklinksSlice');
@@ -109,6 +112,9 @@ export class BacklinksSlice implements IBacklinksSlice {
             currentFilter: '',
             isCompact: false
         };
+
+        // Ensure renderOptions.collapsed is in sync with header state
+        this.renderOptions.collapsed = this.currentHeaderState.isCollapsed;
 
         // Initialize header statistics
         this.headerStatistics = {
@@ -512,23 +518,51 @@ export class BacklinksSlice implements IBacklinksSlice {
     // ===== CONSOLIDATED PUBLIC API METHODS =====
 
     /**
-     * Attach the complete backlinks UI to a DOM container
+     * Attach the complete backlinks UI to a view
      * This is the main entry point for rendering the full backlinks feature
+     * @param view The markdown view to attach to
+     * @param currentNotePath The current note file path
+     * @param forceRefresh If true, skip the recent attachment optimization
+     * @returns true if UI was attached, false if skipped due to recent attachment
      */
-    async attachToDOM(container: HTMLElement, currentNotePath: string, view?: MarkdownView): Promise<void> {
-        this.logger.debug('Attaching backlinks UI to DOM', { currentNotePath });
+    async attachToDOM(view: MarkdownView, currentNotePath: string, forceRefresh: boolean = false): Promise<boolean> {
+        const viewId = (view.leaf as any).id || 'unknown';
+
+        console.log('Coalesce: BacklinksSlice.attachToDOM called for', currentNotePath, 'viewId:', viewId, 'forceRefresh:', forceRefresh);
+
+        // Check if UI is already attached and recent (within last 5 seconds), unless force refresh is requested
+        const existingAttachment = this.attachedViews.get(viewId);
+        if (!forceRefresh && existingAttachment && (Date.now() - existingAttachment.lastUpdate) < 5000) {
+            console.log('Coalesce: BacklinksSlice.attachToDOM SKIPPING - UI recently attached', {
+                viewId,
+                currentNotePath,
+                timeSinceLast: Date.now() - existingAttachment.lastUpdate
+            });
+            this.logger.debug('UI already attached recently, skipping', { viewId, currentNotePath });
+            return false;
+        }
+
+        console.log('Coalesce: BacklinksSlice.attachToDOM proceeding with attachment for', currentNotePath);
+        this.logger.debug('Attaching backlinks UI to view', { currentNotePath, viewId });
 
         try {
-            // Clear any existing content
-            container.innerHTML = '';
+            // Clear any existing coalesce containers from the view
+            const existingContainers = view.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
+            existingContainers.forEach(container => container.remove());
 
             // Get backlinks for the current note
+            console.log('Coalesce: discovering backlinks for', currentNotePath);
             const backlinks = await this.updateBacklinks(currentNotePath);
+            console.log('Coalesce: found backlinks:', backlinks);
 
             if (backlinks.length === 0) {
-                this.logger.debug('No backlinks found, not rendering UI', { currentNotePath });
-                return;
+                console.log('Coalesce: no backlinks found, but will still render UI with message');
+                this.logger.debug('No backlinks found, will render UI with no backlinks message', { currentNotePath });
             }
+
+            // Create main container for the backlinks UI
+            const container = document.createElement('div');
+            container.className = 'coalesce-custom-backlinks-container';
 
             // Create header
             const headerElement = this.createHeader(container, {
@@ -556,6 +590,9 @@ export class BacklinksSlice implements IBacklinksSlice {
 
             if (headerElement) {
                 container.appendChild(headerElement);
+
+                // Ensure header visual state is consistent with current state
+                this.headerUI.updateHeader(headerElement, this.currentHeaderState);
             }
 
             // Create blocks container
@@ -564,14 +601,29 @@ export class BacklinksSlice implements IBacklinksSlice {
             container.appendChild(blocksContainer);
 
             // Extract and render blocks
+            console.log('Coalesce: extracting and rendering blocks for', backlinks.length, 'backlinks');
             await this.extractAndRenderBlocks(backlinks, currentNotePath, blocksContainer, view);
+            console.log('Coalesce: blocks container after rendering:', blocksContainer.outerHTML.substring(0, 500));
 
             // Apply current theme
             this.applyThemeToContainer(this.currentTheme);
 
+            // Attach the container to the view (after the content)
+            console.log('Coalesce: attaching container to view');
+            this.attachContainerToView(view, container);
+            console.log('Coalesce: container attached successfully');
+
+            // Track the attachment
+            this.attachedViews.set(viewId, {
+                container,
+                lastUpdate: Date.now()
+            });
+
             this.logger.debug('Backlinks UI attached successfully', { currentNotePath });
+            return true;
         } catch (error) {
-            this.logger.error('Failed to attach backlinks UI to DOM', { currentNotePath, error });
+            this.logger.error('Failed to attach backlinks UI to view', { currentNotePath, error });
+            return false;
         }
     }
 
@@ -615,6 +667,36 @@ export class BacklinksSlice implements IBacklinksSlice {
         this.applyCurrentOptions();
 
         this.logger.debug('Backlinks options set successfully', { options });
+    }
+
+    /**
+     * Attach container to view
+     * This handles the DOM attachment of the backlinks container to the view
+     */
+    private attachContainerToView(view: MarkdownView, container: HTMLElement): void {
+        this.logger.debug('Attaching container to view', { filePath: view.file?.path });
+
+        try {
+            // Find the appropriate attachment point in the view
+            // Use the same approach as DOMAttachmentService - attach after .markdown-preview-section
+            const markdownSection = view.containerEl.querySelector('.markdown-preview-section') as HTMLElement;
+
+            if (markdownSection) {
+                // Insert the container after the markdown preview section
+                markdownSection.insertAdjacentElement('afterend', container);
+
+                // Ensure the container is visible
+                container.style.minHeight = '50px';
+                container.style.display = 'block';
+                container.style.visibility = 'visible';
+
+                this.logger.debug('Container attached to view successfully');
+            } else {
+                this.logger.error('Could not find .markdown-preview-section for attachment');
+            }
+        } catch (error) {
+            this.logger.error('Failed to attach container to view', { error });
+        }
     }
 
     /**
@@ -715,6 +797,14 @@ export class BacklinksSlice implements IBacklinksSlice {
             if (this.lastRenderContext) {
                 this.applyCollapseStateToDOM(this.lastRenderContext.container, this.currentHeaderState.isCollapsed);
             }
+
+            // Emit custom event to save collapse state to settings
+            const event = new CustomEvent('coalesce-settings-collapse-changed', {
+                detail: {
+                    collapsed: this.currentHeaderState.isCollapsed
+                }
+            });
+            document.dispatchEvent(event);
 
             this.logger.debug('Collapse toggle handled successfully', {
                 collapsed: this.currentHeaderState.isCollapsed
@@ -952,14 +1042,17 @@ export class BacklinksSlice implements IBacklinksSlice {
 
             // Extract blocks from each file
             for (const filePath of filePaths) {
+                console.log('Coalesce: processing backlink file:', filePath);
                 const file = this.app.vault.getAbstractFileByPath(filePath);
                 if (file && file instanceof TFile) {
                     const content = await this.app.vault.read(file);
+                    console.log('Coalesce: file content length:', content.length);
                     const blocks = await this.blockExtractor.extractBlocks(
                         content,
                         currentNoteName,
                         this.strategyManager.getCurrentStrategy()
                     );
+                    console.log('Coalesce: extracted', blocks.length, 'blocks from', filePath);
 
                     // Set source path for each block
                     blocks.forEach(block => {
@@ -967,8 +1060,11 @@ export class BacklinksSlice implements IBacklinksSlice {
                     });
 
                     allBlocks.push(...blocks);
+                } else {
+                    console.log('Coalesce: file not found or not TFile:', filePath);
                 }
             }
+            console.log('Coalesce: total blocks extracted from all files:', allBlocks.length);
 
             // Set initial collapsed state
             allBlocks.forEach(block => {
@@ -993,6 +1089,12 @@ export class BacklinksSlice implements IBacklinksSlice {
                 undefined, // headingPopupComponent
                 this.lastRenderContext.view
             );
+
+            // If no blocks were rendered, show a "no backlinks" message
+            if (allBlocks.length === 0) {
+                console.log('Coalesce: no blocks to render, adding "no backlinks" message');
+                this.addNoBacklinksMessage(container);
+            }
 
             // Apply current theme
             this.applyThemeToContainer(this.currentTheme);
@@ -1221,6 +1323,33 @@ export class BacklinksSlice implements IBacklinksSlice {
     }
 
     /**
+     * Add a "no backlinks" message to the container
+     */
+    private addNoBacklinksMessage(container: HTMLElement): void {
+        console.log('Coalesce: adding no backlinks message to container');
+
+        // Create a message element
+        const messageElement = document.createElement('div');
+        messageElement.className = 'coalesce-no-backlinks-message';
+        messageElement.textContent = 'No backlinks found for this note.';
+        messageElement.style.cssText = `
+            padding: 16px;
+            text-align: center;
+            color: var(--text-muted);
+            font-style: italic;
+            border: 1px dashed var(--background-modifier-border);
+            border-radius: 4px;
+            margin: 8px 0;
+            background-color: var(--background-primary);
+        `;
+
+        // Add the message to the container
+        container.appendChild(messageElement);
+
+        console.log('Coalesce: no backlinks message added');
+    }
+
+    /**
      * Apply current options to existing UI
      */
     private applyCurrentOptions(): void {
@@ -1336,10 +1465,26 @@ export class BacklinksSlice implements IBacklinksSlice {
             this.currentBlocks.clear();
             this.currentHeaders.clear();
             this.eventHandlers.clear();
+            this.attachedViews.clear();
 
             this.logger.debug('Consolidated BacklinksSlice cleanup completed');
         } catch (error) {
             this.logger.error('Failed to cleanup consolidated BacklinksSlice', { error });
+        }
+    }
+
+    /**
+     * Remove UI attachment for a specific view
+     */
+    removeAttachment(viewId: string): void {
+        const attachment = this.attachedViews.get(viewId);
+        if (attachment) {
+            // Remove the container from DOM if it still exists
+            if (attachment.container.parentElement) {
+                attachment.container.parentElement.removeChild(attachment.container);
+            }
+            this.attachedViews.delete(viewId);
+            this.logger.debug('Removed attachment for view', { viewId });
         }
     }
 }
