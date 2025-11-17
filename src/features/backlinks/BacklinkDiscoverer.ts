@@ -1,4 +1,4 @@
-import { App, TFile } from 'obsidian';
+import { App } from 'obsidian';
 import { Logger } from '../shared-utilities/Logger';
 import { DailyNote } from '../shared-utilities/DailyNote';
 import { IBacklinkDiscoverer, BacklinkDiscoveryOptions, BacklinkStatistics } from './types';
@@ -45,7 +45,7 @@ export class BacklinkDiscoverer implements IBacklinkDiscoverer {
      * Discover files linking to the current note
      */
     async discoverBacklinks(currentFilePath: string): Promise<string[]> {
-        console.log('Coalesce: BacklinkDiscoverer.discoverBacklinks called for', currentFilePath);
+        this.logger.debug('Discovering backlinks', { currentFilePath });
 
         try {
             // Wait for metadata cache to be ready
@@ -55,8 +55,11 @@ export class BacklinkDiscoverer implements IBacklinkDiscoverer {
             const resolvedBacklinks = this.getResolvedBacklinks(currentFilePath);
             const unresolvedBacklinks = this.getUnresolvedBacklinks(currentFilePath);
 
-            console.log('Coalesce: resolved backlinks found:', resolvedBacklinks);
-            console.log('Coalesce: unresolved backlinks found:', unresolvedBacklinks);
+            this.logger.debug('Backlinks retrieved', {
+                currentFilePath,
+                resolvedCount: resolvedBacklinks.length,
+                unresolvedCount: unresolvedBacklinks.length
+            });
 
             // Combine based on options
             let backlinks: string[] = [];
@@ -72,7 +75,10 @@ export class BacklinkDiscoverer implements IBacklinkDiscoverer {
             // Remove duplicates
             const uniqueBacklinks = [...new Set(backlinks)];
 
-            console.log('Coalesce: combined backlinks:', uniqueBacklinks);
+            this.logger.debug('Backlinks combined and deduplicated', {
+                currentFilePath,
+                uniqueCount: uniqueBacklinks.length
+            });
 
             // Update statistics
             this.updateStatistics(currentFilePath, uniqueBacklinks, resolvedBacklinks.length, unresolvedBacklinks.length);
@@ -95,26 +101,34 @@ export class BacklinkDiscoverer implements IBacklinkDiscoverer {
      * Get resolved backlinks (files that link directly)
      */
     getResolvedBacklinks(currentFilePath: string): string[] {
-        console.log('Coalesce: getResolvedBacklinks called for', currentFilePath);
+        this.logger.debug('Getting resolved backlinks', { currentFilePath });
 
         try {
             const resolvedLinks = this.app.metadataCache.resolvedLinks;
             const backlinks: string[] = [];
 
-            console.log('Coalesce: resolvedLinks keys:', Object.keys(resolvedLinks));
+            this.logger.debug('Checking resolved links', {
+                currentFilePath,
+                totalSourceFiles: Object.keys(resolvedLinks).length
+            });
 
             // Check resolved links
             for (const [sourcePath, links] of Object.entries(resolvedLinks)) {
                 const linkMap = links as Record<string, unknown>;
-                console.log('Coalesce: checking sourcePath', sourcePath, 'for links to', currentFilePath, '- links:', Object.keys(linkMap));
 
                 if (currentFilePath in linkMap) {
-                    console.log('Coalesce: FOUND resolved backlink from', sourcePath, 'to', currentFilePath);
+                    this.logger.debug('Found resolved backlink', {
+                        sourcePath,
+                        targetPath: currentFilePath
+                    });
                     backlinks.push(sourcePath);
                 }
             }
 
-            console.log('Coalesce: resolved backlinks result:', backlinks);
+            this.logger.debug('Resolved backlinks retrieved', {
+                currentFilePath,
+                backlinkCount: backlinks.length
+            });
 
             this.logger.debug('Resolved backlinks retrieved', {
                 currentFilePath,
@@ -132,20 +146,22 @@ export class BacklinkDiscoverer implements IBacklinkDiscoverer {
      * Get unresolved backlinks (files that link by name)
      */
     getUnresolvedBacklinks(currentFilePath: string): string[] {
-        console.log('Coalesce: getUnresolvedBacklinks called for', currentFilePath);
+        this.logger.debug('Getting unresolved backlinks', { currentFilePath });
 
         try {
             const unresolvedLinks = this.app.metadataCache.unresolvedLinks;
             const backlinks: string[] = [];
 
-            console.log('Coalesce: unresolvedLinks keys:', Object.keys(unresolvedLinks));
+            this.logger.debug('Checking unresolved links', {
+                currentFilePath,
+                totalSourceFiles: Object.keys(unresolvedLinks).length
+            });
 
             // Get file info for name matching
             const file = this.app.vault.getAbstractFileByPath(currentFilePath);
 
             // For testing compatibility, check for required properties instead of instanceof
             if (!file || typeof file !== 'object' || !('basename' in file) || !('name' in file)) {
-                console.log('Coalesce: File not found or invalid file object', currentFilePath);
                 this.logger.debug('File not found or invalid file object', { currentFilePath });
                 return backlinks;
             }
@@ -153,30 +169,44 @@ export class BacklinkDiscoverer implements IBacklinkDiscoverer {
             const fileName = (file as any).basename;
             const fullName = (file as any).name;
 
-            console.log('Coalesce: looking for backlinks to fileName:', fileName, 'fullName:', fullName);
+            this.logger.debug('Searching for unresolved backlinks by name', {
+                currentFilePath,
+                fileName,
+                fullName
+            });
 
             // Check unresolved links
             for (const [sourcePath, links] of Object.entries(unresolvedLinks)) {
                 const linkMap = links as Record<string, unknown>;
-                console.log('Coalesce: checking sourcePath', sourcePath, 'for unresolved links:', Object.keys(linkMap));
 
                 // Check for matches by name or basename (case-insensitive)
                 const hasMatch = Object.keys(linkMap).some(link => {
                     const matches = link.toLowerCase() === fileName.toLowerCase() ||
                                    link.toLowerCase() === fullName.toLowerCase();
                     if (matches) {
-                        console.log('Coalesce: FOUND unresolved backlink match:', link, 'from', sourcePath);
+                        this.logger.debug('Found unresolved backlink match', {
+                            link,
+                            sourcePath,
+                            targetFileName: fileName,
+                            targetFullName: fullName
+                        });
                     }
                     return matches;
                 });
 
                 if (hasMatch) {
-                    console.log('Coalesce: FOUND unresolved backlink from', sourcePath, 'to', currentFilePath);
+                    this.logger.debug('Found unresolved backlink', {
+                        sourcePath,
+                        targetPath: currentFilePath
+                    });
                     backlinks.push(sourcePath);
                 }
             }
 
-            console.log('Coalesce: unresolved backlinks result:', backlinks);
+            this.logger.debug('Unresolved backlinks retrieved', {
+                currentFilePath,
+                backlinkCount: backlinks.length
+            });
 
             this.logger.debug('Unresolved backlinks retrieved', {
                 currentFilePath,

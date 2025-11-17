@@ -350,6 +350,12 @@ export class SettingsSlice implements ISettingsSlice {
         } else {
             this.logger.off();
         }
+
+        // Emit event to notify other components about logging state change
+        const event = new CustomEvent('coalesce-logging-state-changed', {
+            detail: { enabled }
+        });
+        document.dispatchEvent(event);
     }
 }
 

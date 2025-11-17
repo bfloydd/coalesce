@@ -748,8 +748,20 @@
 }
 
 /* ============================
-   Utility Classes (for JS refactoring)
-   ============================ */
+    Utility Classes (for JS refactoring)
+    ============================ */
+
+/* No backlinks message styling */
+.coalesce-no-backlinks-message {
+    padding: 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-style: italic;
+    border: 1px dashed var(--background-modifier-border);
+    border-radius: 4px;
+    margin: 8px 0;
+    background-color: var(--background-primary);
+}
 
 /* Display utilities */
 .is-hidden {

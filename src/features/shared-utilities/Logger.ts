@@ -5,23 +5,30 @@ export { LogLevel };
 
 /**
  * Enhanced Logger for Vertical Slice Architecture
- * 
+ *
  * Usage:
  *    const logger = new Logger('SliceName');
  *    logger.debug("Debug message");
  *    logger.info("Info message");
  *    logger.warn("Warning message");
  *    logger.error("Error message");
- *    
+ *
  *    // Enable/disable logging
  *    logger.on();
  *    logger.on(LogLevel.DEBUG);
  *    logger.off();
+ *
+ *    // Global logging control
+ *    Logger.setGlobalLogging(true); // Enable all loggers
+ *    Logger.setGlobalLogging(false); // Disable all loggers
  */
 export class Logger {
+    private static globalEnabled: boolean = false;
+    private static globalLevel: LogLevel = LogLevel.INFO;
     private enabled: boolean = false;
     private level: LogLevel = LogLevel.INFO;
     private prefix: string;
+    private useGlobalState: boolean = true;
 
     /**
      * Creates a new logger instance
@@ -32,11 +39,42 @@ export class Logger {
     }
 
     /**
+     * Set global logging state for all loggers
+     */
+    static setGlobalLogging(enabled: boolean | string, level?: LogLevel): void {
+        if (typeof enabled === 'string') {
+            const parsed = Logger.parseLogLevel(enabled);
+            if (typeof parsed === 'boolean') {
+                this.globalEnabled = parsed;
+                this.globalLevel = LogLevel.INFO;
+            } else {
+                this.globalEnabled = true;
+                this.globalLevel = parsed;
+            }
+        } else {
+            this.globalEnabled = enabled;
+            if (level !== undefined) {
+                this.globalLevel = level;
+            }
+        }
+    }
+
+    /**
+     * Get global logging state
+     */
+    static getGlobalLogging(): { enabled: boolean; level: LogLevel } {
+        return {
+            enabled: this.globalEnabled,
+            level: this.globalLevel
+        };
+    }
+
+    /**
      * Check if logging is enabled
      * @returns True if logging is enabled, false otherwise
      */
     isEnabled(): boolean {
-        return this.enabled;
+        return this.useGlobalState ? Logger.globalEnabled : this.enabled;
     }
 
     /**
@@ -139,7 +177,11 @@ export class Logger {
     }
 
     private shouldLog(level: LogLevel): boolean {
-        return this.enabled && this.level <= level;
+        if (this.useGlobalState) {
+            return Logger.globalEnabled && Logger.globalLevel <= level;
+        } else {
+            return this.enabled && this.level <= level;
+        }
     }
 
     /**********************************************************

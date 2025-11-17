@@ -6,20 +6,20 @@ import { BacklinkCache } from './BacklinkCache';
 import { Logger } from '../shared-utilities/Logger';
 import { DailyNote } from '../shared-utilities/DailyNote';
 import { BacklinkDiscoveryOptions, BacklinkFilterOptions, BacklinkStatistics } from './types';
-import { CoalesceEvent, EventHandler, BacklinksUpdatedEvent } from '../shared-contracts/events';
+import { CoalesceEvent, EventHandler } from '../shared-contracts/events';
 import { AppWithInternalPlugins } from '../shared-contracts/obsidian';
 
 // Import components from BacklinkBlocks slice
 import { BlockExtractor } from './BlockExtractor';
 import { BlockRenderer } from './BlockRenderer';
 import { StrategyManager } from './StrategyManager';
-import { BlockData, BlockRenderOptions, BlockStatistics, BlockFilterOptions } from './types';
+import { BlockData, BlockRenderOptions, BlockStatistics } from './types';
 
 // Import components from BacklinksHeader slice
 import { HeaderUI } from './HeaderUI';
 import { FilterControls } from './FilterControls';
 import { SettingsControls } from './SettingsControls';
-import { HeaderCreateOptions, HeaderState, HeaderStatistics, HeaderEventData } from './types';
+import { HeaderCreateOptions, HeaderState, HeaderStatistics } from './types';
 
 /**
  * Consolidated Backlinks Slice Implementation
@@ -47,7 +47,7 @@ export class BacklinksSlice implements IBacklinksSlice {
     private currentBlocks: Map<string, BlockData[]> = new Map();
     private renderOptions: BlockRenderOptions;
     private lastRenderContext?: { filePaths: string[]; currentNoteName: string; container: HTMLElement; view: MarkdownView };
-    private currentTheme: string = 'default';
+    private currentTheme = 'default';
 
     // Header-related components (from BacklinksHeader slice)
     private headerUI: HeaderUI;
@@ -136,52 +136,52 @@ export class BacklinksSlice implements IBacklinksSlice {
      * Update backlinks for a file
      */
     async updateBacklinks(filePath: string, leafId?: string): Promise<string[]> {
-        this.logger.debug('Updating backlinks', { filePath, leafId });
-        
-        try {
+        return this.withErrorBoundary(async () => {
+            this.logger.debug('Updating backlinks', { filePath, leafId });
+
             // Check if we should skip daily notes
-            if (this.options.onlyDailyNotes && 
+            if (this.options.onlyDailyNotes &&
                 DailyNote.isDaily(this.app as AppWithInternalPlugins, filePath)) {
                 this.logger.debug('Skipping daily note', { filePath });
                 const emptyBacklinks: string[] = [];
                 this.currentBacklinks.set(filePath, emptyBacklinks);
                 return emptyBacklinks;
             }
-            
+
             // Try to get from cache first
             let backlinks: string[] = [];
             let fromCache = false;
-            
+
             if (this.options.useCache) {
                 const cachedBacklinks = this.backlinkCache.getCachedBacklinks(filePath);
                 if (cachedBacklinks) {
                     backlinks = cachedBacklinks;
                     fromCache = true;
-                    this.logger.debug('Backlinks retrieved from cache', { 
-                        filePath, 
-                        count: backlinks.length 
+                    this.logger.debug('Backlinks retrieved from cache', {
+                        filePath,
+                        count: backlinks.length
                     });
                 }
             }
-            
+
             // If not from cache, discover backlinks
             if (!fromCache) {
                 backlinks = await this.backlinkDiscoverer.discoverBacklinks(filePath);
-                
+
                 // Cache the results
                 if (this.options.useCache) {
                     this.backlinkCache.cacheBacklinks(filePath, backlinks);
                 }
-                
-                this.logger.debug('Backlinks discovered', { 
-                    filePath, 
-                    count: backlinks.length 
+
+                this.logger.debug('Backlinks discovered', {
+                    filePath,
+                    count: backlinks.length
                 });
             }
-            
+
             // Store current backlinks
             this.currentBacklinks.set(filePath, backlinks);
-            
+
             // Emit event
             this.emitEvent({
                 type: 'backlinks:updated',
@@ -191,18 +191,15 @@ export class BacklinksSlice implements IBacklinksSlice {
                     count: backlinks.length
                 }
             });
-            
-            this.logger.debug('Backlinks updated successfully', { 
-                filePath, 
+
+            this.logger.debug('Backlinks updated successfully', {
+                filePath,
                 count: backlinks.length,
-                fromCache 
+                fromCache
             });
-            
+
             return backlinks;
-        } catch (error) {
-            this.logger.error('Failed to update backlinks', { filePath, error });
-            return [];
-        }
+        }, `updateBacklinks(${filePath})`);
     }
 
     /**
@@ -525,38 +522,27 @@ export class BacklinksSlice implements IBacklinksSlice {
      * @param forceRefresh If true, skip the recent attachment optimization
      * @returns true if UI was attached, false if skipped due to recent attachment
      */
-    async attachToDOM(view: MarkdownView, currentNotePath: string, forceRefresh: boolean = false): Promise<boolean> {
-        const viewId = (view.leaf as any).id || 'unknown';
+    async attachToDOM(view: MarkdownView, currentNotePath: string, forceRefresh = false): Promise<boolean> {
+        return this.withErrorBoundary(async () => {
+            const viewId = (view.leaf as any).id || 'unknown';
 
-        console.log('Coalesce: BacklinksSlice.attachToDOM called for', currentNotePath, 'viewId:', viewId, 'forceRefresh:', forceRefresh);
+            this.logger.debug('Attaching backlinks UI to view', { currentNotePath, viewId, forceRefresh });
 
-        // Check if UI is already attached and recent (within last 5 seconds), unless force refresh is requested
-        const existingAttachment = this.attachedViews.get(viewId);
-        if (!forceRefresh && existingAttachment && (Date.now() - existingAttachment.lastUpdate) < 5000) {
-            console.log('Coalesce: BacklinksSlice.attachToDOM SKIPPING - UI recently attached', {
-                viewId,
-                currentNotePath,
-                timeSinceLast: Date.now() - existingAttachment.lastUpdate
-            });
-            this.logger.debug('UI already attached recently, skipping', { viewId, currentNotePath });
-            return false;
-        }
+            // Check if UI is already attached and recent (within last 5 seconds), unless force refresh is requested
+            const existingAttachment = this.attachedViews.get(viewId);
+            if (!forceRefresh && existingAttachment && (Date.now() - existingAttachment.lastUpdate) < 5000) {
+                this.logger.debug('UI already attached recently, skipping', { viewId, currentNotePath });
+                return false;
+            }
 
-        console.log('Coalesce: BacklinksSlice.attachToDOM proceeding with attachment for', currentNotePath);
-        this.logger.debug('Attaching backlinks UI to view', { currentNotePath, viewId });
-
-        try {
             // Clear any existing coalesce containers from the view
             const existingContainers = view.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
             existingContainers.forEach(container => container.remove());
 
             // Get backlinks for the current note
-            console.log('Coalesce: discovering backlinks for', currentNotePath);
             const backlinks = await this.updateBacklinks(currentNotePath);
-            console.log('Coalesce: found backlinks:', backlinks);
 
             if (backlinks.length === 0) {
-                console.log('Coalesce: no backlinks found, but will still render UI with message');
                 this.logger.debug('No backlinks found, will render UI with no backlinks message', { currentNotePath });
             }
 
@@ -601,17 +587,13 @@ export class BacklinksSlice implements IBacklinksSlice {
             container.appendChild(blocksContainer);
 
             // Extract and render blocks
-            console.log('Coalesce: extracting and rendering blocks for', backlinks.length, 'backlinks');
             await this.extractAndRenderBlocks(backlinks, currentNotePath, blocksContainer, view);
-            console.log('Coalesce: blocks container after rendering:', blocksContainer.outerHTML.substring(0, 500));
 
             // Apply current theme
             this.applyThemeToContainer(this.currentTheme);
 
             // Attach the container to the view (after the content)
-            console.log('Coalesce: attaching container to view');
             this.attachContainerToView(view, container);
-            console.log('Coalesce: container attached successfully');
 
             // Track the attachment
             this.attachedViews.set(viewId, {
@@ -621,10 +603,7 @@ export class BacklinksSlice implements IBacklinksSlice {
 
             this.logger.debug('Backlinks UI attached successfully', { currentNotePath });
             return true;
-        } catch (error) {
-            this.logger.error('Failed to attach backlinks UI to view', { currentNotePath, error });
-            return false;
-        }
+        }, `attachToDOM(${currentNotePath})`);
     }
 
     /**
@@ -639,34 +618,39 @@ export class BacklinksSlice implements IBacklinksSlice {
         alias?: string | null;
         filter?: string;
     }): void {
-        this.logger.debug('Setting backlinks options', { options });
+        try {
+            this.logger.debug('Setting backlinks options', { options });
 
-        // Update header state
-        if (options.sort !== undefined) {
-            this.currentHeaderState.sortByPath = options.sort;
-        }
-        if (options.collapsed !== undefined) {
-            this.currentHeaderState.isCollapsed = options.collapsed;
-            this.renderOptions.collapsed = options.collapsed;
-        }
-        if (options.strategy !== undefined) {
-            this.currentHeaderState.currentStrategy = options.strategy;
-        }
-        if (options.theme !== undefined) {
-            this.currentHeaderState.currentTheme = options.theme;
-            this.currentTheme = options.theme;
-        }
-        if (options.alias !== undefined) {
-            this.currentHeaderState.currentAlias = options.alias;
-        }
-        if (options.filter !== undefined) {
-            this.currentHeaderState.currentFilter = options.filter;
-        }
+            // Update header state
+            if (options.sort !== undefined) {
+                this.currentHeaderState.sortByPath = options.sort;
+            }
+            if (options.collapsed !== undefined) {
+                this.currentHeaderState.isCollapsed = options.collapsed;
+                this.renderOptions.collapsed = options.collapsed;
+            }
+            if (options.strategy !== undefined) {
+                this.currentHeaderState.currentStrategy = options.strategy;
+            }
+            if (options.theme !== undefined) {
+                this.currentHeaderState.currentTheme = options.theme;
+                this.currentTheme = options.theme;
+            }
+            if (options.alias !== undefined) {
+                this.currentHeaderState.currentAlias = options.alias;
+            }
+            if (options.filter !== undefined) {
+                this.currentHeaderState.currentFilter = options.filter;
+            }
 
-        // Apply changes to current UI if it exists
-        this.applyCurrentOptions();
+            // Apply changes to current UI if it exists
+            this.applyCurrentOptions();
 
-        this.logger.debug('Backlinks options set successfully', { options });
+            this.logger.debug('Backlinks options set successfully', { options });
+        } catch (error) {
+            this.logger.logErrorWithContext(error, `setOptions(${JSON.stringify(options)})`);
+            throw error;
+        }
     }
 
     /**
@@ -994,10 +978,10 @@ export class BacklinksSlice implements IBacklinksSlice {
     /**
      * Handle navigation from backlinks (file opening, block scrolling)
      */
-    public handleNavigation(filePath: string, openInNewTab: boolean = false, blockId?: string): void {
-        this.logger.debug('Handling navigation from backlinks', { filePath, openInNewTab, blockId });
-
+    public handleNavigation(filePath: string, openInNewTab = false, blockId?: string): void {
         try {
+            this.logger.debug('Handling navigation from backlinks', { filePath, openInNewTab, blockId });
+
             if (blockId) {
                 // Use Obsidian's built-in link handling for block references
                 const linkText = `[[${filePath}#^${blockId}]]`;
@@ -1009,7 +993,8 @@ export class BacklinksSlice implements IBacklinksSlice {
                 this.logger.debug('File navigation initiated', { filePath });
             }
         } catch (error) {
-            this.logger.error('Failed to handle navigation', { filePath, openInNewTab, blockId, error });
+            this.logger.logErrorWithContext(error, `handleNavigation(${filePath}, ${openInNewTab}, ${blockId})`);
+            throw error;
         }
     }
 
@@ -1042,17 +1027,17 @@ export class BacklinksSlice implements IBacklinksSlice {
 
             // Extract blocks from each file
             for (const filePath of filePaths) {
-                console.log('Coalesce: processing backlink file:', filePath);
+                this.logger.debug('Processing backlink file', { filePath });
                 const file = this.app.vault.getAbstractFileByPath(filePath);
                 if (file && file instanceof TFile) {
                     const content = await this.app.vault.read(file);
-                    console.log('Coalesce: file content length:', content.length);
+                    this.logger.debug('File content loaded', { filePath, contentLength: content.length });
                     const blocks = await this.blockExtractor.extractBlocks(
                         content,
                         currentNoteName,
                         this.strategyManager.getCurrentStrategy()
                     );
-                    console.log('Coalesce: extracted', blocks.length, 'blocks from', filePath);
+                    this.logger.debug('Blocks extracted from file', { filePath, blockCount: blocks.length });
 
                     // Set source path for each block
                     blocks.forEach(block => {
@@ -1061,10 +1046,10 @@ export class BacklinksSlice implements IBacklinksSlice {
 
                     allBlocks.push(...blocks);
                 } else {
-                    console.log('Coalesce: file not found or not TFile:', filePath);
+                    this.logger.warn('File not found or not TFile', { filePath, fileType: file?.constructor.name });
                 }
             }
-            console.log('Coalesce: total blocks extracted from all files:', allBlocks.length);
+            this.logger.debug('Total blocks extracted from all files', { totalBlocks: allBlocks.length });
 
             // Set initial collapsed state
             allBlocks.forEach(block => {
@@ -1092,7 +1077,7 @@ export class BacklinksSlice implements IBacklinksSlice {
 
             // If no blocks were rendered, show a "no backlinks" message
             if (allBlocks.length === 0) {
-                console.log('Coalesce: no blocks to render, adding "no backlinks" message');
+                this.logger.debug('No blocks to render, adding no backlinks message');
                 this.addNoBacklinksMessage(container);
             }
 
@@ -1296,11 +1281,12 @@ export class BacklinksSlice implements IBacklinksSlice {
             let comparison = 0;
 
             switch (sort.by) {
-                case 'path':
+                case 'path': {
                     const fileNameA = a.sourcePath?.split('/').pop() || '';
                     const fileNameB = b.sourcePath?.split('/').pop() || '';
                     comparison = fileNameA.localeCompare(fileNameB);
                     break;
+                }
                 case 'heading':
                     comparison = (a.heading || '').localeCompare(b.heading || '');
                     break;
@@ -1326,27 +1312,17 @@ export class BacklinksSlice implements IBacklinksSlice {
      * Add a "no backlinks" message to the container
      */
     private addNoBacklinksMessage(container: HTMLElement): void {
-        console.log('Coalesce: adding no backlinks message to container');
+        this.logger.debug('Adding no backlinks message to container');
 
         // Create a message element
         const messageElement = document.createElement('div');
         messageElement.className = 'coalesce-no-backlinks-message';
         messageElement.textContent = 'No backlinks found for this note.';
-        messageElement.style.cssText = `
-            padding: 16px;
-            text-align: center;
-            color: var(--text-muted);
-            font-style: italic;
-            border: 1px dashed var(--background-modifier-border);
-            border-radius: 4px;
-            margin: 8px 0;
-            background-color: var(--background-primary);
-        `;
 
         // Add the message to the container
         container.appendChild(messageElement);
 
-        console.log('Coalesce: no backlinks message added');
+        this.logger.debug('No backlinks message added successfully');
     }
 
     /**
@@ -1435,6 +1411,21 @@ export class BacklinksSlice implements IBacklinksSlice {
             }
         } catch (error) {
             this.logger.error('Failed to remove event listener', { eventType, error });
+        }
+    }
+
+    /**
+     * Error boundary wrapper for operations
+     */
+    private async withErrorBoundary<T>(
+        operation: () => Promise<T>,
+        context: string
+    ): Promise<T> {
+        try {
+            return await operation();
+        } catch (error) {
+            this.logger.logErrorWithContext(error, context);
+            throw error;
         }
     }
 

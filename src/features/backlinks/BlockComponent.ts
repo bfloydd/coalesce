@@ -256,7 +256,7 @@ export class BlockComponent {
             this.cachedBacklinkRegex = new RegExp(`\\[\\[(?:[^\\]|]*?/)?${escapedNoteName}(?:\\|[^\\]]*)?\\]\\]`);
         }
 
-        let filteredLines = lines.filter(line => !this.cachedBacklinkRegex!.test(line));
+        const filteredLines = lines.filter(line => !this.cachedBacklinkRegex!.test(line));
 
         // If hideFirstHeader is enabled, also hide the first header line
         if (this.hideFirstHeader && filteredLines.length > 0) {
@@ -429,7 +429,11 @@ export class BlockComponent {
             this.logger.debug('Block title clicked', { filePath: this.filePath, blockId: this.blockId });
 
             // Use Obsidian's built-in navigation for reliable block scrolling
-            console.log('Coalesce: Dispatching navigation event for block', this.blockId, 'in file', this.filePath);
+            this.logger.debug('Dispatching navigation event for block', {
+                blockId: this.blockId,
+                filePath: this.filePath,
+                openInNewTab: event.ctrlKey
+            });
             const navigationEvent = new CustomEvent('coalesce-navigate', {
                 detail: { filePath: this.filePath, openInNewTab: event.ctrlKey, blockId: this.blockId },
                 bubbles: true

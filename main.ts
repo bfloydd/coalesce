@@ -1,20 +1,12 @@
-import { App, Plugin, TFile, MarkdownView } from 'obsidian';
+import { Plugin, TFile, MarkdownView } from 'obsidian';
 import { PluginOrchestrator } from './src/orchestrator';
-import { LogLevel } from './src/features/shared-utilities';
-import { CoalescePluginSettings, CoalescePluginInstance, ObsidianPlugins, ExtendedApp } from './src/features/shared-contracts';
+import { CoalescePluginSettings, ExtendedApp } from './src/features/shared-contracts';
+import { Logger } from './src/features/shared-utilities/Logger';
 
 export default class CoalescePlugin extends Plugin {
 	private orchestrator: PluginOrchestrator;
 	private lastProcessedFile: { path: string; timestamp: number } | null = null;
-	private logger: any = {
-		debug: () => {},
-		info: () => {},
-		warn: () => {},
-		error: () => {},
-		on: () => {},
-		off: () => {},
-		isEnabled: () => false
-	};
+	private logger: any;
 
 	async onload() {
 		try {
@@ -30,13 +22,35 @@ export default class CoalescePlugin extends Plugin {
 
 			// Initialize orchestrator
 			await this.orchestrator.initialize();
-			
+
 			// Start orchestrator
 			await this.orchestrator.start();
 
-			// Temporarily disable logger to prevent runtime errors
-			// const sharedUtilities = this.orchestrator.getSlice('sharedUtilities') as { getLogger: (prefix?: string) => any };
-			// this.logger = sharedUtilities?.getLogger('Coalesce');
+			// Initialize logger from shared utilities
+			const sharedUtilities = this.orchestrator.getSlice('sharedUtilities') as { getLogger: (prefix?: string) => any };
+			try {
+				this.logger = sharedUtilities?.getLogger?.('Coalesce');
+				// Verify the logger has the expected methods
+				if (!this.logger || typeof this.logger.debug !== 'function') {
+					throw new Error('Logger not properly initialized');
+				}
+			} catch (error) {
+				console.warn('Failed to initialize logger from shared utilities, using fallback:', error);
+				// Fallback logger
+				this.logger = {
+					debug: (message?: any, ...args: any[]) => console.debug('[Coalesce]', message, ...args),
+					info: (message?: any, ...args: any[]) => console.info('[Coalesce]', message, ...args),
+					warn: (message?: any, ...args: any[]) => console.warn('[Coalesce]', message, ...args),
+					error: (message?: any, ...args: any[]) => console.error('[Coalesce]', message, ...args)
+				};
+			}
+
+			// Set initial global logging state based on settings
+			const settingsSliceInit = this.orchestrator.getSlice('settings') as any;
+			if (settingsSliceInit) {
+				const settings = settingsSliceInit.getSettings?.() || {};
+				Logger.setGlobalLogging(settings.enableLogging || false);
+			}
 
 			// Setup debug methods for development
 			this.setupDebugMethods();
@@ -64,7 +78,9 @@ export default class CoalescePlugin extends Plugin {
 			// Initialize existing views
 			this.initializeExistingViews();
 
-			this.logger?.debug("Plugin initialization complete");
+			if (this.logger?.debug) {
+				this.logger.debug("Plugin initialization complete");
+			}
 		} catch (error) {
 			console.error("Failed to initialize Coalesce plugin:", error);
 		}
@@ -73,7 +89,7 @@ export default class CoalescePlugin extends Plugin {
 	private setupDebugMethods() {
 		// Setup debug methods using orchestrator
 		(this.app as any).coalesceTestFocus = () => {
-			console.log("Coalesce plugin test focus called");
+			this.logger?.debug("Coalesce plugin test focus called");
 			const viewIntegration = this.orchestrator.getSlice('viewIntegration');
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 			if (activeView) {
@@ -83,22 +99,23 @@ export default class CoalescePlugin extends Plugin {
 		};
 		
 		(this.app as any).coalesceStatus = () => {
-			console.log("Coalesce plugin status:");
-			console.log("- Plugin loaded:", !!this);
-			console.log("- Orchestrator:", !!this.orchestrator);
-			console.log("- Orchestrator state:", this.orchestrator.getState());
-			console.log("- Orchestrator statistics:", this.orchestrator.getStatistics());
-			console.log("- All markdown views:", this.app.workspace.getLeavesOfType('markdown').length);
+			this.logger?.info("Coalesce plugin status", {
+				pluginLoaded: !!this,
+				orchestrator: !!this.orchestrator,
+				orchestratorState: this.orchestrator.getState(),
+				orchestratorStatistics: this.orchestrator.getStatistics(),
+				markdownViews: this.app.workspace.getLeavesOfType('markdown').length
+			});
 		};
 
 		(this.app as any).coalesceTestDirectFocus = () => {
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-			console.log("Active view:", activeView);
+			this.logger?.debug("Test direct focus - active view", { activeView: !!activeView });
 			if (activeView) {
 				const leafId = (activeView.leaf as any).id;
 				const viewIntegration = this.orchestrator.getSlice('viewIntegration');
 				const isReady = (viewIntegration as any)?.isViewReadyForFocus?.(leafId);
-				console.log("View ready for focus:", isReady);
+				this.logger?.debug("Test direct focus - view ready status", { leafId, isReady });
 			}
 		};
 
@@ -117,7 +134,7 @@ export default class CoalescePlugin extends Plugin {
 				const leafId = (activeView.leaf as any).id;
 				const viewIntegration = this.orchestrator.getSlice('viewIntegration');
 				const isReady = (viewIntegration as any)?.isViewReadyForFocus?.(leafId);
-				console.log("View ready for focus:", isReady);
+				this.logger?.debug("Direct focus - view ready status", { leafId, isReady });
 			}
 		};
 
@@ -137,13 +154,16 @@ export default class CoalescePlugin extends Plugin {
 				const viewIntegration = this.orchestrator.getSlice('viewIntegration');
 				(viewIntegration as any)?.requestFocusWhenReady?.(leafId);
 			} else {
-				console.log("No active markdown view found");
+				this.logger?.warn("No active markdown view found for simple focus test");
 			}
 		};
 
 		(this.app as any).coalesceUpdateLogging = (enabled: boolean) => {
-			// Temporarily disabled to prevent runtime errors
-			console.log(`Coalesce logging ${enabled ? 'enabled' : 'disabled'}`);
+			// Update the global logging state for all loggers
+			Logger.setGlobalLogging(enabled);
+			if (this.logger?.info) {
+				this.logger.info(`Coalesce logging ${enabled ? 'enabled' : 'disabled'}`, { enabled });
+			}
 		};
 
 		(this.app as any).coalesceTestStyles = () => {
@@ -151,37 +171,38 @@ export default class CoalescePlugin extends Plugin {
 			if (activeView) {
 				const viewIntegration = this.orchestrator.getSlice('viewIntegration');
 				const stats = (viewIntegration as any)?.getViewStatistics?.();
-				console.log("View integration statistics:", stats);
+				this.logger?.info("View integration statistics", { stats });
 			} else {
-				console.log("No active markdown view found");
+				this.logger?.warn("No active markdown view found for style test");
 			}
 		};
 
 		// Add orchestrator debug methods
 		(this.app as any).coalesceOrchestratorStatus = () => {
-			console.log("Orchestrator status:");
-			console.log("- State:", this.orchestrator.getState());
-			console.log("- Statistics:", this.orchestrator.getStatistics());
-			console.log("- All slices:", Object.keys(this.orchestrator.getAllSlices()));
+			this.logger?.info("Orchestrator status", {
+				state: this.orchestrator.getState(),
+				statistics: this.orchestrator.getStatistics(),
+				allSlices: Object.keys(this.orchestrator.getAllSlices())
+			});
 		};
 
 		(this.app as any).coalesceOrchestratorEvent = (eventType: string, data: any) => {
-			console.log(`Eitting orchestrator event: ${eventType}`, data);
+			this.logger?.debug(`Emitting orchestrator event: ${eventType}`, { data });
 			this.orchestrator.emit(eventType, data);
 		};
 
 		(this.app as any).coalesceSliceStatus = (sliceName: string) => {
 			const slice = this.orchestrator.getSlice(sliceName as any);
 			if (slice) {
-				console.log(`${sliceName} slice:`, slice);
+				this.logger?.info(`${sliceName} slice found`, { sliceName });
 				if (typeof (slice as any).getStatistics === 'function') {
-					console.log(`${sliceName} statistics:`, (slice as any).getStatistics());
+					this.logger?.info(`${sliceName} statistics`, { statistics: (slice as any).getStatistics() });
 				}
 				if (typeof (slice as any).getState === 'function') {
-					console.log(`${sliceName} state:`, (slice as any).getState());
+					this.logger?.info(`${sliceName} state`, { state: (slice as any).getState() });
 				}
 			} else {
-				console.log(`${sliceName} slice not found`);
+				this.logger?.warn(`${sliceName} slice not found`, { sliceName });
 			}
 		};
 	}
@@ -190,35 +211,34 @@ export default class CoalescePlugin extends Plugin {
 		const now = Date.now();
 		const minInterval = 1000; // 1 second minimum between processing the same file
 
-		console.log('Coalesce: shouldProcessFile called for', filePath);
+		this.logger?.debug('Checking if file should be processed', { filePath });
 
 		if (this.lastProcessedFile &&
 			this.lastProcessedFile.path === filePath &&
 			(now - this.lastProcessedFile.timestamp) < minInterval) {
-			console.log('Coalesce: SKIPPING duplicate file processing', {
+			this.logger?.debug("Skipping duplicate file processing", {
 				filePath,
 				timeSinceLast: now - this.lastProcessedFile.timestamp,
 				minInterval
 			});
-			this.logger?.debug("Skipping duplicate file processing", { filePath, timeSinceLast: now - this.lastProcessedFile.timestamp });
 			return false;
 		}
 
 		this.lastProcessedFile = { path: filePath, timestamp: now };
-		console.log('Coalesce: ALLOWING file processing for', filePath);
+		this.logger?.debug('Allowing file processing', { filePath });
 		return true;
 	}
 
 	private async updateCoalesceUIForFile(filePath: string) {
-		console.log('Coalesce: updateCoalesceUIForFile called for', filePath);
+		this.logger?.debug('Updating Coalesce UI for file', { filePath });
 
 		// Prevent duplicate processing
 		if (!this.shouldProcessFile(filePath)) {
-			console.log('Coalesce: updateCoalesceUIForFile returning early due to shouldProcessFile');
+			this.logger?.debug('Returning early due to shouldProcessFile check', { filePath });
 			return;
 		}
 
-		console.log('Coalesce: updateCoalesceUIForFile proceeding with processing for', filePath);
+		this.logger?.debug('Proceeding with UI update for file', { filePath });
 
 		try {
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -251,24 +271,24 @@ export default class CoalescePlugin extends Plugin {
 					// The slice will handle backlink discovery, block extraction, header UI, and rendering
 					// Force refresh for user-initiated file opens to ensure backlinks are always current
 					const uiAttached = await backlinksSlice.attachToDOM?.(
-					    activeView, // Pass the view, slice handles container creation and attachment
-					    currentFilePath,
-					    true // forceRefresh = true for user file-open events
+						activeView, // Pass the view, slice handles container creation and attachment
+						currentFilePath,
+						true // forceRefresh = true for user file-open events
 					);
 
 // Only apply settings and log if UI was actually attached (not skipped due to recent attachment)
 if (uiAttached) {
-// Apply current settings to the backlinks UI
-backlinksSlice.setOptions?.({
-sort: settings.sortByFullPath || false,
-collapsed: settings.blocksCollapsed || false,
-strategy: 'default', // Default strategy
-theme: settings.theme || 'default',
-alias: null, // No alias filter by default
-filter: '' // No text filter by default
-});
+    // Apply current settings to the backlinks UI
+    backlinksSlice.setOptions?.({
+        sort: settings.sortByFullPath || false,
+        collapsed: settings.blocksCollapsed || false,
+        strategy: 'default', // Default strategy
+        theme: settings.theme || 'default',
+        alias: null, // No alias filter by default
+        filter: '' // No text filter by default
+    });
 
-console.log('Coalesce: Consolidated backlinks UI attached for', currentFilePath);
+    this.logger?.info('Consolidated backlinks UI attached for file', { currentFilePath });
 }
 				}
 			}
@@ -281,24 +301,38 @@ console.log('Coalesce: Consolidated backlinks UI attached for', currentFilePath)
 		// Register coalesce-settings-collapse-changed event handler
 		document.addEventListener('coalesce-settings-collapse-changed', (event: CustomEvent) => {
 			const { collapsed } = event.detail;
-			console.log('Coalesce: Received coalesce-settings-collapse-changed event', { collapsed });
+			this.logger?.debug('Received coalesce-settings-collapse-changed event', { collapsed });
 
 			try {
 				const settingsSlice = this.orchestrator.getSlice('settings') as any;
 				if (settingsSlice && typeof settingsSlice.handleCollapseStateChange === 'function') {
 					settingsSlice.handleCollapseStateChange({ collapsed });
 				} else {
-					console.warn('Coalesce: Settings slice not available or handleCollapseStateChange method not found');
+					this.logger?.warn('Settings slice not available or handleCollapseStateChange method not found');
 				}
 			} catch (error) {
 				this.logger?.error("Failed to handle coalesce-settings-collapse-changed event", { collapsed, error });
 			}
 		});
 
+		// Register coalesce-logging-state-changed event handler
+		document.addEventListener('coalesce-logging-state-changed', (event: CustomEvent) => {
+			const { enabled } = event.detail;
+			try {
+				// Update the global logging state for all loggers
+				Logger.setGlobalLogging(enabled);
+				if (this.logger?.debug) {
+					this.logger.debug('Received coalesce-logging-state-changed event', { enabled });
+				}
+			} catch (error) {
+				console.error("Failed to handle coalesce-logging-state-changed event", { enabled, error });
+			}
+		});
+
 		// Register coalesce-navigate event handler - now handled by consolidated backlinks slice
 		document.addEventListener('coalesce-navigate', (event: CustomEvent) => {
 			const { filePath, openInNewTab, blockId } = event.detail;
-			console.log('Coalesce: Received coalesce-navigate event for navigation', { filePath, openInNewTab, blockId });
+			this.logger?.debug('Received coalesce-navigate event for navigation', { filePath, openInNewTab, blockId });
 
 			try {
 				const backlinks = this.orchestrator.getSlice('backlinks') as any;
@@ -317,7 +351,6 @@ console.log('Coalesce: Consolidated backlinks UI attached for', currentFilePath)
 		// Register coalesce-navigate-complete event handler
 		document.addEventListener('coalesce-navigate-complete', (event: CustomEvent) => {
 			const { filePath } = event.detail;
-			console.log('Coalesce: COALESCE-NAVIGATE-COMPLETE event triggered for', filePath);
 			this.logger?.debug("Coalesce navigate complete event", { filePath });
 
 			try {
@@ -332,7 +365,6 @@ console.log('Coalesce: Consolidated backlinks UI attached for', currentFilePath)
 		this.registerEvent(
 			this.app.workspace.on('file-open', (file: TFile) => {
 				if (file) {
-					console.log('Coalesce: FILE-OPEN event triggered for', file.path);
 					this.logger?.debug("File open event (fallback)", {
 						path: file.path,
 						extension: file.extension,
@@ -379,36 +411,36 @@ console.log('Coalesce: Consolidated backlinks UI attached for', currentFilePath)
 
 		// Register orchestrator event listeners for slice coordination
 		this.orchestrator.on('file:opened', async (data: any) => {
-			console.log('Coalesce: ORCHESTRATOR file:opened event triggered for', data.file?.path);
+			this.logger?.debug('Orchestrator file:opened event triggered', { filePath: data.file?.path });
 
 			const viewIntegration = this.orchestrator.getSlice('viewIntegration');
 			const backlinks = this.orchestrator.getSlice('backlinks'); // Consolidated slice
 
 			if (viewIntegration && backlinks && data.file) {
-				console.log('Coalesce: ORCHESTRATOR processing file:opened for', data.file.path);
+				this.logger?.debug('Orchestrator processing file:opened', { filePath: data.file.path });
 
 				// Initialize view for the file
 				const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 				if (activeView && activeView.file?.path === data.file.path) {
-					console.log('Coalesce: ORCHESTRATOR active view matches, proceeding');
+					this.logger?.debug('Orchestrator active view matches, proceeding', { filePath: data.file.path });
 
 					// Initialize view integration
 					await (viewIntegration as any)?.initializeView?.(data.file, activeView);
 
 					// Use the consolidated backlinks slice to attach the complete UI
-					console.log('Coalesce: ORCHESTRATOR calling attachToDOM for', data.file.path);
+					this.logger?.debug('Orchestrator calling attachToDOM', { filePath: data.file.path });
 					// Don't force refresh for orchestrator events (automatic app startup processing)
 					const uiAttached = await (backlinks as any)?.attachToDOM?.(
-					    activeView, // Pass the view, slice handles container creation and attachment
-					    data.file.path,
-					    false // forceRefresh = false for automatic orchestrator events
+						activeView, // Pass the view, slice handles container creation and attachment
+						data.file.path,
+						false // forceRefresh = false for automatic orchestrator events
 					);
 
-					console.log('Coalesce: ORCHESTRATOR attachToDOM returned', uiAttached, 'for', data.file.path);
+					this.logger?.debug('Orchestrator attachToDOM result', { filePath: data.file.path, uiAttached });
 
 					// Only apply settings and log if UI was actually attached (not skipped due to recent attachment)
 					if (uiAttached) {
-						console.log('Coalesce: ORCHESTRATOR applying settings for', data.file.path);
+						this.logger?.debug('Orchestrator applying settings', { filePath: data.file.path });
 
 						// Apply current settings to the backlinks UI
 						const settingsSlice = this.orchestrator.getSlice('settings') as any;
@@ -429,18 +461,18 @@ console.log('Coalesce: Consolidated backlinks UI attached for', currentFilePath)
 							filter: ''
 						});
 
-						console.log('Coalesce: Consolidated backlinks UI attached for', data.file.path);
+						this.logger?.info('Consolidated backlinks UI attached for file', { filePath: data.file.path });
 					} else {
-						console.log('Coalesce: ORCHESTRATOR UI was not attached (skipped) for', data.file.path);
+						this.logger?.debug('Orchestrator UI was not attached (skipped)', { filePath: data.file.path });
 					}
 				} else {
-					console.log('Coalesce: ORCHESTRATOR active view does not match', {
+					this.logger?.debug('Orchestrator active view does not match', {
 						activeViewPath: activeView?.file?.path,
 						eventFilePath: data.file.path
 					});
 				}
 			} else {
-				console.log('Coalesce: ORCHESTRATOR missing required slices or data', {
+				this.logger?.debug('Orchestrator missing required slices or data', {
 					hasViewIntegration: !!viewIntegration,
 					hasBacklinks: !!backlinks,
 					hasFile: !!data.file
@@ -471,12 +503,12 @@ console.log('Coalesce: Consolidated backlinks UI attached for', currentFilePath)
 	}
 
 	private initializeExistingViews() {
-		console.log('Coalesce: initializeExistingViews called');
+		this.logger?.debug('Initializing existing views');
 
 		// Use requestAnimationFrame to ensure workspace is fully ready
 		requestAnimationFrame(() => {
 			const existingViews = this.app.workspace.getLeavesOfType('markdown');
-			console.log('Coalesce: initializeExistingViews found', existingViews.length, 'existing views');
+			this.logger?.debug('Found existing views on app load', { count: existingViews.length });
 
 			if (existingViews.length > 0) {
 				this.logger?.debug("Initializing existing views on fresh app load", { count: existingViews.length });
@@ -484,11 +516,14 @@ console.log('Coalesce: Consolidated backlinks UI attached for', currentFilePath)
 				existingViews.forEach((leaf, index) => {
 					const view = leaf.view as MarkdownView;
 					if (view?.file) {
-						console.log('Coalesce: initializeExistingViews emitting file:opened for view', index, 'file:', view.file.path);
+						this.logger?.debug('Emitting file:opened for existing view', {
+							index,
+							filePath: view.file.path
+						});
 						// Emit file open event for each existing view
 						this.orchestrator.emit('file:opened', { file: view.file });
 					} else {
-						console.log('Coalesce: initializeExistingViews skipping view', index, '- no file');
+						this.logger?.debug('Skipping existing view - no file', { index });
 					}
 				});
 			}
@@ -496,37 +531,45 @@ console.log('Coalesce: Consolidated backlinks UI attached for', currentFilePath)
 			// Fallback check in case views weren't ready yet
 			setTimeout(() => {
 				const delayedViews = this.app.workspace.getLeavesOfType('markdown');
-				console.log('Coalesce: initializeExistingViews fallback check found', delayedViews.length, 'delayed views');
+				this.logger?.debug('Fallback check for delayed views', { count: delayedViews.length });
 
 				if (delayedViews.length > existingViews.length) {
-					console.log('Coalesce: initializeExistingViews processing additional views');
+					this.logger?.debug('Processing additional delayed views', {
+						originalCount: existingViews.length,
+						delayedCount: delayedViews.length
+					});
 
 					delayedViews.forEach((leaf, index) => {
 						const view = leaf.view as MarkdownView;
 						if (view?.file) {
-							console.log('Coalesce: initializeExistingViews fallback emitting file:opened for delayed view', index, 'file:', view.file.path);
+							this.logger?.debug('Emitting file:opened for delayed view', {
+								index,
+								filePath: view.file.path
+							});
 							// Emit file open event for new views
 							this.orchestrator.emit('file:opened', { file: view.file });
 						} else {
-							console.log('Coalesce: initializeExistingViews fallback skipping delayed view', index, '- no file');
+							this.logger?.debug('Skipping delayed view - no file', { index });
 						}
 					});
 				} else {
-					console.log('Coalesce: initializeExistingViews fallback - no additional views to process');
+					this.logger?.debug('No additional delayed views to process');
 				}
 			}, 500);
 		});
 	}
 
 	onunload() {
-		this.logger?.debug("Unloading plugin");
-		
 		try {
+			if (this.logger?.debug) {
+				this.logger.debug("Unloading plugin");
+			}
+
 			// Cleanup orchestrator
 			if (this.orchestrator) {
 				this.orchestrator.cleanup();
 			}
-			
+
 			// Clean up debug methods
 			const app = this.app as any;
 			delete app.coalesceTestFocus;
@@ -541,14 +584,16 @@ console.log('Coalesce: Consolidated backlinks UI attached for', currentFilePath)
 			delete app.coalesceOrchestratorStatus;
 			delete app.coalesceOrchestratorEvent;
 			delete app.coalesceSliceStatus;
-			
+
 			// Clean up Obsidian app plugin reference
 			const obsidianApp = this.app as ExtendedApp;
 			if (obsidianApp.plugins?.plugins?.coalesce) {
 				obsidianApp.plugins.plugins.coalesce.log = undefined;
 			}
-			
-			this.logger?.debug("Plugin cleanup complete");
+
+			if (this.logger?.debug) {
+				this.logger.debug("Plugin cleanup complete");
+			}
 		} catch (error) {
 			console.error("Failed to cleanup Coalesce plugin:", error);
 		}
