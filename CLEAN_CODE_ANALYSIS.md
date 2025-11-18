@@ -419,74 +419,234 @@ describe('BacklinksSlice Integration', () => {
 ### Phase 3: Advanced Improvements (1-2 weeks)
 
 #### Priority 7: CSS Modularization
-**Effort**: 3-5 days
+**Effort**: 3–5 days
 **Impact**: Medium
 
-**Tasks:**
-- [ ] Split `styles.css` into component-specific files
-- [ ] Create CSS variables system for theming
-- [ ] Implement CSS-in-JS or CSS modules approach
-- [ ] Add CSS linting and optimization
+**Goals:**
+- Align styles with the vertical slices (backlinks/header/blocks/settings).
+- Preserve compatibility with Obsidian’s dark/light + community themes.
+- Make it safe to iterate on UI without style regressions.
 
-**New CSS Structure:**
-```
+**Planned Structure (no change to final bundle path):**
+```text
 styles/
 ├── base/
-│   ├── variables.css
-│   └── reset.css
+│   ├── variables.css     # plugin-scoped CSS custom properties
+│   └── reset.css         # minimal reset for .coalesce-* elements
 ├── components/
-│   ├── backlinks.css
-│   ├── header.css
-│   ├── blocks.css
-│   └── settings.css
+│   ├── backlinks.css     # list layout, container, no-backlinks message
+│   ├── header.css        # header layout and controls
+│   ├── blocks.css        # individual backlink block styling
+│   └── settings.css      # any in-view settings UI
 └── themes/
-    ├── default.css
-    ├── compact.css
-    └── modern.css
+    ├── default.css       # default plugin theme (derived from Obsidian tokens)
+    ├── compact.css       # denser layout variant
+    └── modern.css        # experimental / advanced variant
 ```
+
+**Tasks:**
+- [ ] Introduce CSS module layout
+  - [x] Create [`styles/base/variables.css`](styles/base/variables.css:1) with plugin-level CSS variables, e.g.:
+    ```css
+    :root {
+      --coalesce-header-bg: var(--background-primary-alt);
+      --coalesce-header-border: var(--background-modifier-border);
+      --coalesce-text-muted: var(--text-muted);
+      --coalesce-accent: var(--interactive-accent);
+    }
+
+    .theme-dark {
+      --coalesce-header-bg: var(--background-secondary);
+    }
+
+    .theme-light {
+      --coalesce-header-bg: var(--background-primary-alt);
+    }
+    ```
+  - [x] Create [`styles/base/reset.css`](styles/base/reset.css:1) with minimal, component-scoped resets for `.coalesce-*` (no global resets).
+  - [x] Create empty component files under `styles/components/`:
+    - [`styles/components/backlinks.css`](styles/components/backlinks.css:1)
+    - [`styles/components/header.css`](styles/components/header.css:1)
+    - [`styles/components/blocks.css`](styles/components/blocks.css:1)
+    - [`styles/components/settings.css`](styles/components/settings.css:1)
+  - [ ] Import component files from the existing [`styles.css`](styles.css:1) so the build still outputs a single `dist/styles.css` (no behavioural change yet).
+
+- [ ] Incrementally migrate existing rules from [`styles.css`](styles.css:1)
+  - [ ] Move backlinks container and list styles into [`styles/components/backlinks.css`](styles/components/backlinks.css:1) (selectors like `.coalesce-custom-backlinks-container`, `.backlinks-list`, `.coalesce-no-backlinks-message`).
+  - [ ] Move header-related styles (logo, filter, alias dropdown, buttons) into [`styles/components/header.css`](styles/components/header.css:1) aligned with [`HeaderComponent`](src/features/backlinks/HeaderComponent.ts:10) and [`HeaderUI`](src/features/backlinks/HeaderUI.ts:14).
+  - [ ] Move block styles (block container, toggle arrow, title, content) into [`styles/components/blocks.css`](styles/components/blocks.css:1) aligned with [`BlockComponent`](src/features/backlinks/BlockComponent.ts:1).
+  - [ ] Move any embedded settings styles (if present) into [`styles/components/settings.css`](styles/components/settings.css:1).
+
+- [ ] Add theme-specific overrides
+  - [ ] Define `.coalesce-theme-default`, `.coalesce-theme-compact`, `.coalesce-theme-modern` in `styles/themes/*.css`, applied by [`BacklinksViewController`](src/features/backlinks/ui/BacklinksViewController.ts:1) via container classes (e.g. `theme-default` already in use).
+  - [ ] Ensure all new theme rules are expressed in terms of `--coalesce-*` variables which in turn map to Obsidian tokens; avoid hard-coded colors.
+
+- [ ] Add CSS linting and safety rails
+  - [ ] Introduce a lightweight CSS lint configuration (e.g. `stylelint`) to enforce:
+    - No global tag selectors affecting Obsidian core layouts.
+    - `.coalesce-*` prefix for all plugin-specific classes.
+  - [ ] Optionally add a simple “unused selector” check in CI (build + grep for key class names in HTML/DOM tests).
+
+This plan keeps the runtime surface unchanged (still a single `dist/styles.css`) while making the CSS layout more modular and slice-aware.
 
 #### Priority 8: Performance Monitoring
 **Effort**: 2 days
 **Impact**: Medium
 
-**Tasks:**
-- [ ] Add performance tracking utilities
-- [ ] Implement lazy loading for heavy components
-- [ ] Add memory usage monitoring
-- [ ] Create performance benchmarks
+**Goals:**
+- Get cheap, structured performance signals in development and debug mode.
+- Avoid polluting feature code with ad-hoc `performance.now()` calls.
+- Keep overhead near-zero when monitoring is disabled.
 
-**Performance Utilities:**
-```typescript
-class PerformanceMonitor {
-    static measure<T>(label: string, operation: () => T): T {
+**Design:**
+
+- Add [`PerformanceMonitor`](src/features/shared-utilities/PerformanceMonitor.ts:1) in the shared utilities slice.
+- Use the existing [`Logger`](src/features/shared-utilities/Logger.ts:1) to emit performance events, rather than introducing a new channel.
+- Gate monitoring behind a settings flag (e.g. `enablePerformanceLogging`) and/or log level, so production users pay almost nothing.
+
+**Tasks:**
+- [x] Implement PerformanceMonitor utility
+  - [x] Create [`PerformanceMonitor`](src/features/shared-utilities/PerformanceMonitor.ts:1) with:
+    ```typescript
+    export class PerformanceMonitor {
+      constructor(
+        private readonly logger: Logger,
+        private readonly enabled: () => boolean
+      ) {}
+
+      async measureAsync<T>(
+        label: string,
+        operation: () => Promise<T>,
+        meta: Record<string, unknown> = {}
+      ): Promise<T> {
+        if (!this.enabled()) {
+          return operation();
+        }
+
+        const start = performance.now();
+        try {
+          const result = await operation();
+          const duration = performance.now() - start;
+          this.logger.logPerformance(label, duration, meta);
+          return result;
+        } catch (error) {
+          const duration = performance.now() - start;
+          this.logger.logPerformance(label, duration, {
+            ...meta,
+            errorName: (error as Error).name,
+            errorMessage: (error as Error).message
+          });
+          throw error;
+        }
+      }
+
+      measureSync<T>(
+        label: string,
+        operation: () => T,
+        meta: Record<string, unknown> = {}
+      ): T {
+        if (!this.enabled()) {
+          return operation();
+        }
+
         const start = performance.now();
         const result = operation();
         const duration = performance.now() - start;
-        logger.logPerformance(label, duration);
+        this.logger.logPerformance(label, duration, meta);
         return result;
+      }
     }
-}
-```
+    ```
+  - [ ] Wire `enabled` to a combination of:
+    - A new settings flag (e.g. `settings.enablePerformanceLogging`).
+    - Logger state (e.g. `Logger.isEnabled()` or a dedicated `perf` level if added later).
+
+- [x] Integrate monitoring at key boundaries (opt-in)
+  - [x] Wrap `updateBacklinks` in [`BacklinksCore`](src/features/backlinks/core/BacklinksCore.ts:1) with `measureAsync('backlinks.update', ...)`.
+  - [x] Wrap `extractAndRenderBlocks` in [`BacklinksViewController`](src/features/backlinks/ui/BacklinksViewController.ts:1) with `measureAsync('ui.blocks.extractAndRender', ...)`.
+  - [x] Optionally wrap:
+    - View initialization in [`ViewIntegrationSlice.initializeView`](src/features/view-integration/ViewIntegrationSlice.ts:21).
+    - Navigation path opens in [`NavigationSlice`](src/features/navigation/NavigationSlice.ts:1).
+
+- [ ] Add simple performance “benchmarks” in tests/dev tooling
+  - [ ] Add a Jest suite that uses `PerformanceMonitor.measureSync` with synthetic data to assert that:
+    - Rendering N synthetic blocks stays under a generous threshold (catching obvious regressions).
+    - Discovering backlinks in a synthetic vault doesn’t explode unexpectedly.
+  - [ ] Log performance measurements via `Logger.debug` only; do not store them in memory to avoid leaks.
+
+This keeps performance monitoring centralized, optional, and decoupled from feature code while still making it straightforward to instrument critical paths.
 
 #### Priority 9: Shared UI Component Library
-**Effort**: 3-5 days
+**Effort**: 3–5 days
 **Impact**: Medium
 
-**Tasks:**
-- [ ] Create reusable UI components
-- [ ] Implement consistent styling patterns
-- [ ] Add accessibility features
-- [ ] Create component documentation
+**Goals:**
+- Reduce duplication in DOM creation for buttons, icons, menus, and layout wrappers.
+- Make it easier to keep styling and accessibility consistent across the plugin.
+- Evolve gradually without rewriting all UI at once.
 
-**Shared Components:**
-```typescript
-// src/shared/ui/Button.ts
-export class Button extends HTMLElement {
-    constructor(options: ButtonOptions) {
-        // Consistent button implementation
-    }
-}
+**Design:**
+
+Introduce a small `src/shared/ui/` package that exposes thin abstractions over DOM creation (not a full component framework). Example structure:
+
+```text
+src/shared/ui/
+├── Button.ts          # primary / secondary / subtle buttons
+├── IconButton.ts      # button with IconProvider-backed SVG
+├── Toggle.ts          # pill / toggle-style controls
+├── Panel.ts           # container with standard padding/border
+└── index.ts
 ```
+
+Each helper returns native elements (`HTMLButtonElement`, `HTMLDivElement`, etc.) built via Obsidian’s `createEl` / `createDiv` to fit existing code.
+
+**Tasks:**
+- [ ] Define shared UI primitives
+  - [x] Create [`src/shared/ui/Button.ts`](src/shared/ui/Button.ts:1) with a factory like:
+    ```typescript
+    export interface ButtonOptions {
+      label: string;
+      onClick: () => void;
+      variant?: 'primary' | 'secondary' | 'ghost';
+      ariaLabel?: string;
+      icon?: string;
+    }
+
+    export function createButton(parent: HTMLElement, options: ButtonOptions): HTMLButtonElement {
+      const button = parent.createEl('button', {
+        cls: `coalesce-btn coalesce-btn-${options.variant ?? 'ghost'}`,
+        attr: { type: 'button', 'aria-label': options.ariaLabel ?? options.label }
+      });
+      button.textContent = options.label;
+      if (options.icon) {
+        IconProvider.setIcon(button, options.icon, { size: 'sm' });
+      }
+      button.addEventListener('click', options.onClick);
+      return button;
+    }
+    ```
+  - [x] Create [`src/shared/ui/IconButton.ts`](src/shared/ui/IconButton.ts:1) for icon-only controls (e.g. sort, collapse, settings).
+  - [ ] Create [`src/shared/ui/Panel.ts`](src/shared/ui/Panel.ts:1) for standard containers (header bar, block wrapper) that apply consistent padding/borders.
+
+- [ ] Gradual adoption in existing features
+  - [x] Refactor [`SettingsControls`](src/features/backlinks/SettingsControls.ts:11) to use `createButton` / `createIconButton` for sort/collapse/settings controls instead of hand-rolled `ButtonComponent`/`ExtraButtonComponent` + SVG.
+  - [x] Refactor [`HeaderComponent`](src/features/backlinks/HeaderComponent.ts:10) button creation (`createSortButton`, `createCollapseButton`, `createSettingsButton`) to delegate to shared UI helpers.
+  - [ ] Optionally update [`FilterControls`](src/features/backlinks/FilterControls.ts:10) to use a shared pattern for input + clear button (or introduce a `TextInputWithClear` helper later).
+
+- [ ] Styling & accessibility
+  - [ ] Map shared UI classes (e.g. `.coalesce-btn`, `.coalesce-icon-button`, `.coalesce-panel`) to rules in `styles/components/header.css` and `styles/components/blocks.css`.
+  - [ ] Ensure all interactive elements:
+    - Have `aria-label` or visible text.
+    - Use `type="button"` to avoid accidental form behavior.
+    - Preserve keyboard focusability (no `tabindex=-1` on primary controls).
+
+- [ ] Documentation
+  - [ ] Add a short `src/shared/ui/README.md` describing:
+    - When to use shared UI primitives vs local DOM code.
+    - Example snippets for buttons, icon buttons, and panels.
+  - [ ] Update `CLEAN_CODE_ANALYSIS.md` or `ARCHITECTURE.md` to reference the shared UI library as the preferred way to construct new plugin UI.
+
+This gives a pragmatic, incremental path to a shared UI component library aligned with the existing DOM-based codebase and CSS modularization work in Priority 7.
 
 ## Implementation Timeline
 

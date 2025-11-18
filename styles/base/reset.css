@@ -1,0 +1,42 @@
+/* ============================
+   Coalesce Base Reset
+   Scoped to .coalesce-* elements only
+   ============================ */
+
+/* Use border-box sizing for all Coalesce UI elements */
+.coalesce-custom-backlinks-container,
+.coalesce-backlinks-header,
+.coalesce-backlinks-header-left,
+.coalesce-backlinks-header-right,
+.coalesce-backlink-item,
+.coalesce-block-header,
+.coalesce-block-title,
+.coalesce-content-preview,
+.coalesce-no-backlinks-message,
+.coalesce-filter-input-container,
+.coalesce-filter-input,
+.coalesce-filter-clear-button,
+.coalesce-alias-dropdown,
+.coalesce-sort-button,
+.coalesce-collapse-button,
+.coalesce-settings-button,
+.coalesce-add-heading-prompt,
+.coalesce-add-heading-open-note {
+    box-sizing: border-box;
+}
+
+/* Normalize buttons inside Coalesce to avoid inheriting unexpected styles */
+.coalesce-sort-button,
+.coalesce-collapse-button,
+.coalesce-settings-button,
+.coalesce-add-heading-open-note {
+    margin: 0;
+    font: inherit;
+}
+
+/* Ensure Coalesce inputs inherit font and color from Obsidian */
+.coalesce-filter-input,
+.coalesce-alias-dropdown {
+    font: inherit;
+    color: inherit;
+}

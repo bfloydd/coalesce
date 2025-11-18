@@ -1,0 +1,14 @@
+/* ============================
+   Coalesce Settings Component Styles
+   ============================ */
+
+/**
+ * This file will gradually take over in-view settings-related styles
+ * from styles.css (if/when such styles are introduced).
+ *
+ * Potential future selectors:
+ * - .coalesce-settings-panel
+ * - .coalesce-settings-row
+ * - .coalesce-settings-label
+ * - .coalesce-settings-control
+ */

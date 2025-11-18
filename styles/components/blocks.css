@@ -1,0 +1,15 @@
+/* ============================
+   Coalesce Blocks Component Styles
+   ============================ */
+
+/**
+ * This file will gradually take over block-related styles from styles.css.
+ * For now it is intentionally minimal to avoid changing runtime behaviour.
+ *
+ * Target selectors to migrate here over time:
+ * - .coalesce-block-header
+ * - .coalesce-block-title
+ * - .coalesce-content-preview (and collapsed states)
+ * - .coalesce-checkmark-container / .coalesce-checkmark
+ * - .coalesce-backlink-item state classes (has-alias / no-alias / is-collapsed)
+ */

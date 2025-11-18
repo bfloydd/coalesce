@@ -1,6 +1,14 @@
 import { Logger } from '../shared-utilities/Logger';
-import { ISettingsControls, SortButtonOptions, CollapseButtonOptions, StrategyDropdownOptions, ThemeDropdownOptions, SettingsButtonOptions } from './types';
-import { setIcon, ButtonComponent, ExtraButtonComponent } from 'obsidian';
+import {
+    ISettingsControls,
+    SortButtonOptions,
+    CollapseButtonOptions,
+    StrategyDropdownOptions,
+    ThemeDropdownOptions,
+    SettingsButtonOptions
+} from './types';
+import { createButton } from '../../shared/ui/Button';
+import { createIconButton } from '../../shared/ui/IconButton';
 
 /**
  * Settings Controls for Backlinks Header Slice
@@ -22,44 +30,34 @@ export class SettingsControls implements ISettingsControls {
      */
     createSortButton(container: HTMLElement, options: SortButtonOptions): HTMLElement {
         this.logger.debug('Creating sort button', { options });
-        
+
         try {
-            // Create button container
+            // Optional wrapper for layout compatibility
             const buttonContainer = container.createDiv({ cls: 'sort-button' });
-            
-            // Create button
-            const button = new ButtonComponent(buttonContainer);
-            button.setTooltip('Toggle sort order');
-            
-            // Create SVG icon
-            const svg = buttonContainer.createSvg('svg', {
-                attr: {
-                    viewBox: '0 0 24 24',
-                    width: '16',
-                    height: '16',
-                    fill: 'currentColor'
-                }
+
+            const button = createButton({
+                parent: buttonContainer,
+                label: options.isDescending ? 'Descending' : 'Ascending',
+                ariaLabel: options.isDescending ? 'Descending' : 'Ascending',
+                icon: 'sort',
+                iconSize: 'sm',
+                variant: 'ghost',
+                onClick: options.onToggle,
+                classes: ['coalesce-sort-button']
             });
-            
-            // Add sort icon (up/down arrows)
-            const path = svg.createSvg('path', {
-                attr: {
-                    d: 'M7 14l5-5 5 5z'
+
+            // Set initial icon state for rotation
+            const svg = button.querySelector('svg') as SVGElement | null;
+            if (svg) {
+                if (options.isDescending) {
+                    svg.classList.add('sort-descending');
+                    svg.classList.remove('sort-ascending');
+                } else {
+                    svg.classList.add('sort-ascending');
+                    svg.classList.remove('sort-descending');
                 }
-            });
-            
-            // Set initial state
-            if (options.isDescending) {
-                svg.classList.add('sort-descending');
-            } else {
-                svg.classList.add('sort-ascending');
             }
-            
-            // Add click handler
-            button.onClick(() => {
-                options.onToggle();
-            });
-            
+
             this.logger.debug('Sort button created successfully', { buttonContainer });
             return buttonContainer;
         } catch (error) {
@@ -73,42 +71,26 @@ export class SettingsControls implements ISettingsControls {
      */
     createCollapseButton(container: HTMLElement, options: CollapseButtonOptions): HTMLElement {
         this.logger.debug('Creating collapse button', { options });
-        
+
         try {
-            // Create button container
+            // Optional wrapper for layout compatibility
             const buttonContainer = container.createDiv({ cls: 'collapse-button' });
-            
-            // Create button
-            const button = new ButtonComponent(buttonContainer);
-            button.setTooltip('Toggle collapse all');
-            
-            // Create SVG icon
-            const svg = buttonContainer.createSvg('svg', {
-                attr: {
-                    viewBox: '0 0 24 24',
-                    width: '16',
-                    height: '16',
-                    fill: 'currentColor'
-                }
+
+            const button = createIconButton({
+                parent: buttonContainer,
+                icon: 'chevronDown',
+                size: 'sm',
+                ariaLabel: options.isCollapsed ? 'Expand all' : 'Collapse all',
+                classes: ['coalesce-collapse-button'],
+                onClick: options.onToggle
             });
-            
-            // Add collapse icon (chevron)
-            const path = svg.createSvg('path', {
-                attr: {
-                    d: 'M7 10l5 5 5-5z'
-                }
-            });
-            
+
             // Set initial state
-            if (options.isCollapsed) {
+            const svg = button.querySelector('svg') as SVGElement | null;
+            if (svg && options.isCollapsed) {
                 svg.classList.add('is-collapsed');
             }
-            
-            // Add click handler
-            button.onClick(() => {
-                options.onToggle();
-            });
-            
+
             this.logger.debug('Collapse button created successfully', { buttonContainer });
             return buttonContainer;
         } catch (error) {
@@ -212,21 +194,19 @@ export class SettingsControls implements ISettingsControls {
      */
     createSettingsButton(container: HTMLElement, options: SettingsButtonOptions): HTMLElement {
         this.logger.debug('Creating settings button', { options });
-        
+
         try {
-            // Create button container
             const buttonContainer = container.createDiv({ cls: 'settings-button' });
-            
-            // Create button
-            const button = new ExtraButtonComponent(buttonContainer);
-            button.setIcon('settings');
-            button.setTooltip('Coalesce Settings');
-            
-            // Add click handler
-            button.onClick(() => {
-                options.onClick();
+
+            createIconButton({
+                parent: buttonContainer,
+                icon: 'settings',
+                size: 'sm',
+                ariaLabel: 'Coalesce Settings',
+                classes: ['coalesce-settings-button'],
+                onClick: options.onClick
             });
-            
+
             this.logger.debug('Settings button created successfully', { buttonContainer });
             return buttonContainer;
         } catch (error) {

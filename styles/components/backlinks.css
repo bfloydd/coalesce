@@ -1,0 +1,14 @@
+/* ============================
+   Coalesce Backlinks Component Styles
+   ============================ */
+
+/**
+ * This file will gradually take over backlinks-related styles from styles.css.
+ * For now it is intentionally minimal to avoid changing runtime behaviour.
+ *
+ * Target selectors to migrate here over time:
+ * - .coalesce-custom-backlinks-container
+ * - .backlinks-list
+ * - .coalesce-no-backlinks-message
+ * - .coalesce-backlink-item (and state modifiers)
+ */

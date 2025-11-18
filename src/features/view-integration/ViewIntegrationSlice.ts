@@ -4,6 +4,7 @@ import { ViewManager } from './ViewManager';
 import { DOMAttachmentService } from './DOMAttachmentService';
 import { ViewLifecycleHandler } from './ViewLifecycleHandler';
 import { Logger } from '../shared-utilities/Logger';
+import { PerformanceMonitor } from '../shared-utilities/PerformanceMonitor';
 import { ViewIntegrationOptions, ViewStatistics, ViewEventData } from './types';
 import { CoalesceEvent, EventHandler } from '../shared-contracts/events';
 
@@ -27,6 +28,7 @@ export class ViewIntegrationSlice implements IViewIntegrationSlice {
     private eventHandlers: Map<string, EventHandler[]> = new Map();
     private options: ViewIntegrationOptions;
     private statistics: ViewStatistics;
+    private performanceMonitor: PerformanceMonitor;
 
     constructor(app: App, options?: Partial<ViewIntegrationOptions>) {
         this.app = app;
@@ -69,6 +71,12 @@ export class ViewIntegrationSlice implements IViewIntegrationSlice {
             averageViewLifetime: 0,
             activeViewCount: 0
         };
+
+        // Performance monitoring, gated by global logging state
+        this.performanceMonitor = new PerformanceMonitor(
+            this.logger.child('Performance'),
+            () => Logger.getGlobalLogging().enabled
+        );
         
         this.logger.debug('ViewIntegrationSlice initialized');
     }
@@ -77,31 +85,37 @@ export class ViewIntegrationSlice implements IViewIntegrationSlice {
      * Initialize view for a file
      */
     async initializeView(file: TFile, view: MarkdownView): Promise<void> {
-        this.logger.debug('Initializing view', { filePath: file.path });
-        
-        try {
-            // Initialize view using ViewManager
-            await this.viewManager.initializeView(file, view);
-            
-            // Update statistics
-            this.statistics.totalViewsInitialized++;
-            this.statistics.activeViewCount = this.viewManager.getActiveViews().size;
-            
-            // Emit event
-            this.emitEvent({
-                type: 'backlinks:updated',
-                payload: {
-                    files: [file.path],
-                    leafId: (view.leaf as WorkspaceLeafWithID).id,
-                    count: 1
+        return this.performanceMonitor.measureAsync(
+            'view.initialize',
+            async () => {
+                this.logger.debug('Initializing view', { filePath: file.path });
+                
+                try {
+                    // Initialize view using ViewManager
+                    await this.viewManager.initializeView(file, view);
+                    
+                    // Update statistics
+                    this.statistics.totalViewsInitialized++;
+                    this.statistics.activeViewCount = this.viewManager.getActiveViews().size;
+                    
+                    // Emit event
+                    this.emitEvent({
+                        type: 'backlinks:updated',
+                        payload: {
+                            files: [file.path],
+                            leafId: (view.leaf as WorkspaceLeafWithID).id,
+                            count: 1
+                        }
+                    });
+                    
+                    this.logger.debug('View initialized successfully', { filePath: file.path });
+                } catch (error) {
+                    this.logger.error('Failed to initialize view', { filePath: file.path, error });
+                    throw error;
                 }
-            });
-            
-            this.logger.debug('View initialized successfully', { filePath: file.path });
-        } catch (error) {
-            this.logger.error('Failed to initialize view', { filePath: file.path, error });
-            throw error;
-        }
+            },
+            { filePath: file.path }
+        );
     }
 
     /**
@@ -198,27 +212,32 @@ export class ViewIntegrationSlice implements IViewIntegrationSlice {
      * Handle view refresh
      */
     async handleViewRefresh(view: MarkdownView): Promise<void> {
-        this.logger.debug('Handling view refresh', { 
-            filePath: view.file?.path 
-        });
-        
-        try {
-            // Handle view refresh using ViewLifecycleHandler
-            await this.viewLifecycleHandler.handleViewRefresh(view);
-            
-            // Update statistics
-            this.statistics.totalViewRefreshes++;
-            
-            
-            this.logger.debug('View refresh handled successfully', { 
-                filePath: view.file?.path 
-            });
-        } catch (error) {
-            this.logger.error('Failed to handle view refresh', { 
-                filePath: view.file?.path, 
-                error 
-            });
-        }
+        return this.performanceMonitor.measureAsync(
+            'view.refresh',
+            async () => {
+                this.logger.debug('Handling view refresh', {
+                    filePath: view.file?.path
+                });
+                
+                try {
+                    // Handle view refresh using ViewLifecycleHandler
+                    await this.viewLifecycleHandler.handleViewRefresh(view);
+                    
+                    // Update statistics
+                    this.statistics.totalViewRefreshes++;
+                    
+                    this.logger.debug('View refresh handled successfully', {
+                        filePath: view.file?.path
+                    });
+                } catch (error) {
+                    this.logger.error('Failed to handle view refresh', {
+                        filePath: view.file?.path,
+                        error
+                    });
+                }
+            },
+            { filePath: view.file?.path ?? null }
+        );
     }
 
     /**

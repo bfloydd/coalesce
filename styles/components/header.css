@@ -1,0 +1,16 @@
+/* ============================
+   Coalesce Header Component Styles
+   ============================ */
+
+/**
+ * This file will gradually take over header-related styles from styles.css.
+ * For now it is intentionally minimal to avoid changing runtime behaviour.
+ *
+ * Target selectors to migrate here over time:
+ * - .coalesce-backlinks-header
+ * - .coalesce-backlinks-header-left / .coalesce-backlinks-header-right
+ * - .coalesce-button-group
+ * - .coalesce-sort-button / .coalesce-collapse-button / .coalesce-settings-button
+ * - .coalesce-filter-input-container / .coalesce-filter-input / .coalesce-filter-clear-button
+ * - .coalesce-alias-dropdown
+ */

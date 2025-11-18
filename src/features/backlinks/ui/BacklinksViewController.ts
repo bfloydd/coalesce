@@ -1,5 +1,6 @@
 import { App, TFile, MarkdownView } from 'obsidian';
 import { Logger } from '../../shared-utilities/Logger';
+import { PerformanceMonitor } from '../../shared-utilities/PerformanceMonitor';
 import {
     BlockData,
     BlockRenderOptions,
@@ -31,6 +32,7 @@ import { SettingsControls } from '../SettingsControls';
 export class BacklinksViewController {
     private currentBlocks: Map<string, BlockData[]> = new Map();
     private renderOptions: BlockRenderOptions;
+    private performanceMonitor: PerformanceMonitor;
     private lastRenderContext?: {
         filePaths: string[];
         currentNoteName: string;
@@ -95,6 +97,11 @@ export class BacklinksViewController {
             totalSettingsClicks: 0,
             totalHeaderStyleChanges: 0
         };
+
+        this.performanceMonitor = new PerformanceMonitor(
+            this.logger.child('Performance'),
+            () => Logger.getGlobalLogging().enabled
+        );
 
         this.logger.debug('BacklinksViewController initialized');
     }
@@ -420,77 +427,86 @@ export class BacklinksViewController {
         container: HTMLElement,
         view?: MarkdownView
     ): Promise<void> {
-        this.logger.debug('BacklinksViewController.extractAndRenderBlocks', {
-            filePathCount: filePaths.length,
-            currentNoteName
-        });
+        await this.performanceMonitor.measureAsync(
+            'ui.blocks.extractAndRender',
+            async () => {
+                this.logger.debug('BacklinksViewController.extractAndRenderBlocks', {
+                    filePathCount: filePaths.length,
+                    currentNoteName
+                });
 
-        this.lastRenderContext = {
-            filePaths,
-            currentNoteName,
-            container,
-            view: view || (this.app.workspace.getActiveViewOfType(MarkdownView) as MarkdownView)
-        };
-
-        let allBlocks: BlockData[] = [];
-
-        for (const filePath of filePaths) {
-            this.logger.debug('Processing backlink file', { filePath });
-            const file = this.app.vault.getAbstractFileByPath(filePath);
-            if (file && file instanceof TFile) {
-                const content = await this.app.vault.read(file);
-                this.logger.debug('File content loaded', { filePath, contentLength: content.length });
-                const blocks = await this.blockExtractor.extractBlocks(
-                    content,
+                this.lastRenderContext = {
+                    filePaths,
                     currentNoteName,
-                    this.strategyManager.getCurrentStrategy()
+                    container,
+                    view: view || (this.app.workspace.getActiveViewOfType(MarkdownView) as MarkdownView)
+                };
+
+                let allBlocks: BlockData[] = [];
+
+                for (const filePath of filePaths) {
+                    this.logger.debug('Processing backlink file', { filePath });
+                    const file = this.app.vault.getAbstractFileByPath(filePath);
+                    if (file && file instanceof TFile) {
+                        const content = await this.app.vault.read(file);
+                        this.logger.debug('File content loaded', { filePath, contentLength: content.length });
+                        const blocks = await this.blockExtractor.extractBlocks(
+                            content,
+                            currentNoteName,
+                            this.strategyManager.getCurrentStrategy()
+                        );
+                        this.logger.debug('Blocks extracted from file', { filePath, blockCount: blocks.length });
+
+                        blocks.forEach(block => {
+                            block.sourcePath = filePath;
+                        });
+
+                        allBlocks.push(...blocks);
+                    } else {
+                        this.logger.warn('File not found or not TFile', {
+                            filePath,
+                            fileType: (file as any)?.constructor?.name
+                        });
+                    }
+                }
+
+                this.logger.debug('Total blocks extracted from all files', { totalBlocks: allBlocks.length });
+
+                allBlocks.forEach(block => {
+                    block.isCollapsed = this.renderOptions.collapsed;
+                });
+
+                this.currentBlocks.set(currentNoteName, allBlocks);
+
+                if (this.renderOptions.sortByPath) {
+                    allBlocks = this.sortBlocks(allBlocks, {
+                        by: 'path',
+                        descending: this.renderOptions.sortDescending
+                    });
+                }
+
+                await this.blockRenderer.renderBlocks(
+                    container,
+                    allBlocks,
+                    this.renderOptions,
+                    currentNoteName,
+                    this.strategyManager.getCurrentStrategy(),
+                    undefined,
+                    this.lastRenderContext.view
                 );
-                this.logger.debug('Blocks extracted from file', { filePath, blockCount: blocks.length });
 
-                blocks.forEach(block => {
-                    block.sourcePath = filePath;
-                });
+                if (allBlocks.length === 0) {
+                    this.logger.debug('No blocks to render, adding no backlinks message');
+                    this.addNoBacklinksMessage(container);
+                }
 
-                allBlocks.push(...blocks);
-            } else {
-                this.logger.warn('File not found or not TFile', {
-                    filePath,
-                    fileType: (file as any)?.constructor?.name
-                });
+                this.applyThemeToContainer(this.currentTheme);
+            },
+            {
+                filePathCount: filePaths.length,
+                currentNoteName
             }
-        }
-
-        this.logger.debug('Total blocks extracted from all files', { totalBlocks: allBlocks.length });
-
-        allBlocks.forEach(block => {
-            block.isCollapsed = this.renderOptions.collapsed;
-        });
-
-        this.currentBlocks.set(currentNoteName, allBlocks);
-
-        if (this.renderOptions.sortByPath) {
-            allBlocks = this.sortBlocks(allBlocks, {
-                by: 'path',
-                descending: this.renderOptions.sortDescending
-            });
-        }
-
-        await this.blockRenderer.renderBlocks(
-            container,
-            allBlocks,
-            this.renderOptions,
-            currentNoteName,
-            this.strategyManager.getCurrentStrategy(),
-            undefined,
-            this.lastRenderContext.view
         );
-
-        if (allBlocks.length === 0) {
-            this.logger.debug('No blocks to render, adding no backlinks message');
-            this.addNoBacklinksMessage(container);
-        }
-
-        this.applyThemeToContainer(this.currentTheme);
     }
 
     private applySortingToDOM(container: HTMLElement, descending: boolean): void {

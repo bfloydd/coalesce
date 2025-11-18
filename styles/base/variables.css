@@ -1,0 +1,30 @@
+/* Coalesce base CSS variables */
+
+.coalesce-custom-backlinks-container {
+    /* Common spacing values */
+    --coalesce-spacing-xs: 2px;
+    --coalesce-spacing-sm: 4px;
+    --coalesce-spacing-md: 6px;
+    --coalesce-spacing-lg: 8px;
+    --coalesce-spacing-xl: 12px;
+
+    /* Common border radius values */
+    --coalesce-radius-sm: 4px;
+    --coalesce-radius-md: 6px;
+    --coalesce-radius-lg: 8px;
+
+    /* Common shadows */
+    --coalesce-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --coalesce-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+    /* Common transitions */
+    --coalesce-transition-fast: 0.15s ease-out;
+    --coalesce-transition-normal: 0.2s ease;
+    --coalesce-transition-slow: 0.3s ease;
+
+    /* Icon sizing */
+    --coalesce-icon-size-sm: 16px;
+    --coalesce-icon-size-md: 21px;
+    --coalesce-icon-size-lg: 36px;
+    --coalesce-icon-size-xl: 48px;
+}

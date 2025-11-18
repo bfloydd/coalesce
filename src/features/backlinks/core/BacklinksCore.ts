@@ -1,5 +1,6 @@
 import { App } from 'obsidian';
 import { Logger } from '../../shared-utilities/Logger';
+import { PerformanceMonitor } from '../../shared-utilities/PerformanceMonitor';
 import { DailyNote } from '../../shared-utilities/DailyNote';
 import { BacklinkDiscoverer } from '../BacklinkDiscoverer';
 import { BacklinkCache } from '../BacklinkCache';
@@ -27,6 +28,7 @@ export class BacklinksCore {
     private options: BacklinkDiscoveryOptions;
     private backlinkDiscoverer: BacklinkDiscoverer;
     private backlinkCache: BacklinkCache;
+    private performanceMonitor: PerformanceMonitor;
 
     constructor(
         private readonly app: App,
@@ -48,78 +50,93 @@ export class BacklinksCore {
         this.backlinkDiscoverer = new BacklinkDiscoverer(this.app, this.logger, this.options);
         this.backlinkCache = new BacklinkCache(this.app, this.logger);
 
+        // Initialize performance monitor, gated by global logging state
+        this.performanceMonitor = new PerformanceMonitor(
+            this.logger.child('Performance'),
+            () => Logger.getGlobalLogging().enabled
+        );
+
         this.logger.debug('BacklinksCore initialized', { options: this.options });
     }
 
     /**
      * Update backlinks for a file and emit a backlinks:updated event.
+     *
+     * Wrapped in PerformanceMonitor to provide lightweight timing data
+     * when global logging is enabled.
      */
     async updateBacklinks(filePath: string, leafId?: string): Promise<string[]> {
-        this.logger.debug('Updating backlinks', { filePath, leafId });
+        return this.performanceMonitor.measureAsync(
+            'backlinks.update',
+            async () => {
+                this.logger.debug('Updating backlinks', { filePath, leafId });
 
-        // Check if we should skip daily notes
-        if (
-            this.options.onlyDailyNotes &&
-            DailyNote.isDaily(this.app as AppWithInternalPlugins, filePath)
-        ) {
-            this.logger.debug('Skipping daily note', { filePath });
-            const emptyBacklinks: string[] = [];
-            this.state.setBacklinks(filePath, emptyBacklinks);
-            return emptyBacklinks;
-        }
+                // Check if we should skip daily notes
+                if (
+                    this.options.onlyDailyNotes &&
+                    DailyNote.isDaily(this.app as AppWithInternalPlugins, filePath)
+                ) {
+                    this.logger.debug('Skipping daily note', { filePath });
+                    const emptyBacklinks: string[] = [];
+                    this.state.setBacklinks(filePath, emptyBacklinks);
+                    return emptyBacklinks;
+                }
 
-        // Try to get from cache first
-        let backlinks: string[] = [];
-        let fromCache = false;
+                // Try to get from cache first
+                let backlinks: string[] = [];
+                let fromCache = false;
 
-        if (this.options.useCache) {
-            const cachedBacklinks = this.backlinkCache.getCachedBacklinks(filePath);
-            if (cachedBacklinks) {
-                backlinks = cachedBacklinks;
-                fromCache = true;
-                this.logger.debug('Backlinks retrieved from cache', {
+                if (this.options.useCache) {
+                    const cachedBacklinks = this.backlinkCache.getCachedBacklinks(filePath);
+                    if (cachedBacklinks) {
+                        backlinks = cachedBacklinks;
+                        fromCache = true;
+                        this.logger.debug('Backlinks retrieved from cache', {
+                            filePath,
+                            count: backlinks.length
+                        });
+                    }
+                }
+
+                // If not from cache, discover backlinks
+                if (!fromCache) {
+                    backlinks = await this.backlinkDiscoverer.discoverBacklinks(filePath);
+
+                    // Cache the results
+                    if (this.options.useCache) {
+                        this.backlinkCache.cacheBacklinks(filePath, backlinks);
+                    }
+
+                    this.logger.debug('Backlinks discovered', {
+                        filePath,
+                        count: backlinks.length
+                    });
+                }
+
+                // Store current backlinks in shared state
+                this.state.setBacklinks(filePath, backlinks);
+
+                // Emit event (keeps existing event contract)
+                const event: CoalesceEvent = {
+                    type: 'backlinks:updated',
+                    payload: {
+                        files: backlinks,
+                        leafId: leafId || '',
+                        count: backlinks.length
+                    }
+                } as any;
+                this.events.emitEvent(event);
+
+                this.logger.debug('Backlinks updated successfully', {
                     filePath,
-                    count: backlinks.length
+                    count: backlinks.length,
+                    fromCache
                 });
-            }
-        }
 
-        // If not from cache, discover backlinks
-        if (!fromCache) {
-            backlinks = await this.backlinkDiscoverer.discoverBacklinks(filePath);
-
-            // Cache the results
-            if (this.options.useCache) {
-                this.backlinkCache.cacheBacklinks(filePath, backlinks);
-            }
-
-            this.logger.debug('Backlinks discovered', {
-                filePath,
-                count: backlinks.length
-            });
-        }
-
-        // Store current backlinks in shared state
-        this.state.setBacklinks(filePath, backlinks);
-
-        // Emit event (keeps existing event contract)
-        const event: CoalesceEvent = {
-            type: 'backlinks:updated',
-            payload: {
-                files: backlinks,
-                leafId: leafId || '',
-                count: backlinks.length
-            }
-        } as any;
-        this.events.emitEvent(event);
-
-        this.logger.debug('Backlinks updated successfully', {
-            filePath,
-            count: backlinks.length,
-            fromCache
-        });
-
-        return backlinks;
+                return backlinks;
+            },
+            { filePath, leafId }
+        );
     }
 
     /**

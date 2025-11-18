@@ -4,8 +4,10 @@ import { IconProvider } from '../shared-utilities/IconProvider';
 import { HeaderStyleManager } from './header-styles/HeaderStyleManager';
 import { BlockFinderFactory } from './block-finders/BlockFinderFactory';
 import { HeaderStyleFactory } from './header-styles/HeaderStyleFactory';
-import { ButtonComponent, ExtraButtonComponent, Menu } from 'obsidian';
+import { Menu } from 'obsidian';
 import { SettingsControls } from './SettingsControls';
+import { createButton } from '../../shared/ui/Button';
+import { createIconButton } from '../../shared/ui/IconButton';
 
 export class HeaderComponent {
     private static currentHeaderStyle: string = HeaderStyleFactory.getValidStyles()[0];
@@ -361,24 +363,20 @@ export class HeaderComponent {
     }
 
     private createSortButton(sortDescending: boolean, onSortToggle: () => void): HTMLElement {
-        // Create simple custom button with proper hover isolation
         const tempContainer = document.createElement('div');
-        const sortButton = tempContainer.createEl('button', {
-            cls: 'coalesce-sort-button',
-            attr: {
-                'aria-label': sortDescending ? 'Descending' : 'Ascending',
-                'type': 'button'
-            }
+
+        const sortButton = createButton({
+            parent: tempContainer,
+            label: sortDescending ? 'Descending' : 'Ascending',
+            ariaLabel: sortDescending ? 'Descending' : 'Ascending',
+            icon: 'sort',
+            iconSize: 'sm',
+            variant: 'ghost',
+            onClick: onSortToggle,
+            classes: ['coalesce-sort-button']
         });
 
-        // Add text content
-        sortButton.textContent = sortDescending ? 'Descending' : 'Ascending';
-
-        // Use IconProvider for the icon (add after text)
-        IconProvider.setIcon(sortButton, 'sort', { size: 'md' });
-
-        // Add classes for custom rotation based on state
-        const svg = sortButton.querySelector('svg');
+        const svg = sortButton.querySelector('svg') as SVGElement | null;
         if (svg) {
             if (sortDescending) {
                 svg.classList.add('sort-descending');
@@ -389,28 +387,22 @@ export class HeaderComponent {
             }
         }
 
-        // Add click handler
-        sortButton.addEventListener('click', onSortToggle);
-
         return sortButton;
     }
 
     private createCollapseButton(isCollapsed: boolean, onCollapseToggle: () => void): HTMLElement {
-        // Create simple custom button with proper hover isolation
         const tempContainer = document.createElement('div');
-        const collapseButton = tempContainer.createEl('button', {
-            cls: 'coalesce-collapse-button',
-            attr: { 
-                'aria-label': isCollapsed ? 'Expand all' : 'Collapse all',
-                'type': 'button'
-            }
+
+        const collapseButton = createIconButton({
+            parent: tempContainer,
+            icon: 'chevronDown',
+            size: 'sm',
+            ariaLabel: isCollapsed ? 'Expand all' : 'Collapse all',
+            classes: ['coalesce-collapse-button'],
+            onClick: onCollapseToggle
         });
-        
-        // Use IconProvider for the icon
-        IconProvider.setIcon(collapseButton, 'chevronDown', { size: 'md' });
-        
-        // Add classes for custom rotation based on state
-        const svg = collapseButton.querySelector('svg');
+
+        const svg = collapseButton.querySelector('svg') as SVGElement | null;
         if (svg) {
             if (isCollapsed) {
                 svg.classList.add('is-collapsed');
@@ -418,10 +410,7 @@ export class HeaderComponent {
                 svg.classList.remove('is-collapsed');
             }
         }
-        
-        // Add click handler
-        collapseButton.addEventListener('click', onCollapseToggle);
-        
+
         return collapseButton;
     }
 
@@ -552,35 +541,24 @@ export class HeaderComponent {
         currentTheme: string = 'default',
         onThemeChange: (theme: string) => void = () => {}
     ): HTMLElement {
-        // Create a temporary container to host the Obsidian component
         const tempContainer = document.createElement('div');
-        
-        // Create simple custom button with proper hover isolation
-        const settingsButton = tempContainer.createEl('button', {
-            cls: 'coalesce-settings-button',
-            attr: { 
-                'aria-label': 'Settings',
-                'type': 'button'
-            }
-        });
-        
-        // Use IconProvider for the icon
-        IconProvider.setIcon(settingsButton, 'settings', { size: 'md' });
 
-        // Create the click handler function for the settings menu
         const handleSettingsClick = (e: MouseEvent) => {
             e.stopPropagation(); // Prevent body click from being triggered immediately
 
-            // Create native Obsidian menu
             const menu = this.createSettingsMenu();
-
-            // Show the menu at the mouse event position
             menu.showAtMouseEvent(e);
         };
-        
-        // Add click handler
-        settingsButton.addEventListener('click', handleSettingsClick);
-        
+
+        const settingsButton = createIconButton({
+            parent: tempContainer,
+            icon: 'settings',
+            size: 'sm',
+            ariaLabel: 'Settings',
+            classes: ['coalesce-settings-button'],
+            onClick: handleSettingsClick
+        });
+
         return settingsButton;
     }
 

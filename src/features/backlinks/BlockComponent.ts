@@ -100,12 +100,6 @@ export class BlockComponent {
                 cls: 'coalesce-block-title coalesce-add-heading-prompt',
             });
 
-            addHeadingSpan.style.cssText = `
-                color: var(--text-muted);
-                cursor: pointer;
-                text-decoration: underline;
-                text-decoration-style: dotted;
-            `;
 
             addHeadingSpan.addEventListener('click', (event) => {
                 event.preventDefault();
@@ -368,12 +362,6 @@ export class BlockComponent {
             cls: 'coalesce-block-title coalesce-add-heading-prompt',
         });
 
-        addHeadingSpan.style.cssText = `
-            color: var(--text-muted);
-            cursor: pointer;
-            text-decoration: underline;
-            text-decoration-style: dotted;
-        `;
 
         addHeadingSpan.addEventListener('click', (event) => {
             event.preventDefault();

@@ -4,6 +4,7 @@ import { NavigationService } from './NavigationService';
 import { LinkHandler } from './LinkHandler';
 import { FileOpener } from './FileOpener';
 import { Logger } from '../shared-utilities/Logger';
+import { PerformanceMonitor } from '../shared-utilities/PerformanceMonitor';
 import { CommonHelpers } from '../shared-utilities/CommonHelpers';
 import { CoalesceEvent, EventHandler } from '../shared-contracts/events';
 
@@ -19,6 +20,7 @@ export class NavigationSlice implements INavigationSlice {
     private navigationService: NavigationService;
     private linkHandler: LinkHandler;
     private fileOpener: FileOpener;
+    private performanceMonitor: PerformanceMonitor;
     private navigationHistory: string[] = [];
     private maxHistorySize = 50;
 
@@ -29,10 +31,15 @@ export class NavigationSlice implements INavigationSlice {
         this.fileOpener = new FileOpener(app, this.logger);
         this.linkHandler = new LinkHandler(app, this.logger);
         this.navigationService = new NavigationService(
-            app, 
-            this.fileOpener, 
-            this.linkHandler, 
+            app,
+            this.fileOpener,
+            this.linkHandler,
             this.logger
+        );
+
+        this.performanceMonitor = new PerformanceMonitor(
+            this.logger.child('Performance'),
+            () => Logger.getGlobalLogging().enabled
         );
         
         this.setupNavigationListeners();
@@ -44,22 +51,28 @@ export class NavigationSlice implements INavigationSlice {
      * Open a file path in the current tab or new tab
      */
     async openPath(path: string, openInNewTab: boolean = false): Promise<void> {
-        this.logger.debug('Opening path', { path, openInNewTab });
-        
-        try {
-            // Validate the path
-            if (!this.isValidPath(path)) {
-                throw new Error(`Invalid file path: ${path}`);
-            }
-            
-            await this.navigationService.openPath(path, openInNewTab);
-            this.addToNavigationHistory(path);
-            
-            this.logger.debug('Path opened successfully', { path, openInNewTab });
-        } catch (error) {
-            this.logger.error('Failed to open path', { path, openInNewTab, error });
-            throw error;
-        }
+        return this.performanceMonitor.measureAsync(
+            'navigation.openPath',
+            async () => {
+                this.logger.debug('Opening path', { path, openInNewTab });
+                
+                try {
+                    // Validate the path
+                    if (!this.isValidPath(path)) {
+                        throw new Error(`Invalid file path: ${path}`);
+                    }
+                    
+                    await this.navigationService.openPath(path, openInNewTab);
+                    this.addToNavigationHistory(path);
+                    
+                    this.logger.debug('Path opened successfully', { path, openInNewTab });
+                } catch (error) {
+                    this.logger.error('Failed to open path', { path, openInNewTab, error });
+                    throw error;
+                }
+            },
+            { path, openInNewTab }
+        );
     }
 
     /**
@@ -82,31 +95,37 @@ export class NavigationSlice implements INavigationSlice {
      * Handle a link click
      */
     async handleLinkClick(
-        linkPath: string, 
-        openInNewTab: boolean = false, 
+        linkPath: string,
+        openInNewTab: boolean = false,
         source: string = 'unknown'
     ): Promise<void> {
-        this.logger.debug('Handling link click', { linkPath, openInNewTab, source });
-        
-        try {
-            // Process the link
-            const processedLink = await this.linkHandler.processLink(linkPath, source);
-            
-            // Open the processed link
-            await this.fileOpener.openFile(processedLink.path, openInNewTab, processedLink.line);
-            
-            this.addToNavigationHistory(processedLink.path);
-            
-            this.logger.debug('Link click handled successfully', { 
-                originalLink: linkPath, 
-                processedLink, 
-                openInNewTab, 
-                source 
-            });
-        } catch (error) {
-            this.logger.error('Failed to handle link click', { linkPath, openInNewTab, source, error });
-            throw error;
-        }
+        return this.performanceMonitor.measureAsync(
+            'navigation.handleLinkClick',
+            async () => {
+                this.logger.debug('Handling link click', { linkPath, openInNewTab, source });
+                
+                try {
+                    // Process the link
+                    const processedLink = await this.linkHandler.processLink(linkPath, source);
+                    
+                    // Open the processed link
+                    await this.fileOpener.openFile(processedLink.path, openInNewTab, processedLink.line);
+                    
+                    this.addToNavigationHistory(processedLink.path);
+                    
+                    this.logger.debug('Link click handled successfully', {
+                        originalLink: linkPath,
+                        processedLink,
+                        openInNewTab,
+                        source
+                    });
+                } catch (error) {
+                    this.logger.error('Failed to handle link click', { linkPath, openInNewTab, source, error });
+                    throw error;
+                }
+            },
+            { linkPath, openInNewTab, source }
+        );
     }
 
     /**
