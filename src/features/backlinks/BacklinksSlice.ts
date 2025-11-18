@@ -4,10 +4,13 @@ import { BacklinkDiscoverer } from './BacklinkDiscoverer';
 import { LinkResolver } from './LinkResolver';
 import { BacklinkCache } from './BacklinkCache';
 import { Logger } from '../shared-utilities/Logger';
-import { DailyNote } from '../shared-utilities/DailyNote';
 import { BacklinkDiscoveryOptions, BacklinkFilterOptions, BacklinkStatistics } from './types';
 import { CoalesceEvent, EventHandler } from '../shared-contracts/events';
 import { AppWithInternalPlugins } from '../shared-contracts/obsidian';
+import { BacklinksState } from './core/BacklinksState';
+import { BacklinksEvents } from './core/BacklinksEvents';
+import { BacklinksCore } from './core/BacklinksCore';
+import { BacklinksViewController } from './ui/BacklinksViewController';
 
 // Import components from BacklinkBlocks slice
 import { BlockExtractor } from './BlockExtractor';
@@ -33,6 +36,13 @@ import { HeaderCreateOptions, HeaderState, HeaderStatistics } from './types';
 export class BacklinksSlice implements IBacklinksSlice {
     private app: App;
     private logger: Logger;
+
+    // Core/domain services
+    private state: BacklinksState;
+    private events: BacklinksEvents;
+    private core: BacklinksCore;
+
+    // Backlink components
     private backlinkDiscoverer: BacklinkDiscoverer;
     private linkResolver: LinkResolver;
     private backlinkCache: BacklinkCache;
@@ -60,6 +70,9 @@ export class BacklinksSlice implements IBacklinksSlice {
     // UI state tracking for consistency
     private attachedViews: Map<string, { container: HTMLElement; lastUpdate: number }> = new Map();
 
+    // View controller (new UI layer)
+    private viewController: BacklinksViewController;
+
     constructor(app: App, options?: Partial<BacklinkDiscoveryOptions>) {
         this.app = app;
         this.logger = new Logger('BacklinksSlice');
@@ -74,10 +87,15 @@ export class BacklinksSlice implements IBacklinksSlice {
             ...options
         };
 
-        // Initialize backlink components
-        this.backlinkDiscoverer = new BacklinkDiscoverer(app, this.logger, this.options);
+        // Initialize core/domain services and backlink components
+        this.state = new BacklinksState();
+        this.events = new BacklinksEvents(this.logger);
+        this.core = new BacklinksCore(this.app, this.logger, this.options, this.state, this.events);
+
+        // Use core-owned components for backward compatible methods
+        this.backlinkDiscoverer = this.core.getBacklinkDiscoverer();
+        this.backlinkCache = this.core.getBacklinkCache();
         this.linkResolver = new LinkResolver(app, this.logger);
-        this.backlinkCache = new BacklinkCache(app, this.logger);
 
         // Initialize block components
         this.renderOptions = {
@@ -129,93 +147,50 @@ export class BacklinksSlice implements IBacklinksSlice {
             totalHeaderStyleChanges: 0
         };
 
+        // Initialize view controller (UI layer)
+        this.viewController = new BacklinksViewController(
+            app,
+            this.logger,
+            this.core,
+            this.blockExtractor,
+            this.blockRenderer,
+            this.strategyManager,
+            this.headerUI,
+            this.filterControls,
+            this.settingsControls
+        );
+
         this.logger.debug('Consolidated BacklinksSlice initialized', { options: this.options });
     }
 
     /**
      * Update backlinks for a file
+     *
+     * Delegates to BacklinksCore for discovery, caching, state updates,
+     * and event emission, while keeping the error boundary at slice level.
      */
     async updateBacklinks(filePath: string, leafId?: string): Promise<string[]> {
-        return this.withErrorBoundary(async () => {
-            this.logger.debug('Updating backlinks', { filePath, leafId });
-
-            // Check if we should skip daily notes
-            if (this.options.onlyDailyNotes &&
-                DailyNote.isDaily(this.app as AppWithInternalPlugins, filePath)) {
-                this.logger.debug('Skipping daily note', { filePath });
-                const emptyBacklinks: string[] = [];
-                this.currentBacklinks.set(filePath, emptyBacklinks);
-                return emptyBacklinks;
-            }
-
-            // Try to get from cache first
-            let backlinks: string[] = [];
-            let fromCache = false;
-
-            if (this.options.useCache) {
-                const cachedBacklinks = this.backlinkCache.getCachedBacklinks(filePath);
-                if (cachedBacklinks) {
-                    backlinks = cachedBacklinks;
-                    fromCache = true;
-                    this.logger.debug('Backlinks retrieved from cache', {
-                        filePath,
-                        count: backlinks.length
-                    });
-                }
-            }
-
-            // If not from cache, discover backlinks
-            if (!fromCache) {
-                backlinks = await this.backlinkDiscoverer.discoverBacklinks(filePath);
-
-                // Cache the results
-                if (this.options.useCache) {
-                    this.backlinkCache.cacheBacklinks(filePath, backlinks);
-                }
-
-                this.logger.debug('Backlinks discovered', {
-                    filePath,
-                    count: backlinks.length
-                });
-            }
-
-            // Store current backlinks
-            this.currentBacklinks.set(filePath, backlinks);
-
-            // Emit event
-            this.emitEvent({
-                type: 'backlinks:updated',
-                payload: {
-                    files: backlinks,
-                    leafId: leafId || '',
-                    count: backlinks.length
-                }
-            });
-
-            this.logger.debug('Backlinks updated successfully', {
-                filePath,
-                count: backlinks.length,
-                fromCache
-            });
-
-            return backlinks;
-        }, `updateBacklinks(${filePath})`);
+        return this.withErrorBoundary(
+            () => this.core.updateBacklinks(filePath, leafId),
+            `updateBacklinks(${filePath})`
+        );
     }
 
     /**
      * Get current backlinks for a file
+     * Delegates to BacklinksCore/BacklinksState.
      */
     getCurrentBacklinks(filePath: string): string[] {
         this.logger.debug('Getting current backlinks', { filePath });
-        
+
         try {
-            const backlinks = this.currentBacklinks.get(filePath) || [];
-            
-            this.logger.debug('Current backlinks retrieved', { 
-                filePath, 
-                count: backlinks.length 
+            const backlinks = this.core.getCurrentBacklinks(filePath);
+
+            this.logger.debug('Current backlinks retrieved', {
+                filePath,
+                count: backlinks.length
             });
-            
+
             return backlinks;
         } catch (error) {
             this.logger.error('Failed to get current backlinks', { filePath, error });
@@ -246,150 +221,54 @@ export class BacklinksSlice implements IBacklinksSlice {
 
     /**
      * Get cached backlinks (required by interface)
+     * Delegates to BacklinksCore/cache.
      */
     getCachedBacklinks(filePath: string): string[] | null {
         this.logger.debug('Getting cached backlinks', { filePath });
-
-        try {
-            const cachedBacklinks = this.backlinkCache.getCachedBacklinks(filePath);
-
-            this.logger.debug('Cached backlinks retrieved', {
-                filePath,
-                found: cachedBacklinks !== null,
-                count: cachedBacklinks?.length || 0
-            });
-
-            return cachedBacklinks;
-        } catch (error) {
-            this.logger.error('Failed to get cached backlinks', { filePath, error });
-            return null;
-        }
+        return this.core.getCachedBacklinks(filePath);
     }
 
     /**
      * Clear cache (required by interface)
+     * Delegates to BacklinksCore.
      */
     clearCache(filePath?: string): void {
         this.logger.debug('Clearing cache', { filePath });
-
-        try {
-            if (filePath) {
-                // Clear cache for specific file
-                this.backlinkCache.invalidateCache(filePath);
-                this.currentBacklinks.delete(filePath);
-            } else {
-                // Clear all cache
-                this.backlinkCache.clearCache();
-                this.currentBacklinks.clear();
-            }
-
-            this.logger.debug('Cache cleared successfully', { filePath });
-        } catch (error) {
-            this.logger.error('Failed to clear cache', { filePath, error });
-        }
+        this.core.clearCache(filePath);
     }
 
     /**
      * Get backlink metadata (required by interface)
+     * Delegates to BacklinksCore.
      */
-    getBacklinkMetadata(): { lastUpdated: Date; cacheSize: number; } {
+    getBacklinkMetadata(): { lastUpdated: Date; cacheSize: number } {
         this.logger.debug('Getting backlink metadata');
-
-        try {
-            const cacheStats = this.backlinkCache.getCacheStatistics();
-            const metadata = {
-                lastUpdated: cacheStats.lastCleanup || new Date(),
-                cacheSize: cacheStats.totalCachedFiles
-            };
-
-            this.logger.debug('Backlink metadata retrieved', metadata);
-
-            return metadata;
-        } catch (error) {
-            this.logger.error('Failed to get backlink metadata', { error });
-
-            // Return default metadata on error
-            return {
-                lastUpdated: new Date(),
-                cacheSize: 0
-            };
-        }
+        return this.core.getBacklinkMetadata();
     }
 
     /**
      * Check if backlinks have changed
+     * Delegates to BacklinksCore.
      */
     haveBacklinksChanged(filePath: string, newBacklinks: string[]): boolean {
-        this.logger.debug('Checking if backlinks have changed', { filePath, newBacklinksCount: newBacklinks.length });
-
-        try {
-            const currentBacklinks = this.currentBacklinks.get(filePath) || [];
-
-            // Check if counts are different
-            if (currentBacklinks.length !== newBacklinks.length) {
-                this.logger.debug('Backlinks count changed', {
-                    filePath,
-                    oldCount: currentBacklinks.length,
-                    newCount: newBacklinks.length
-                });
-                return true;
-            }
-
-            // Check if content is different
-            const currentSorted = [...currentBacklinks].sort();
-            const newSorted = [...newBacklinks].sort();
-
-            for (let i = 0; i < currentSorted.length; i++) {
-                if (currentSorted[i] !== newSorted[i]) {
-                    this.logger.debug('Backlinks content changed', {
-                        filePath,
-                        oldBacklink: currentSorted[i],
-                        newBacklink: newSorted[i]
-                    });
-                    return true;
-                }
-            }
-
-            this.logger.debug('Backlinks unchanged', { filePath });
-            return false;
-        } catch (error) {
-            this.logger.error('Failed to check if backlinks changed', { filePath, error });
-            return true; // Assume changed on error
-        }
+        return this.core.haveBacklinksChanged(filePath, newBacklinks);
     }
 
     /**
      * Invalidate cache for a file
+     * Delegates to BacklinksCore.
      */
     invalidateCache(filePath: string): void {
-        this.logger.debug('Invalidating cache', { filePath });
-        
-        try {
-            this.backlinkCache.invalidateCache(filePath);
-            
-            this.logger.debug('Cache invalidated successfully', { filePath });
-        } catch (error) {
-            this.logger.error('Failed to invalidate cache', { filePath, error });
-        }
+        this.core.invalidateCache(filePath);
     }
 
     /**
      * Clear all backlinks
+     * Delegates to BacklinksCore.
      */
     clearBacklinks(): void {
         this.logger.debug('Clearing all backlinks');
-        
-        try {
-            // Clear current backlinks
-            this.currentBacklinks.clear();
-            
-            // Clear cache
-            this.backlinkCache.clearCache();
-            
-            this.logger.debug('All backlinks cleared successfully');
-        } catch (error) {
-            this.logger.error('Failed to clear backlinks', { error });
-        }
+        this.core.clearBacklinks();
     }
 
     /**
@@ -415,43 +294,35 @@ export class BacklinksSlice implements IBacklinksSlice {
 
     /**
      * Get statistics
+     *
+     * Domain stats come from BacklinksCore, while block/header/user interaction
+     * stats are provided by the view layer (BacklinksViewController).
      */
     getStatistics(): BacklinkStatistics {
-        const backlinkStats = this.backlinkDiscoverer.getStatistics();
+        const backlinkStats = this.core.getStatistics();
+        const blockStats = this.viewController.getBlockStatistics();
+        const headerStats = this.viewController.getHeaderStatistics();
 
-        // For consolidated slice, we extend the basic backlink stats with block and header stats
         return {
             ...backlinkStats,
-            // Add consolidated statistics
-            totalBlocksExtracted: this.getBlockStatistics().totalBlocksExtracted,
-            totalBlocksRendered: this.getBlockStatistics().totalBlocksRendered,
-            totalHeadersCreated: this.headerStatistics.totalHeadersCreated,
-            totalUserInteractions: this.headerStatistics.totalFilterChanges +
-                                this.headerStatistics.totalSortToggles +
-                                this.headerStatistics.totalCollapseToggles +
-                                this.headerStatistics.totalStrategyChanges +
-                                this.headerStatistics.totalThemeChanges +
-                                this.headerStatistics.totalAliasSelections
-        } as any; // Type assertion needed due to extended interface
+            totalBlocksExtracted: blockStats.totalBlocksExtracted,
+            totalBlocksRendered: blockStats.totalBlocksRendered,
+            totalHeadersCreated: headerStats.totalHeadersCreated,
+            totalUserInteractions:
+                headerStats.totalFilterChanges +
+                headerStats.totalSortToggles +
+                headerStats.totalCollapseToggles +
+                headerStats.totalStrategyChanges +
+                headerStats.totalThemeChanges +
+                headerStats.totalAliasSelections
+        } as any;
     }
 
     /**
-     * Get block statistics
+     * Get block statistics (delegated to view controller)
      */
     private getBlockStatistics(): BlockStatistics {
-        const extractorStats = this.blockExtractor.getStatistics();
-        const rendererStats = this.blockRenderer.getStatistics();
-
-        return {
-            totalBlocksExtracted: extractorStats.totalBlocksExtracted,
-            totalBlocksRendered: rendererStats.totalBlocksRendered,
-            blocksHidden: 0, // This would need tracking
-            blocksCollapsed: this.renderOptions.collapsed ? this.getCurrentBlocks('').length : 0,
-            averageBlockSize: extractorStats.totalBlocksExtracted > 0 ?
-                extractorStats.totalBlocksExtracted / extractorStats.totalExtractions : 0,
-            lastExtractionTime: extractorStats.lastExtractionTime,
-            lastRenderTime: rendererStats.lastRenderTime
-        };
+        return this.viewController.getBlockStatistics();
     }
 
     /**
@@ -459,12 +330,8 @@ export class BacklinksSlice implements IBacklinksSlice {
      */
     updateOptions(options: Partial<BacklinkDiscoveryOptions>): void {
         this.logger.debug('Updating options', { options });
-        
         this.options = { ...this.options, ...options };
-        
-        // Update discoverer options
-        this.backlinkDiscoverer.updateOptions(options);
-        
+        this.core.updateOptions(options);
         this.logger.debug('Options updated successfully', { options: this.options });
     }
 
@@ -515,100 +382,23 @@ export class BacklinksSlice implements IBacklinksSlice {
     // ===== CONSOLIDATED PUBLIC API METHODS =====
 
     /**
-     * Attach the complete backlinks UI to a view
-     * This is the main entry point for rendering the full backlinks feature
-     * @param view The markdown view to attach to
-     * @param currentNotePath The current note file path
-     * @param forceRefresh If true, skip the recent attachment optimization
-     * @returns true if UI was attached, false if skipped due to recent attachment
+     * Attach the complete backlinks UI to a view.
+     * Delegates DOM work to BacklinksViewController while preserving error boundary.
      */
-    async attachToDOM(view: MarkdownView, currentNotePath: string, forceRefresh = false): Promise<boolean> {
-        return this.withErrorBoundary(async () => {
-            const viewId = (view.leaf as any).id || 'unknown';
-
-            this.logger.debug('Attaching backlinks UI to view', { currentNotePath, viewId, forceRefresh });
-
-            // Check if UI is already attached and recent (within last 5 seconds), unless force refresh is requested
-            const existingAttachment = this.attachedViews.get(viewId);
-            if (!forceRefresh && existingAttachment && (Date.now() - existingAttachment.lastUpdate) < 5000) {
-                this.logger.debug('UI already attached recently, skipping', { viewId, currentNotePath });
-                return false;
-            }
-
-            // Clear any existing coalesce containers from the view
-            const existingContainers = view.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
-            existingContainers.forEach(container => container.remove());
-
-            // Get backlinks for the current note
-            const backlinks = await this.updateBacklinks(currentNotePath);
-
-            if (backlinks.length === 0) {
-                this.logger.debug('No backlinks found, will render UI with no backlinks message', { currentNotePath });
-            }
-
-            // Create main container for the backlinks UI
-            const container = document.createElement('div');
-            container.className = 'coalesce-custom-backlinks-container';
-
-            // Create header
-            const headerElement = this.createHeader(container, {
-                fileCount: backlinks.length,
-                sortDescending: this.currentHeaderState.sortDescending,
-                isCollapsed: this.currentHeaderState.isCollapsed,
-                currentStrategy: this.currentHeaderState.currentStrategy,
-                currentTheme: this.currentHeaderState.currentTheme,
-                showFullPathTitle: false,
-                aliases: [], // TODO: Extract from frontmatter
-                currentAlias: null,
-                unsavedAliases: [],
-                currentHeaderStyle: this.currentHeaderState.currentHeaderStyle,
-                currentFilter: this.currentHeaderState.currentFilter,
-                onSortToggle: () => this.handleSortToggle(),
-                onCollapseToggle: () => this.handleCollapseToggle(),
-                onStrategyChange: (strategy: string) => this.handleStrategyChange(strategy),
-                onThemeChange: (theme: string) => this.handleThemeChange(theme),
-                onFullPathTitleChange: (show: boolean) => this.updateHeaderState({ showFullPathTitle: show }),
-                onAliasSelect: (alias: string | null) => this.handleAliasSelection(alias),
-                onHeaderStyleChange: (style: string) => this.handleHeaderStyleChange(style),
-                onFilterChange: (filterText: string) => this.handleFilterChange(filterText),
-                onSettingsClick: () => this.handleSettingsClick()
-            });
-
-            if (headerElement) {
-                container.appendChild(headerElement);
-
-                // Ensure header visual state is consistent with current state
-                this.headerUI.updateHeader(headerElement, this.currentHeaderState);
-            }
-
-            // Create blocks container
-            const blocksContainer = document.createElement('div');
-            blocksContainer.className = 'backlinks-list';
-            container.appendChild(blocksContainer);
-
-            // Extract and render blocks
-            await this.extractAndRenderBlocks(backlinks, currentNotePath, blocksContainer, view);
-
-            // Apply current theme
-            this.applyThemeToContainer(this.currentTheme);
-
-            // Attach the container to the view (after the content)
-            this.attachContainerToView(view, container);
-
-            // Track the attachment
-            this.attachedViews.set(viewId, {
-                container,
-                lastUpdate: Date.now()
-            });
-
-            this.logger.debug('Backlinks UI attached successfully', { currentNotePath });
-            return true;
-        }, `attachToDOM(${currentNotePath})`);
+    async attachToDOM(
+        view: MarkdownView,
+        currentNotePath: string,
+        forceRefresh = false
+    ): Promise<boolean> {
+        return this.withErrorBoundary(
+            () => this.viewController.attachToDOM(view, currentNotePath, forceRefresh),
+            `attachToDOM(${currentNotePath})`
+        );
     }
 
     /**
-     * Set options for the backlinks feature
-     * This controls sorting, collapsing, strategy, theme, alias, and filter settings
+     * Set options for the backlinks feature.
+     * Delegates to BacklinksViewController.
      */
     setOptions(options: {
         sort?: boolean;
@@ -620,32 +410,7 @@ export class BacklinksSlice implements IBacklinksSlice {
     }): void {
         try {
             this.logger.debug('Setting backlinks options', { options });
-
-            // Update header state
-            if (options.sort !== undefined) {
-                this.currentHeaderState.sortByPath = options.sort;
-            }
-            if (options.collapsed !== undefined) {
-                this.currentHeaderState.isCollapsed = options.collapsed;
-                this.renderOptions.collapsed = options.collapsed;
-            }
-            if (options.strategy !== undefined) {
-                this.currentHeaderState.currentStrategy = options.strategy;
-            }
-            if (options.theme !== undefined) {
-                this.currentHeaderState.currentTheme = options.theme;
-                this.currentTheme = options.theme;
-            }
-            if (options.alias !== undefined) {
-                this.currentHeaderState.currentAlias = options.alias;
-            }
-            if (options.filter !== undefined) {
-                this.currentHeaderState.currentFilter = options.filter;
-            }
-
-            // Apply changes to current UI if it exists
-            this.applyCurrentOptions();
-
+            this.viewController.setOptions(options);
             this.logger.debug('Backlinks options set successfully', { options });
         } catch (error) {
             this.logger.logErrorWithContext(error, `setOptions(${JSON.stringify(options)})`);
@@ -684,21 +449,12 @@ export class BacklinksSlice implements IBacklinksSlice {
     }
 
     /**
-     * Request focus when the view is ready
-     * This handles timing for focus management
+     * Request focus when the view is ready.
+     * Delegates to BacklinksViewController.
      */
     requestFocusWhenReady(leafId: string): void {
-        this.logger.debug('Requesting focus when ready', { leafId });
-
-        // For now, this is a simple implementation
-        // In a full implementation, this would coordinate with ViewIntegration
-        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-        if (activeView && activeView.file) {
-            // Simple focus request - in practice this would be more sophisticated
-            setTimeout(() => {
-                this.logger.debug('Focus requested (simplified implementation)', { leafId });
-            }, 100);
-        }
+        this.logger.debug('Requesting focus when ready (slice)', { leafId });
+        this.viewController.requestFocusWhenReady(leafId);
     }
 
     // ===== HEADER-RELATED METHODS (from BacklinksHeader slice) =====
@@ -1353,65 +1109,24 @@ export class BacklinksSlice implements IBacklinksSlice {
 
     /**
      * Emit an event
+     * Delegates to BacklinksEvents facade.
      */
     private emitEvent(event: CoalesceEvent): void {
-        this.logger.debug('Emitting event', { event });
-        
-        try {
-            const handlers = this.eventHandlers.get(event.type) || [];
-            
-            for (const handler of handlers) {
-                try {
-                    handler(event);
-                } catch (error) {
-                    this.logger.error('Event handler failed', { event, error });
-                }
-            }
-            
-            this.logger.debug('Event emitted successfully', { event });
-        } catch (error) {
-            this.logger.error('Failed to emit event', { event, error });
-        }
+        this.events.emitEvent(event);
     }
 
     /**
      * Add event listener
      */
     addEventListener<T extends CoalesceEvent>(eventType: T['type'], handler: EventHandler<T>): void {
-        this.logger.debug('Adding event listener', { eventType });
-        
-        try {
-            const handlers = this.eventHandlers.get(eventType) || [];
-            handlers.push(handler as EventHandler);
-            this.eventHandlers.set(eventType, handlers);
-            
-            this.logger.debug('Event listener added successfully', { eventType });
-        } catch (error) {
-            this.logger.error('Failed to add event listener', { eventType, error });
-        }
+        this.events.addEventListener(eventType, handler);
     }
 
     /**
      * Remove event listener
      */
     removeEventListener<T extends CoalesceEvent>(eventType: T['type'], handler: EventHandler<T>): void {
-        this.logger.debug('Removing event listener', { eventType });
-        
-        try {
-            const handlers = this.eventHandlers.get(eventType) || [];
-            const index = handlers.indexOf(handler as EventHandler);
-            
-            if (index !== -1) {
-                handlers.splice(index, 1);
-                this.eventHandlers.set(eventType, handlers);
-                
-                this.logger.debug('Event listener removed successfully', { eventType });
-            } else {
-                this.logger.debug('Event listener not found', { eventType });
-            }
-        } catch (error) {
-            this.logger.error('Failed to remove event listener', { eventType, error });
-        }
+        this.events.removeEventListener(eventType, handler);
     }
 
     /**
@@ -1436,7 +1151,14 @@ export class BacklinksSlice implements IBacklinksSlice {
         this.logger.debug('Cleaning up consolidated BacklinksSlice');
 
         try {
-            // Cleanup backlink components
+            // Cleanup core services
+            this.core.cleanup();
+            this.events.clearAllListeners();
+
+            // Cleanup view controller
+            this.viewController.cleanup();
+
+            // Cleanup backlink components (kept for backward compatibility)
             this.backlinkDiscoverer.cleanup();
             this.linkResolver.cleanup();
             this.backlinkCache.cleanup();
@@ -1455,7 +1177,6 @@ export class BacklinksSlice implements IBacklinksSlice {
             this.currentBacklinks.clear();
             this.currentBlocks.clear();
             this.currentHeaders.clear();
-            this.eventHandlers.clear();
             this.attachedViews.clear();
 
             this.logger.debug('Consolidated BacklinksSlice cleanup completed');
@@ -1466,17 +1187,10 @@ export class BacklinksSlice implements IBacklinksSlice {
 
     /**
      * Remove UI attachment for a specific view
+     * Delegates to BacklinksViewController.
      */
     removeAttachment(viewId: string): void {
-        const attachment = this.attachedViews.get(viewId);
-        if (attachment) {
-            // Remove the container from DOM if it still exists
-            if (attachment.container.parentElement) {
-                attachment.container.parentElement.removeChild(attachment.container);
-            }
-            this.attachedViews.delete(viewId);
-            this.logger.debug('Removed attachment for view', { viewId });
-        }
+        this.viewController.removeAttachment(viewId);
     }
 }
 

@@ -102,15 +102,14 @@ describe('BacklinksSlice Integration', () => {
       mockApp.metadataCache.resolvedLinks = {};
       mockApp.metadataCache.unresolvedLinks = {};
 
-      // Spy on console.log to verify the "no backlinks found" message
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
       await backlinksSlice.attachToDOM(mockView, 'target.md', true); // forceRefresh = true
 
-      expect(consoleSpy).toHaveBeenCalledWith('Coalesce: no backlinks found, but will still render UI with message');
-      expect(consoleSpy).toHaveBeenCalledWith('Coalesce: no blocks to render, adding "no backlinks" message');
+      const container = mockView.containerEl.querySelector('.coalesce-custom-backlinks-container') as HTMLElement;
+      expect(container).toBeTruthy();
 
-      consoleSpy.mockRestore();
+      const message = container.querySelector('.coalesce-no-backlinks-message') as HTMLElement;
+      expect(message).toBeTruthy();
+      expect(message.textContent).toContain('No backlinks');
     });
 
     it('should clear existing containers before attaching new ones', async () => {
@@ -149,10 +148,8 @@ describe('BacklinksSlice Integration', () => {
 
       (mockApp.vault.read as jest.Mock).mockResolvedValue('Content with [[target]] link');
 
-      // Create markdown preview section
-      const markdownSection = document.createElement('div');
-      markdownSection.className = 'markdown-preview-section';
-      mockView.containerEl.appendChild(markdownSection);
+      // Use the markdown preview section created in beforeEach
+      const markdownSection = mockView.containerEl.querySelector('.markdown-preview-section') as HTMLElement;
 
       await backlinksSlice.attachToDOM(mockView, 'target.md', true); // forceRefresh = true
 
@@ -189,10 +186,13 @@ describe('BacklinksSlice Integration', () => {
       // Re-attach UI - should maintain collapsed state
       await backlinksSlice.attachToDOM(mockView, 'target.md', true); // forceRefresh = true
 
-      // Check that the collapse button reflects the collapsed state
+      // Check that the collapse state is reflected in the header collapse icon
       const collapseButton = mockView.containerEl.querySelector('.coalesce-collapse-button') as HTMLElement;
       expect(collapseButton).toBeTruthy();
-      expect(collapseButton.classList.contains('is-collapsed')).toBe(true);
+
+      const collapseIcon = collapseButton.querySelector('svg') as SVGElement;
+      expect(collapseIcon).toBeTruthy();
+      expect(collapseIcon.classList.contains('is-collapsed')).toBe(true);
     });
   });
 

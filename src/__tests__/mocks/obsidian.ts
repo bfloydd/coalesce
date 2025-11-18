@@ -97,3 +97,15 @@ export class WorkspaceLeaf {
 
 // Export other commonly used types
 export type { Plugin, Component } from 'obsidian';
+
+/**
+ * Minimal setIcon mock for tests.
+ *
+ * The real Obsidian setIcon injects an SVG into the target element.
+ * For our purposes, we just append a <svg> so IconProvider and header UI
+ * can find and style it.
+ */
+export function setIcon(element: HTMLElement, _icon: string, _options?: any): void {
+  const svg = document.createElement('svg');
+  element.appendChild(svg);
+}

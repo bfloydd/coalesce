@@ -18,6 +18,11 @@
       "@typescript-eslint/no-unused-vars": ["error", { "args": "none" }],
       "@typescript-eslint/ban-ts-comment": "off",
       "no-prototype-builtins": "off",
-      "@typescript-eslint/no-empty-function": "off"
-    } 
+      "@typescript-eslint/no-empty-function": "off",
+
+      "complexity": ["error", 10],
+      "max-lines-per-function": ["error", 50],
+      "@typescript-eslint/no-explicit-any": "error",
+      "import/order": ["error", { "groups": ["builtin", "external", "internal"] }]
+    }
   }
