@@ -170,36 +170,207 @@ private async withErrorBoundary<T>(
 **Effort**: 1-2 days
 **Impact**: High
 
-**Tasks:**
-- [ ] Extract `BacklinksCore` class for business logic
-- [ ] Extract `BlockRenderer` class for UI rendering
-- [ ] Extract `HeaderController` class for UI controls
-- [ ] Create `BacklinksCoordinator` to orchestrate components
+**Current State (Before Refactor)**
 
-**New Structure:**
-```
+- [`BacklinksSlice.ts`](src/features/backlinks/BacklinksSlice.ts:33) currently coordinates:
+  - Backlink discovery & cache (`updateBacklinks`, `discoverBacklinks`, `getCachedBacklinks`, `clearCache`, `getBacklinkMetadata`, `haveBacklinksChanged`, `invalidateCache`, `clearBacklinks`)
+  - Block extraction & rendering (`extractAndRenderBlocks`, block sorting/collapse/text filtering helpers)
+  - Header UI wiring and state (`createHeader`, `handleSortToggle`, `handleCollapseToggle`, …, `updateHeaderState`, `applyCurrentOptions`)
+  - Navigation (`handleNavigation`)
+  - Event emission (`emitEvent`, `addEventListener`, `removeEventListener`)
+  - Lifecycle (`cleanup`, `removeAttachment`, `requestFocusWhenReady`)
+
+Supporting classes already exist as separate modules and are reused by the slice:
+
+- [`BacklinkDiscoverer.ts`](src/features/backlinks/BacklinkDiscoverer.ts:13)
+- [`BacklinkCache.ts`](src/features/backlinks/BacklinkCache.ts)
+- [`LinkResolver.ts`](src/features/backlinks/LinkResolver.ts)
+- [`BlockExtractor.ts`](src/features/backlinks/BlockExtractor.ts)
+- [`BlockRenderer.ts`](src/features/backlinks/BlockRenderer.ts:14)
+- [`StrategyManager.ts`](src/features/backlinks/StrategyManager.ts:10)
+- [`HeaderUI.ts`](src/features/backlinks/HeaderUI.ts:14)
+- [`FilterControls.ts`](src/features/backlinks/FilterControls.ts)
+- [`SettingsControls.ts`](src/features/backlinks/SettingsControls.ts)
+
+The remaining problem is that [`BacklinksSlice.ts`](src/features/backlinks/BacklinksSlice.ts:33) still mixes orchestration with UI state, domain state, and event handling in one large class.
+
+**Target Design**
+
+Introduce three focused layers under `src/features/backlinks/`:
+
+1. **Core / Domain layer**
+
+   - [`core/BacklinksCore.ts`](src/features/backlinks/core/BacklinksCore.ts)
+     Owns backlink discovery & cache orchestration. Wraps [`BacklinkDiscoverer.ts`](src/features/backlinks/BacklinkDiscoverer.ts:13), [`BacklinkCache.ts`](src/features/backlinks/BacklinkCache.ts), and [`LinkResolver.ts`](src/features/backlinks/LinkResolver.ts).
+     Public API (no DOM access):
+
+     - `updateBacklinks(filePath: string, leafId?: string): Promise<string[]>`
+     - `discoverBacklinks(filePath: string): Promise<string[]>`
+     - `getCurrentBacklinks(filePath: string): string[]`
+     - `getCachedBacklinks(filePath: string): string[] | null`
+     - `clearCache(filePath?: string): void`
+     - `invalidateCache(filePath: string): void`
+     - `clearBacklinks(): void`
+     - `getBacklinkMetadata(): BacklinkMetadata`
+     - `haveBacklinksChanged(filePath: string, newBacklinks: string[]): boolean`
+     - `getStatistics(): BacklinkStatistics`
+
+   - [`core/BacklinksState.ts`](src/features/backlinks/core/BacklinksState.ts)
+     Encapsulates Maps and statistics currently on [`BacklinksSlice.ts`](src/features/backlinks/BacklinksSlice.ts:41) (`currentBacklinks`, `currentBlocks`, `attachedViews`, `headerStatistics`, etc.).
+     Provides small, intention‑revealing methods instead of exposing raw Maps, for example:
+
+     - `setBacklinks(filePath, backlinks)`, `getBacklinks(filePath)`, `clearBacklinks()`
+     - `setBlocks(noteName, blocks)`, `getBlocks(noteName)`
+     - `trackAttachment(viewId, container, timestamp)`, `getAttachment(viewId)`, `removeAttachment(viewId)`
+
+   - [`core/BacklinksEvents.ts`](src/features/backlinks/core/BacklinksEvents.ts)
+     Extracts `eventHandlers` and `emitEvent` / `addEventListener` / `removeEventListener` from [`BacklinksSlice.ts`](src/features/backlinks/BacklinksSlice.ts:1357).
+     Provides a typed event facade independent of DOM but reusing existing event types from [`src/features/shared-contracts/events.ts`](src/features/shared-contracts/events.ts).
+
+2. **UI / View layer**
+
+   - [`ui/BacklinksViewController.ts`](src/features/backlinks/ui/BacklinksViewController.ts)
+     Owns everything that touches DOM/Obsidian views:
+
+     - `attachToDOM(view: MarkdownView, currentNotePath: string, forceRefresh = false): Promise<boolean>`
+     - `requestFocusWhenReady(leafId: string): void`
+     - Header handlers: `handleSortToggle`, `handleCollapseToggle`, `handleStrategyChange`,
+       `handleThemeChange`, `handleHeaderStyleChange`, `handleAliasSelection`,
+       `handleFilterChange`, `handleSettingsClick`
+     - Block & theme helpers: `extractAndRenderBlocks`, `applySortingToDOM`,
+       `applyCollapseStateToDOM`, `applyThemeToContainer`, `updateBlockTitleDisplay`,
+       `filterBlocksByAlias`, `filterBlocksByText`, `applyTextFilterToDOM`,
+       `setAllBlocksCollapsed`, `addNoBacklinksMessage`, `applyCurrentOptions`,
+       `attachContainerToView`
+
+     Delegates:
+
+     - Core data to [`core/BacklinksCore.ts`](src/features/backlinks/core/BacklinksCore.ts)
+     - Rendering to [`BlockRenderer.ts`](src/features/backlinks/BlockRenderer.ts:14)
+     - Header elements to [`HeaderUI.ts`](src/features/backlinks/HeaderUI.ts:14), [`FilterControls.ts`](src/features/backlinks/FilterControls.ts), [`SettingsControls.ts`](src/features/backlinks/SettingsControls.ts)
+     - Strategy selection to [`StrategyManager.ts`](src/features/backlinks/StrategyManager.ts:10)
+
+   - [`ui/HeaderController.ts`](src/features/backlinks/ui/HeaderController.ts)
+     Optional thin wrapper around [`HeaderUI.ts`](src/features/backlinks/HeaderUI.ts:14) that:
+
+     - Owns `HeaderState` and `HeaderStatistics`
+     - Provides high‑level operations: `createHeaderForBacklinks`, `updateHeaderForState`,
+       `notifySortToggled`, `notifyCollapseToggled`, etc.
+
+     This keeps header‑specific state out of [`ui/BacklinksViewController.ts`](src/features/backlinks/ui/BacklinksViewController.ts).
+
+3. **Coordinator layer**
+
+   - [`BacklinksSlice.ts`](src/features/backlinks/BacklinksSlice.ts:33) (coordinator only)
+     Still implements `IBacklinksSlice` but delegates all work:
+
+     - `discoverBacklinks`, `getCachedBacklinks`, `clearCache`, `getBacklinkMetadata`,
+       `haveBacklinksChanged` → [`core/BacklinksCore.ts`](src/features/backlinks/core/BacklinksCore.ts)
+     - `attachToDOM`, `setOptions`, `requestFocusWhenReady` → [`ui/BacklinksViewController.ts`](src/features/backlinks/ui/BacklinksViewController.ts)
+     - `handleNavigation` → a small navigation helper (or reuse the existing navigation slice)
+     - Event methods (`addEventListener` / `removeEventListener`) → [`core/BacklinksEvents.ts`](src/features/backlinks/core/BacklinksEvents.ts)
+     - Lifecycle `cleanup` → forwards to core, UI, and events
+
+**Refactor Tasks (Incremental Plan)**
+
+- [x] **Step 1 – Extract core service**
+  - [x] Create [`core/BacklinksCore.ts`](src/features/backlinks/core/BacklinksCore.ts) and move:
+    - `updateBacklinks`, `discoverBacklinks`, `getCurrentBacklinks`, `getCachedBacklinks`,
+      `clearCache`, `invalidateCache`, `clearBacklinks`, `getBacklinkMetadata`,
+      `haveBacklinksChanged`, `getStatistics`
+  - [x] Introduce [`core/BacklinksState.ts`](src/features/backlinks/core/BacklinksState.ts) to hold `currentBacklinks` and cache‑related metadata
+  - [x] Update [`BacklinksSlice.ts`](src/features/backlinks/BacklinksSlice.ts:35) to call the core service while keeping the public `IBacklinksSlice` API stable
+  - [ ] Add unit tests for [`core/BacklinksCore.ts`](src/features/backlinks/core/BacklinksCore.ts) (no DOM dependencies; planned under Priority 5)
+
+- [x] **Step 2 – Extract event facade**
+  - [x] Move `eventHandlers` and `emitEvent` / `addEventListener` / `removeEventListener` into [`core/BacklinksEvents.ts`](src/features/backlinks/core/BacklinksEvents.ts)
+  - [x] Keep the same event types from [`src/features/shared-contracts/events.ts`](src/features/shared-contracts/events.ts)
+  - [x] Update [`BacklinksSlice.ts`](src/features/backlinks/BacklinksSlice.ts:35) to delegate to the event facade
+
+- [x] **Step 3 – Extract view controller**
+  - [x] Create [`ui/BacklinksViewController.ts`](src/features/backlinks/ui/BacklinksViewController.ts) and move:
+    - `attachToDOM`, `requestFocusWhenReady`
+    - Header handler methods: `handleSortToggle`, `handleCollapseToggle`, `handleStrategyChange`,
+      `handleThemeChange`, `handleHeaderStyleChange`, `handleAliasSelection`,
+      `handleFilterChange`, `handleSettingsClick`
+    - Block & theme helpers: `extractAndRenderBlocks`, `applySortingToDOM`,
+      `applyCollapseStateToDOM`, `applyThemeToContainer`, `updateBlockTitleDisplay`,
+      `filterBlocksByAlias`, `filterBlocksByText`, `applyTextFilterToDOM`,
+      `setAllBlocksCollapsed`, `addNoBacklinksMessage`, `applyCurrentOptions`,
+      `attachContainerToView`
+  - [x] Keep [`ui/BacklinksViewController.ts`](src/features/backlinks/ui/BacklinksViewController.ts) free of plugin lifecycle concerns (it just needs `App`, `MarkdownView`, and DOM)
+
+- [ ] **Step 4 – Header controller & state cleanup**
+  - [ ] Optionally introduce [`ui/HeaderController.ts`](src/features/backlinks/ui/HeaderController.ts) to own `HeaderState` and `HeaderStatistics`, reducing the state surface area on [`ui/BacklinksViewController.ts`](src/features/backlinks/ui/BacklinksViewController.ts)
+  - [ ] Ensure header state is the single source of truth for sorting, collapse, strategy, theme, alias, and filter options
+
+- [ ] **Step 5 – Finalize coordinator**
+  - [ ] Slim down [`BacklinksSlice.ts`](src/features/backlinks/BacklinksSlice.ts:33) to a small class that wires:
+    - Constructor dependencies (`App`, `Logger`, core services, UI controller)
+    - Public `IBacklinksSlice` methods delegating to core/UI/events/navigation
+    - `cleanup` delegating to owned components
+  - [ ] Keep existing integration tests (for example, [`BacklinksSlice.integration.test.ts`](src/features/backlinks/__tests__/BacklinksSlice.integration.test.ts)) focused on the end‑to‑end workflow, while new unit tests cover each extracted component
+
+**Updated Target Structure (Post‑Refactor)**
+
+```text
 src/features/backlinks/
 ├── core/
 │   ├── BacklinksCore.ts
-│   ├── BacklinkDiscovery.ts
-│   └── CacheManager.ts
+│   ├── BacklinksState.ts
+│   ├── BacklinksEvents.ts
+│   ├── BacklinkDiscoverer.ts
+│   ├── BacklinkCache.ts
+│   └── LinkResolver.ts
 ├── ui/
-│   ├── BlockRenderer.ts
+│   ├── BacklinksViewController.ts
 │   ├── HeaderController.ts
-│   └── UIManager.ts
-├── BacklinksSlice.ts (coordinator only)
+│   ├── BlockRenderer.ts
+│   ├── HeaderUI.ts
+│   ├── FilterControls.ts
+│   └── SettingsControls.ts
+├── BacklinksSlice.ts   (orchestrator / IBacklinksSlice implementation)
+├── StrategyManager.ts
+├── BlockExtractor.ts
 └── types.ts
 ```
+
+This refined plan turns [`BacklinksSlice.ts`](src/features/backlinks/BacklinksSlice.ts:33) into a thin orchestrator, concentrates domain logic in the `core` layer, and isolates DOM‑heavy code in the `ui` layer, improving SRP, testability, and future extensibility.
 
 #### Priority 5: Enhance Testing Coverage
 **Effort**: 1 day
 **Impact**: Medium
 
+**Goals:**
+- Validate the new core/domain layer ([`BacklinksCore`](src/features/backlinks/core/BacklinksCore.ts:1), [`BacklinksState`](src/features/backlinks/core/BacklinksState.ts:1), [`BacklinksEvents`](src/features/backlinks/core/BacklinksEvents.ts:1)) in isolation
+- Preserve existing observable behaviour of [`BacklinksSlice`](src/features/backlinks/BacklinksSlice.ts:35) via integration tests
+- Add confidence around error boundaries and DOM/UI behaviour without brittle tests
+
 **Tasks:**
-- [ ] Add integration tests for slice interactions
-- [ ] Create component tests for UI elements
-- [ ] Add error boundary testing
-- [ ] Implement performance testing utilities
+- [ ] **Strengthen integration tests for slice interactions**
+  - [ ] Expand [`BacklinksSlice.integration.test.ts`](src/features/backlinks/__tests__/BacklinksSlice.integration.test.ts:1) to cover:
+    - `discoverBacklinks` → `attachToDOM` → user interaction (sort/collapse/filter) → navigation event emission
+    - Cache behaviour (first call discovers, second call uses cache) via [`BacklinksCore`](src/features/backlinks/core/BacklinksCore.ts:1)
+    - Settings-driven options (`sort`, `collapsed`, `theme`) applied through `setOptions` after `attachToDOM`
+- [ ] **Add unit tests for core/domain layer**
+  - [ ] Create focused tests for [`BacklinksCore`](src/features/backlinks/core/BacklinksCore.ts:1) that verify:
+    - Daily note skipping
+    - Cache hit/miss behaviour and `getBacklinkMetadata`
+    - `haveBacklinksChanged` semantics for order-insensitive comparison
+    - Emission of `backlinks:updated` via [`BacklinksEvents`](src/features/backlinks/core/BacklinksEvents.ts:1)
+  - [ ] Add tests for [`BacklinksState`](src/features/backlinks/core/BacklinksState.ts:1) (backlinks/blocks/attachments/header state helpers)
+- [ ] **Create component tests for UI elements**
+  - [ ] Add JSDOM-based tests for [`HeaderUI`](src/features/backlinks/HeaderUI.ts:14) and [`BlockRenderer`](src/features/backlinks/BlockRenderer.ts:14) to verify:
+    - Correct creation of header controls (sort, collapse, strategy, theme, filter, alias, settings)
+    - DOM class changes for sort/collapse/compact states
+    - Basic rendering of backlink blocks and collapsed/expanded states
+- [ ] **Add error boundary testing**
+  - [ ] Add tests that force failures inside `updateBacklinks` / `attachToDOM` and assert that `withErrorBoundary` in [`BacklinksSlice`](src/features/backlinks/BacklinksSlice.ts:377) logs via `logErrorWithContext` and rethrows in a predictable way
+- [ ] **Introduce lightweight performance smoke tests**
+  - [ ] Add a Jest suite that measures execution time for:
+    - Rendering N synthetic blocks via [`BlockRenderer`](src/features/backlinks/BlockRenderer.ts:14)
+    - Discovering backlinks over a synthetic vault with many links via [`BacklinkDiscoverer`](src/features/backlinks/BacklinkDiscoverer.ts:13)
+  - [ ] Use generous thresholds to catch regressions without being flaky in CI
 
 **Example Integration Test:**
 ```typescript
@@ -214,11 +385,24 @@ describe('BacklinksSlice Integration', () => {
 **Effort**: 2 hours
 **Impact**: Low
 
+**Current State:**
+- Project uses a shared ESLint config in [`.eslintrc`](.eslintrc:1) with TypeScript support.
+- No strict limits on function length or complexity are currently enforced on [`BacklinksSlice`](src/features/backlinks/BacklinksSlice.ts:35) and related files.
+
 **Tasks:**
-- [ ] Add complexity rules (max cyclomatic complexity)
+- [ ] Add complexity rules (max cyclomatic complexity) for feature code
+  - Target: `"complexity": ["error", 10]` applied to `src/features/**/*.ts`
+  - Focus on catching regressions in refactored files like [`BacklinksSlice`](src/features/backlinks/BacklinksSlice.ts:35) and [`BacklinksCore`](src/features/backlinks/core/BacklinksCore.ts:1)
 - [ ] Add function length limits
+  - Target: `"max-lines-per-function": ["error", 50]` with exceptions for test files under `src/**/__tests__/**`
+  - Use ESLint overrides if needed to keep integration tests readable
 - [ ] Enable more TypeScript strict rules
+  - Tighten `@typescript-eslint` rules in [`.eslintrc`](.eslintrc:1) to discourage:
+    - `any` in production code (allow in typed event payloads only)
+    - Unused variables and parameters in feature slices
 - [ ] Add import organization rules
+  - Enforce consistent import ordering and grouping to keep slices readable
+  - Use `"import/order"` with groups `["builtin", "external", "internal"]` and alphabetical ordering within groups
 
 **Enhanced .eslintrc:**
 ```json
