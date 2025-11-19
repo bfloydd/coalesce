@@ -280,7 +280,7 @@ Introduce three focused layers under `src/features/backlinks/`:
       `haveBacklinksChanged`, `getStatistics`
   - [x] Introduce [`core/BacklinksState.ts`](src/features/backlinks/core/BacklinksState.ts) to hold `currentBacklinks` and cache‑related metadata
   - [x] Update [`BacklinksSlice.ts`](src/features/backlinks/BacklinksSlice.ts:35) to call the core service while keeping the public `IBacklinksSlice` API stable
-  - [ ] Add unit tests for [`core/BacklinksCore.ts`](src/features/backlinks/core/BacklinksCore.ts) (no DOM dependencies; planned under Priority 5)
+  - [x] Add unit tests for [`core/BacklinksCore.ts`](src/features/backlinks/core/BacklinksCore.ts) (see [`BacklinksCore.test.ts`](src/features/backlinks/__tests__/BacklinksCore.test.ts:1))
 
 - [x] **Step 2 – Extract event facade**
   - [x] Move `eventHandlers` and `emitEvent` / `addEventListener` / `removeEventListener` into [`core/BacklinksEvents.ts`](src/features/backlinks/core/BacklinksEvents.ts)
@@ -387,20 +387,20 @@ describe('BacklinksSlice Integration', () => {
 
 **Current State:**
 - Project uses a shared ESLint config in [`.eslintrc`](.eslintrc:1) with TypeScript support.
-- No strict limits on function length or complexity are currently enforced on [`BacklinksSlice`](src/features/backlinks/BacklinksSlice.ts:35) and related files.
+- Complexity and function-length limits are now enforced for feature code, along with stricter TypeScript rules and import ordering.
 
 **Tasks:**
-- [ ] Add complexity rules (max cyclomatic complexity) for feature code
+- [x] Add complexity rules (max cyclomatic complexity) for feature code
   - Target: `"complexity": ["error", 10]` applied to `src/features/**/*.ts`
   - Focus on catching regressions in refactored files like [`BacklinksSlice`](src/features/backlinks/BacklinksSlice.ts:35) and [`BacklinksCore`](src/features/backlinks/core/BacklinksCore.ts:1)
-- [ ] Add function length limits
+- [x] Add function length limits
   - Target: `"max-lines-per-function": ["error", 50]` with exceptions for test files under `src/**/__tests__/**`
   - Use ESLint overrides if needed to keep integration tests readable
-- [ ] Enable more TypeScript strict rules
+- [x] Enable more TypeScript strict rules
   - Tighten `@typescript-eslint` rules in [`.eslintrc`](.eslintrc:1) to discourage:
     - `any` in production code (allow in typed event payloads only)
     - Unused variables and parameters in feature slices
-- [ ] Add import organization rules
+- [x] Add import organization rules
   - Enforce consistent import ordering and grouping to keep slices readable
   - Use `"import/order"` with groups `["builtin", "external", "internal"]` and alphabetical ordering within groups
 
@@ -445,7 +445,7 @@ styles/
 ```
 
 **Tasks:**
-- [ ] Introduce CSS module layout
+- [x] Introduce CSS module layout
   - [x] Create [`styles/base/variables.css`](styles/base/variables.css:1) with plugin-level CSS variables, e.g.:
     ```css
     :root {
@@ -464,22 +464,22 @@ styles/
     }
     ```
   - [x] Create [`styles/base/reset.css`](styles/base/reset.css:1) with minimal, component-scoped resets for `.coalesce-*` (no global resets).
-  - [x] Create empty component files under `styles/components/`:
+  - [x] Create component files under `styles/components/`:
     - [`styles/components/backlinks.css`](styles/components/backlinks.css:1)
     - [`styles/components/header.css`](styles/components/header.css:1)
     - [`styles/components/blocks.css`](styles/components/blocks.css:1)
     - [`styles/components/settings.css`](styles/components/settings.css:1)
-  - [ ] Import component files from the existing [`styles.css`](styles.css:1) so the build still outputs a single `dist/styles.css` (no behavioural change yet).
+  - [x] Wire modular CSS sources into the build and dev pipelines so they are concatenated and output as a single `styles.css`/`dist/styles.css` bundle, keeping the runtime surface to one stylesheet.
 
-- [ ] Incrementally migrate existing rules from [`styles.css`](styles.css:1)
-  - [ ] Move backlinks container and list styles into [`styles/components/backlinks.css`](styles/components/backlinks.css:1) (selectors like `.coalesce-custom-backlinks-container`, `.backlinks-list`, `.coalesce-no-backlinks-message`).
-  - [ ] Move header-related styles (logo, filter, alias dropdown, buttons) into [`styles/components/header.css`](styles/components/header.css:1) aligned with [`HeaderComponent`](src/features/backlinks/HeaderComponent.ts:10) and [`HeaderUI`](src/features/backlinks/HeaderUI.ts:14).
-  - [ ] Move block styles (block container, toggle arrow, title, content) into [`styles/components/blocks.css`](styles/components/blocks.css:1) aligned with [`BlockComponent`](src/features/backlinks/BlockComponent.ts:1).
-  - [ ] Move any embedded settings styles (if present) into [`styles/components/settings.css`](styles/components/settings.css:1).
+- [x] Incrementally migrate existing rules from [`styles.css`](styles.css:1)
+  - [x] Move backlinks container and list styles into [`styles/components/backlinks.css`](styles/components/backlinks.css:1) (selectors like `.coalesce-custom-backlinks-container`, `.backlinks-list`, `.coalesce-no-backlinks-message`).
+  - [x] Move header-related styles (logo, filter, alias dropdown, buttons) into [`styles/components/header.css`](styles/components/header.css:1) aligned with [`HeaderComponent`](src/features/backlinks/HeaderComponent.ts:10) and [`HeaderUI`](src/features/backlinks/HeaderUI.ts:14).
+  - [x] Move block styles (block container, toggle arrow, title, content) into [`styles/components/blocks.css`](styles/components/blocks.css:1) aligned with [`BlockComponent`](src/features/backlinks/BlockComponent.ts:1).
+  - [x] Move any embedded settings styles (if present) into [`styles/components/settings.css`](styles/components/settings.css:1).
 
-- [ ] Add theme-specific overrides
-  - [ ] Define `.coalesce-theme-default`, `.coalesce-theme-compact`, `.coalesce-theme-modern` in `styles/themes/*.css`, applied by [`BacklinksViewController`](src/features/backlinks/ui/BacklinksViewController.ts:1) via container classes (e.g. `theme-default` already in use).
-  - [ ] Ensure all new theme rules are expressed in terms of `--coalesce-*` variables which in turn map to Obsidian tokens; avoid hard-coded colors.
+- [x] Add theme-specific overrides
+  - [x] Provide theme styles in [`styles/themes/default.css`](styles/themes/default.css:1), [`styles/themes/compact.css`](styles/themes/compact.css:1), [`styles/themes/modern.css`](styles/themes/modern.css:1), and [`styles/themes/naked.css`](styles/themes/naked.css:1), applied by [`BacklinksViewController`](src/features/backlinks/ui/BacklinksViewController.ts:1) via container theme classes (e.g. `theme-default`, `theme-compact`, `theme-modern`, `theme-naked`).
+  - [x] Express theme-specific rules in terms of `--coalesce-*` variables which in turn map to Obsidian tokens, avoiding hard-coded colors wherever possible.
 
 - [ ] Add CSS linting and safety rails
   - [ ] Introduce a lightweight CSS lint configuration (e.g. `stylelint`) to enforce:
@@ -656,14 +656,14 @@ This gives a pragmatic, incremental path to a shared UI component library aligne
 - [x] Create basic error boundaries
 
 ### Week 2: Structure
-- [ ] Refactor BacklinksSlice
-- [ ] Implement integration tests
-- [ ] Improve logging consistency
+- [x] Refactor BacklinksSlice (core/events/view controller extraction complete; header controller & final coordinator slimming remain as follow-up work)
+- [x] Implement integration tests (BacklinksSlice integration and core tests in place)
+- [x] Improve logging consistency (Logger-based structured logging and global logging state integration complete)
 
 ### Week 3-4: Polish
-- [ ] CSS modularization
-- [ ] Performance monitoring
-- [ ] UI component library
+- [x] CSS modularization (modular CSS files and themes wired into the build producing a single bundle)
+- [ ] Performance monitoring (PerformanceMonitor + key instrumentation done; settings flag and smoke tests pending)
+- [ ] UI component library (Button/IconButton adopted; additional primitives, styling hooks, and docs pending)
 
 ## Success Metrics
 
