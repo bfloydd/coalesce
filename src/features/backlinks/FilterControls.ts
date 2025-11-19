@@ -18,36 +18,74 @@ export class FilterControls implements IFilterControls {
     }
 
     /**
-     * Create filter input element
-     */
+      * Create filter input element using the shared Coalesce filter pattern
+      * (input + clear button with standard classes and behavior).
+      */
     createFilterInput(container: HTMLElement, options: FilterInputOptions): HTMLInputElement {
         this.logger.debug('Creating filter input', { options });
-        
+
         try {
+            // Wrapper for consistent styling with header filter
+            const wrapper = container.createDiv({ cls: 'coalesce-filter-input-container' });
+
             // Create input element
-            const input = container.createEl('input', {
+            const input = wrapper.createEl('input', {
                 type: 'text',
-                cls: 'filter-input',
+                cls: 'coalesce-filter-input',
                 attr: {
                     placeholder: options.placeholder,
                     value: options.value
                 }
             });
-            
-            // Add event listeners
+
+            if (options.value) {
+                wrapper.classList.add('has-value');
+            }
+
+            // Create clear button (matches HeaderComponent pattern)
+            const clearButton = wrapper.createEl('button', {
+                cls: 'coalesce-filter-clear-button',
+                attr: {
+                    type: 'button',
+                    'aria-label': 'Clear filter'
+                }
+            });
+
+            clearButton.innerHTML = `
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+                    <path d="M2 2L8 8M8 2L2 8"/>
+                </svg>
+            `;
+
+            // Input events with debounced callback
             input.addEventListener('input', (e) => {
                 const value = (e.target as HTMLInputElement).value;
+
+                if (value) {
+                    wrapper.classList.add('has-value');
+                } else {
+                    wrapper.classList.remove('has-value');
+                }
+
                 this.handleFilterInput(value, options.onInput);
             });
-            
+
             input.addEventListener('focus', () => {
                 options.onFocus();
             });
-            
+
             input.addEventListener('blur', () => {
                 options.onBlur();
             });
-            
+
+            // Clear button behavior
+            clearButton.addEventListener('click', () => {
+                input.value = '';
+                input.focus();
+                wrapper.classList.remove('has-value');
+                this.handleFilterInput('', options.onInput);
+            });
+
             this.logger.debug('Filter input created successfully', { input });
             return input;
         } catch (error) {

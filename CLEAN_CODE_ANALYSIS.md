@@ -628,10 +628,10 @@ Each helper returns native elements (`HTMLButtonElement`, `HTMLDivElement`, etc.
   - [x] Create [`src/shared/ui/IconButton.ts`](src/shared/ui/IconButton.ts:1) for icon-only controls (e.g. sort, collapse, settings).
   - [x] Create [`src/shared/ui/Panel.ts`](src/shared/ui/Panel.ts:1) for standard containers (header bar, block wrapper) that apply consistent padding/borders.
 
-- [ ] Gradual adoption in existing features
+- [x] Gradual adoption in existing features
   - [x] Refactor [`SettingsControls`](src/features/backlinks/SettingsControls.ts:11) to use `createButton` / `createIconButton` for sort/collapse/settings controls instead of hand-rolled `ButtonComponent`/`ExtraButtonComponent` + SVG.
   - [x] Refactor [`HeaderComponent`](src/features/backlinks/HeaderComponent.ts:10) button creation (`createSortButton`, `createCollapseButton`, `createSettingsButton`) to delegate to shared UI helpers.
-  - [ ] Optionally update [`FilterControls`](src/features/backlinks/FilterControls.ts:10) to use a shared pattern for input + clear button (or introduce a `TextInputWithClear` helper later).
+  - [x] Update [`FilterControls`](src/features/backlinks/FilterControls.ts:10) to use the shared filter pattern (wrapper + `.coalesce-filter-input` + `.coalesce-filter-clear-button`) consistent with `HeaderComponent`, giving a unified input+clear experience across code paths.
 
 - [x] Styling & accessibility
   - [x] Map shared UI classes (e.g. `.coalesce-btn`, `.coalesce-icon-button`, `.coalesce-panel`) to rules in [`styles/components/header.css`](styles/components/header.css:74) and [`styles/components/blocks.css`](styles/components/blocks.css:90).
