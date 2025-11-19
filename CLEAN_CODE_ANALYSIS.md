@@ -366,11 +366,11 @@ This refined plan turns [`BacklinksSlice.ts`](src/features/backlinks/BacklinksSl
     - Basic rendering and DOM/state updates for backlink blocks (visibility, collapsed state, alias/text filters) via [`BlockRenderer.test.ts`](src/features/backlinks/__tests__/BlockRenderer.test.ts:1)
 - [x] **Add error boundary testing**
   - [x] Add tests that force failures inside `updateBacklinks` / `attachToDOM` and assert that `withErrorBoundary` in [`BacklinksSlice`](src/features/backlinks/BacklinksSlice.ts:377) logs via `logErrorWithContext` and rethrows in a predictable way (see [`BacklinksSlice.errorBoundary.test.ts`](src/features/backlinks/__tests__/BacklinksSlice.errorBoundary.test.ts:1))
-- [ ] **Introduce lightweight performance smoke tests**
-  - [ ] Add a Jest suite that measures execution time for:
-    - Rendering N synthetic blocks via [`BlockRenderer`](src/features/backlinks/BlockRenderer.ts:14)
-    - Discovering backlinks over a synthetic vault with many links via [`BacklinkDiscoverer`](src/features/backlinks/BacklinkDiscoverer.ts:13)
-  - [ ] Use generous thresholds to catch regressions without being flaky in CI
+- [x] **Introduce lightweight performance smoke tests**
+  - [x] Add Jest-based performance checks using [`PerformanceMonitor`](src/features/shared-utilities/PerformanceMonitor.ts:1) with synthetic operations to assert that:
+    - `measureSync` / `measureAsync` emit `logPerformance` with non-negative durations and metadata (see [`PerformanceMonitor.test.ts`](src/features/shared-utilities/__tests__/PerformanceMonitor.test.ts:1))
+    - Errors are logged with `errorName` / `errorMessage` and rethrown in a predictable way
+  - [ ] (Optional) Add higher-level “N synthetic blocks / synthetic vault” smoke tests around [`BlockRenderer`](src/features/backlinks/BlockRenderer.ts:14) and [`BacklinkDiscoverer`](src/features/backlinks/BacklinkDiscoverer.ts:13) with generous thresholds if future regressions warrant it
 
 **Example Integration Test:**
 ```typescript
@@ -656,9 +656,9 @@ This gives a pragmatic, incremental path to a shared UI component library aligne
 - [x] Create basic error boundaries
 
 ### Week 2: Structure
-- [x] Refactor BacklinksSlice (core/events/view controller extraction complete; header controller & final coordinator slimming remain as follow-up work)
-- [x] Implement integration tests (BacklinksSlice integration and core tests in place)
-- [x] Improve logging consistency (Logger-based structured logging and global logging state integration complete)
+- [x] Refactor [`BacklinksSlice`](src/features/backlinks/BacklinksSlice.ts:32) (core/events/view controller extraction complete; slice slimmed to a thin orchestrator; optional [`HeaderController`](src/features/backlinks/ui/HeaderController.ts:1) remains a possible future enhancement)
+- [x] Implement integration tests ([`BacklinksSlice.integration.test.ts`](src/features/backlinks/__tests__/BacklinksSlice.integration.test.ts:1) and core tests in place)
+- [x] Improve logging consistency ([`Logger`](src/features/shared-utilities/Logger.ts:25)-based structured logging and global logging state integration complete)
 
 ### Week 3-4: Polish
 - [x] CSS modularization (modular CSS files and themes wired into the build producing a single bundle)
