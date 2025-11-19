@@ -577,3 +577,51 @@
     width: var(--coalesce-icon-size-md);
     height: var(--coalesce-icon-size-md);
 }
+
+/* ============================
+   Shared UI primitives
+   ============================ */
+
+/* Base button styles used by src/shared/ui/Button.ts */
+.coalesce-btn,
+.coalesce-icon-button {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: var(--coalesce-radius-sm, 4px);
+    padding: var(--coalesce-spacing-sm, 4px) var(--coalesce-spacing-md, 8px);
+    font-size: var(--font-ui-smaller);
+}
+
+/* Variants */
+.coalesce-btn-primary {
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent, #ffffff);
+}
+
+.coalesce-btn-primary:hover {
+    background-color: var(--interactive-accent-hover);
+}
+
+.coalesce-btn-secondary {
+    background-color: var(--background-secondary);
+    color: var(--text-normal);
+}
+
+.coalesce-btn-ghost {
+    background-color: transparent;
+}
+
+/* Icon-only buttons */
+.coalesce-icon-button {
+    padding: var(--coalesce-spacing-sm, 4px);
+}
+
+.coalesce-icon-button svg {
+    width: var(--coalesce-icon-size-md);
+    height: var(--coalesce-icon-size-md);
+}

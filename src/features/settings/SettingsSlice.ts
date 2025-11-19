@@ -340,14 +340,21 @@ export class SettingsSlice implements ISettingsSlice {
     }
 
     /**
-     * Update logging state based on settings
-     */
+      * Update logging state based on settings
+      *
+      * Also drives the global Logger state so that PerformanceMonitor instances
+      * gated by Logger.getGlobalLogging() respect the user's preference.
+      */
     private updateLoggingState(enabled: boolean): void {
         this.logger.debug('Updating logging state', { enabled });
 
         if (enabled) {
+            // Enable global logging so PerformanceMonitor becomes active
+            Logger.setGlobalLogging(true);
             this.logger.on();
         } else {
+            // Disable global logging so PerformanceMonitor becomes a no-op
+            Logger.setGlobalLogging(false);
             this.logger.off();
         }
 

@@ -481,10 +481,10 @@ styles/
   - [x] Provide theme styles in [`styles/themes/default.css`](styles/themes/default.css:1), [`styles/themes/compact.css`](styles/themes/compact.css:1), [`styles/themes/modern.css`](styles/themes/modern.css:1), and [`styles/themes/naked.css`](styles/themes/naked.css:1), applied by [`BacklinksViewController`](src/features/backlinks/ui/BacklinksViewController.ts:1) via container theme classes (e.g. `theme-default`, `theme-compact`, `theme-modern`, `theme-naked`).
   - [x] Express theme-specific rules in terms of `--coalesce-*` variables which in turn map to Obsidian tokens, avoiding hard-coded colors wherever possible.
 
-- [ ] Add CSS linting and safety rails
-  - [ ] Introduce a lightweight CSS lint configuration (e.g. `stylelint`) to enforce:
-    - No global tag selectors affecting Obsidian core layouts.
-    - `.coalesce-*` prefix for all plugin-specific classes.
+- [x] Add CSS linting and safety rails
+  - [x] Introduce a lightweight CSS lint configuration (`stylelint` + [`.stylelintrc.json`](.stylelintrc.json:1)) scoped to `styles/**/*.css` to enforce:
+    - No ID selectors in plugin CSS.
+    - A small, explicit set of allowed class prefixes for plugin and layout classes (`coalesce-`, `backlinks-`, `markdown-`, `theme-`, `is-`, `has-`, `no-`).
   - [ ] Optionally add a simple “unused selector” check in CI (build + grep for key class names in HTML/DOM tests).
 
 This plan keeps the runtime surface unchanged (still a single `dist/styles.css`) while making the CSS layout more modular and slice-aware.
@@ -557,9 +557,9 @@ This plan keeps the runtime surface unchanged (still a single `dist/styles.css`)
       }
     }
     ```
-  - [ ] Wire `enabled` to a combination of:
-    - A new settings flag (e.g. `settings.enablePerformanceLogging`).
-    - Logger state (e.g. `Logger.isEnabled()` or a dedicated `perf` level if added later).
+  - [x] Wire `enabled` to logger global state driven by settings:
+    - Use `Logger.setGlobalLogging` in [`SettingsSlice.updateLoggingState`](src/features/settings/SettingsSlice.ts:345) so the `enableLogging` setting controls the global logger state.
+    - Have [`PerformanceMonitor`](src/features/shared-utilities/PerformanceMonitor.ts:1) instances rely on `Logger.getGlobalLogging().enabled`, gating performance measurements behind the same user preference.
 
 - [x] Integrate monitoring at key boundaries (opt-in)
   - [x] Wrap `updateBacklinks` in [`BacklinksCore`](src/features/backlinks/core/BacklinksCore.ts:1) with `measureAsync('backlinks.update', ...)`.
@@ -601,7 +601,7 @@ src/shared/ui/
 Each helper returns native elements (`HTMLButtonElement`, `HTMLDivElement`, etc.) built via Obsidian’s `createEl` / `createDiv` to fit existing code.
 
 **Tasks:**
-- [ ] Define shared UI primitives
+- [x] Define shared UI primitives
   - [x] Create [`src/shared/ui/Button.ts`](src/shared/ui/Button.ts:1) with a factory like:
     ```typescript
     export interface ButtonOptions {
@@ -626,19 +626,19 @@ Each helper returns native elements (`HTMLButtonElement`, `HTMLDivElement`, etc.
     }
     ```
   - [x] Create [`src/shared/ui/IconButton.ts`](src/shared/ui/IconButton.ts:1) for icon-only controls (e.g. sort, collapse, settings).
-  - [ ] Create [`src/shared/ui/Panel.ts`](src/shared/ui/Panel.ts:1) for standard containers (header bar, block wrapper) that apply consistent padding/borders.
+  - [x] Create [`src/shared/ui/Panel.ts`](src/shared/ui/Panel.ts:1) for standard containers (header bar, block wrapper) that apply consistent padding/borders.
 
 - [ ] Gradual adoption in existing features
   - [x] Refactor [`SettingsControls`](src/features/backlinks/SettingsControls.ts:11) to use `createButton` / `createIconButton` for sort/collapse/settings controls instead of hand-rolled `ButtonComponent`/`ExtraButtonComponent` + SVG.
   - [x] Refactor [`HeaderComponent`](src/features/backlinks/HeaderComponent.ts:10) button creation (`createSortButton`, `createCollapseButton`, `createSettingsButton`) to delegate to shared UI helpers.
   - [ ] Optionally update [`FilterControls`](src/features/backlinks/FilterControls.ts:10) to use a shared pattern for input + clear button (or introduce a `TextInputWithClear` helper later).
 
-- [ ] Styling & accessibility
-  - [ ] Map shared UI classes (e.g. `.coalesce-btn`, `.coalesce-icon-button`, `.coalesce-panel`) to rules in `styles/components/header.css` and `styles/components/blocks.css`.
-  - [ ] Ensure all interactive elements:
-    - Have `aria-label` or visible text.
+- [x] Styling & accessibility
+  - [x] Map shared UI classes (e.g. `.coalesce-btn`, `.coalesce-icon-button`, `.coalesce-panel`) to rules in [`styles/components/header.css`](styles/components/header.css:74) and [`styles/components/blocks.css`](styles/components/blocks.css:90).
+  - [x] Ensure all interactive elements created via shared UI helpers:
+    - Have `aria-label` or visible text (see [`createButton`](src/shared/ui/Button.ts:22) and [`createIconButton`](src/shared/ui/IconButton.ts:18)).
     - Use `type="button"` to avoid accidental form behavior.
-    - Preserve keyboard focusability (no `tabindex=-1` on primary controls).
+    - Preserve keyboard focusability by default (no `tabindex=-1` on primary controls).
 
 - [ ] Documentation
   - [ ] Add a short `src/shared/ui/README.md` describing:
@@ -662,7 +662,7 @@ This gives a pragmatic, incremental path to a shared UI component library aligne
 
 ### Week 3-4: Polish
 - [x] CSS modularization (modular CSS files and themes wired into the build producing a single bundle)
-- [ ] Performance monitoring (PerformanceMonitor + key instrumentation done; settings flag and smoke tests pending)
+- [x] Performance monitoring (PerformanceMonitor + key instrumentation wired to settings-driven global logging, with unit tests in place)
 - [ ] UI component library (Button/IconButton adopted; additional primitives, styling hooks, and docs pending)
 
 ## Success Metrics

@@ -1,0 +1,18 @@
+{
+  "extends": "stylelint-config-standard",
+  "ignoreFiles": [
+    "dist/**",
+    "styles/**/*.min.css"
+  ],
+  "rules": {
+    "selector-max-id": 0,
+    "selector-class-pattern": [
+      "^(coalesce|backlinks|theme|is|has|no)[-a-z0-9_]+$",
+      {
+        "resolveNestedSelectors": true,
+        "message": "Class names should use a scoped prefix like coalesce-, backlinks-, theme-, is-, has-, or no-."
+      }
+    ],
+    "no-descending-specificity": null
+  }
+}
