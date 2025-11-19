@@ -1,0 +1,23 @@
+/* ============================
+   Coalesce Default Theme Styles
+   ============================ */
+
+/* Default theme: standard padding, borders, and backgrounds */
+.theme-default .coalesce-backlinks-header {
+    padding: 8px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.theme-default .coalesce-block-header {
+    padding: 4px 8px;
+    background: var(--background-primary);
+}
+
+.theme-default .coalesce-backlink-item {
+    padding: 5px 10px;
+}
+
+.theme-default .coalesce-backlink-item:not(:last-child) {
+    border-bottom: 1px solid var(--background-modifier-border);
+    margin-bottom: 10px;
+}

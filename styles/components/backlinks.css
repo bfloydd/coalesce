@@ -2,13 +2,59 @@
    Coalesce Backlinks Component Styles
    ============================ */
 
-/**
- * This file will gradually take over backlinks-related styles from styles.css.
- * For now it is intentionally minimal to avoid changing runtime behaviour.
- *
- * Target selectors to migrate here over time:
- * - .coalesce-custom-backlinks-container
- * - .backlinks-list
- * - .coalesce-no-backlinks-message
- * - .coalesce-backlink-item (and state modifiers)
- */
+/* Backlinks container & placement under Markdown content */
+.coalesce-custom-backlinks-container {
+    border-top: 1px solid var(--background-modifier-border);
+    margin-top: 20px;
+    position: relative;
+    z-index: 10;
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Prevent Obsidian from adding dynamic styles that push Coalesce down */
+.markdown-preview-section {
+    padding-bottom: 150px !important;
+    min-height: unset !important;
+}
+
+/* Override any inline styles that Obsidian might add */
+.markdown-preview-sizer {
+    min-height: unset !important;
+    padding-bottom: unset !important;
+}
+
+.is-readable-line-width .coalesce-custom-backlinks-container,
+.is-readable-line-width .markdown-content,
+.is-readable-line-width .coalesce-backlinks-header {
+    max-width: var(--file-line-width);
+    width: 100%;
+}
+
+.markdown-content {
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+/* No backlinks message styling */
+.coalesce-no-backlinks-message {
+    padding: 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-style: italic;
+    border: 1px dashed var(--background-modifier-border);
+    border-radius: 4px;
+    margin: 8px 0;
+    background-color: var(--background-primary);
+}
+
+/* Display utilities */
+.is-hidden {
+    display: none !important;
+}
+
+.is-visible {
+    display: block !important;
+}

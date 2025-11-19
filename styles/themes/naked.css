@@ -1,0 +1,31 @@
+/* ============================
+   Coalesce Naked Theme Styles
+   ============================ */
+
+/* Naked theme: minimal chrome, focus on content */
+.theme-naked .coalesce-backlinks-header {
+    margin-bottom: 1em;
+}
+
+.theme-naked .coalesce-backlink-item {
+    border: none;
+    padding: 0;
+    margin: 0;
+    background: none;
+}
+
+.theme-naked .coalesce-block-header {
+    display: none;
+}
+
+.theme-naked .coalesce-content-preview {
+    display: block !important;
+    padding: 0;
+    margin: 0;
+}
+
+.theme-naked .coalesce-backlink-item:not(:last-child) {
+    border-bottom: 1px solid var(--background-modifier-border);
+    margin-bottom: 1em;
+    padding-bottom: 1em;
+}

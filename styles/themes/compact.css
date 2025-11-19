@@ -1,0 +1,14 @@
+/* ============================
+   Coalesce Compact Theme Styles
+   ============================ */
+
+/* Compact theme: denser padding and reduced chrome */
+.theme-compact .coalesce-backlinks-header {
+    padding: 4px;
+    border: none;
+}
+
+.theme-compact .coalesce-block-header {
+    padding: 2px 4px;
+    background: transparent;
+}

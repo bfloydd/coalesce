@@ -2,15 +2,578 @@
    Coalesce Header Component Styles
    ============================ */
 
-/**
- * This file will gradually take over header-related styles from styles.css.
- * For now it is intentionally minimal to avoid changing runtime behaviour.
- *
- * Target selectors to migrate here over time:
- * - .coalesce-backlinks-header
- * - .coalesce-backlinks-header-left / .coalesce-backlinks-header-right
- * - .coalesce-button-group
- * - .coalesce-sort-button / .coalesce-collapse-button / .coalesce-settings-button
- * - .coalesce-filter-input-container / .coalesce-filter-input / .coalesce-filter-clear-button
- * - .coalesce-alias-dropdown
- */
+/* Header container and layout */
+.coalesce-backlinks-header {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-bottom: 0;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    width: 100%;
+    box-sizing: border-box;
+    /* Performance optimization */
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+.coalesce-backlinks-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-width: 0;
+    flex: 1;
+}
+
+.coalesce-backlinks-header-right {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-wrap: nowrap;
+}
+
+/* Button group and icon transforms */
+.coalesce-button-group svg:not(.is-collapsed) {
+    transform: none;
+}
+
+.coalesce-button-group svg.is-collapsed {
+    transform: rotate(-90deg);
+}
+
+.coalesce-button-group svg.sort-ascending {
+    transform: rotate(180deg);
+}
+
+.coalesce-button-group svg.sort-descending {
+    transform: none;
+}
+
+.coalesce-button-group {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    margin-left: 4px;
+    gap: 7px;
+}
+
+.coalesce-button-group > *,
+.coalesce-button-group .extra-setting-item,
+.coalesce-button-group .clickable-icon {
+    --icon-size: var(--coalesce-icon-size-sm) !important;
+}
+
+.coalesce-button-group > * svg,
+.coalesce-button-group .extra-setting-item svg,
+.coalesce-button-group .clickable-icon svg {
+    width: var(--coalesce-icon-size-sm) !important;
+    height: var(--coalesce-icon-size-sm) !important;
+}
+
+/* Header buttons */
+.coalesce-sort-button,
+.coalesce-collapse-button,
+.coalesce-settings-button {
+    background: none;
+    border: none;
+    padding: var(--coalesce-spacing-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    border-radius: var(--coalesce-radius-sm);
+}
+
+.coalesce-sort-button {
+    gap: 4px;
+    font-size: var(--font-ui-smaller);
+    font-weight: 500;
+    padding: var(--coalesce-spacing-sm) var(--coalesce-spacing-md);
+}
+
+.coalesce-sort-button:hover,
+.coalesce-collapse-button:hover,
+.coalesce-settings-button:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+/* Settings popup */
+.coalesce-settings-popup {
+    position: fixed;
+    background-color: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: var(--coalesce-radius-md);
+    padding: var(--coalesce-spacing-md) 0;
+    z-index: 1000;
+    box-shadow: var(--coalesce-shadow-sm);
+    min-width: 180px;
+    max-height: 80vh;
+    overflow-y: auto;
+    color: var(--text-normal);
+    top: 0;
+    right: 0;
+    font-size: 14px;
+}
+
+.coalesce-settings-item {
+    display: flex;
+    align-items: center;
+    padding: 2px 8px;
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+    color: var(--text-normal);
+    font-size: 14px;
+    height: 26px;
+    padding-left: 8px;
+    gap: 4px;
+}
+
+.coalesce-settings-item:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+.coalesce-setting-item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    color: var(--text-muted);
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+
+.coalesce-settings-header .coalesce-setting-item-icon {
+    color: var(--text-faint);
+}
+
+.coalesce-setting-item-label {
+    flex: 1;
+    margin-left: 4px;
+    color: var(--text-normal);
+    font-size: 14px;
+}
+
+/* Obsidian-style section headers */
+.coalesce-settings-header {
+    cursor: default !important;
+    color: var(--text-faint);
+    font-size: 12px;
+    padding: 2px 8px;
+    margin-top: 4px;
+    font-weight: 600;
+    height: auto;
+    display: flex;
+    align-items: center;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.coalesce-settings-header:hover {
+    background-color: transparent !important;
+}
+
+.coalesce-settings-header:first-child {
+    margin-top: 0;
+}
+
+.coalesce-menu-separator {
+    height: 1px;
+    background-color: var(--background-modifier-border);
+    margin: 4px 0;
+}
+
+.coalesce-settings-popup .coalesce-menu-separator {
+    margin: 2px 0;
+}
+
+/* Alias dropdown */
+.coalesce-alias-dropdown {
+    font-size: var(--font-ui-smaller);
+    min-width: 120px;
+    max-width: 120px;
+    height: 24px;
+    flex-shrink: 1;
+    text-overflow: ellipsis;
+}
+
+.is-mobile .coalesce-alias-dropdown,
+.is-phone .coalesce-alias-dropdown {
+    min-width: 100px;
+    font-size: var(--font-ui-smallest);
+    padding: 2px 4px;
+    height: 20px;
+}
+
+.coalesce-alias-dropdown:hover {
+    border-color: var(--background-modifier-border-hover);
+}
+
+.coalesce-alias-dropdown:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+}
+
+.coalesce-alias-dropdown:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    border-color: var(--background-modifier-border);
+}
+
+/* Filter input component */
+.coalesce-filter-input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 0 8px;
+    min-width: 120px;
+    flex-shrink: 1;
+}
+
+.coalesce-filter-input {
+    padding: 4px 8px;
+    padding-right: 28px;
+    border-radius: 4px;
+    border: 1px solid var(--background-modifier-border);
+    background-color: var(--background-primary);
+    color: var(--text-normal);
+    font-size: var(--font-ui-smaller);
+    min-width: 120px;
+    height: 24px;
+    flex-shrink: 1;
+    text-overflow: ellipsis;
+    transition: border-color 0.15s ease-out;
+    will-change: border-color;
+    transform: translateZ(0);
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+    min-height: 24px;
+    min-width: 80px;
+    margin: 0;
+    background-clip: padding-box;
+}
+
+.coalesce-filter-input::placeholder {
+    color: var(--text-muted);
+}
+
+.coalesce-filter-input:hover {
+    border-color: var(--background-modifier-border-hover);
+}
+
+.coalesce-filter-input:not([disabled]) {
+    pointer-events: auto;
+    user-select: text;
+    position: relative;
+    z-index: 10;
+}
+
+.coalesce-filter-input:focus {
+    outline: none;
+    border-color: var(--interactive-accent);
+    box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+    position: relative;
+    z-index: 10;
+}
+
+.coalesce-filter-clear-button {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
+    max-width: 16px;
+    max-height: 16px;
+    opacity: 0;
+    transition: opacity 0.15s ease-out, background-color 0.15s ease-out;
+    z-index: 10;
+    pointer-events: auto;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    flex-grow: 0;
+}
+
+.coalesce-filter-clear-button:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+    border-color: var(--background-modifier-border-hover);
+}
+
+.coalesce-filter-clear-button:active {
+    background-color: var(--background-modifier-active);
+}
+
+.coalesce-filter-input-container.has-value .coalesce-filter-clear-button {
+    opacity: 1;
+}
+
+.coalesce-filter-clear-button svg {
+    width: 10px;
+    height: 10px;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    fill: none;
+    display: block;
+}
+
+.coalesce-backlinks-header:focus-within .coalesce-filter-input {
+    position: relative;
+    z-index: 10;
+}
+
+.is-mobile .coalesce-filter-input-container,
+.is-phone .coalesce-filter-input-container {
+    min-width: 100px;
+}
+
+.is-mobile .coalesce-filter-input,
+.is-phone .coalesce-filter-input {
+    min-width: 100px;
+    font-size: var(--font-ui-smallest);
+    padding: 2px 4px;
+    padding-right: 24px;
+    height: 20px;
+    min-height: 20px;
+}
+
+/* Responsive layout */
+.is-phone .coalesce-backlinks-header,
+.is-mobile .coalesce-backlinks-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+}
+
+.is-phone .coalesce-backlinks-header-left,
+.is-mobile .coalesce-backlinks-header-left {
+    width: auto;
+    justify-content: flex-start;
+    flex: 1;
+    gap: 4px;
+}
+
+.is-phone .coalesce-backlinks-header-right,
+.is-mobile .coalesce-backlinks-header-right {
+    width: auto;
+    justify-content: flex-end;
+}
+
+.is-phone .coalesce-button-group,
+.is-mobile .coalesce-button-group {
+    margin-left: 4px;
+    display: flex;
+    gap: 2px;
+}
+
+.is-phone .coalesce-alias-dropdown,
+.is-mobile .coalesce-alias-dropdown {
+    min-width: 80px;
+    max-width: 120px;
+    font-size: var(--font-ui-smaller);
+    padding: 2px 4px;
+    height: 24px;
+}
+
+.is-phone .coalesce-filter-input,
+.is-mobile .coalesce-filter-input {
+    min-width: 80px;
+    max-width: 120px;
+    font-size: var(--font-ui-smaller);
+    padding: 2px 4px;
+    height: 24px;
+}
+
+@media (max-width: 400px) {
+    .coalesce-backlinks-header {
+        flex-direction: row;
+        align-items: center;
+        gap: 4px;
+        padding: 8px;
+    }
+
+    .coalesce-backlinks-header-left {
+        width: auto;
+        justify-content: flex-start;
+        flex: 1;
+        gap: 4px;
+    }
+
+    .coalesce-backlinks-header-right {
+        width: auto;
+        justify-content: flex-end;
+    }
+
+    .coalesce-alias-dropdown {
+        min-width: 80px;
+        max-width: 120px;
+        margin: 0 4px;
+    }
+
+    .coalesce-filter-input-container {
+        min-width: 80px;
+        max-width: 120px;
+        margin: 0 4px;
+    }
+
+    .coalesce-filter-input {
+        min-width: 80px;
+        max-width: 120px;
+        margin: 0;
+        padding-right: 24px; /* Smaller padding for very small screens */
+    }
+
+    .coalesce-button-group {
+        margin-left: 4px;
+        display: flex;
+        gap: 2px;
+    }
+}
+
+@media (max-width: 600px) and (min-width: 401px) {
+    .coalesce-backlinks-header-left {
+        flex-wrap: nowrap;
+        gap: 4px;
+    }
+
+    .coalesce-button-group {
+        margin-left: 4px;
+    }
+}
+
+/* Compact header variants */
+.coalesce-backlinks-header.compact > svg {
+    width: 36px;
+    height: 36px;
+    color: var(--text-faint);
+    opacity: 0.6;
+    transition: all 0.3s ease;
+}
+
+.coalesce-backlinks-header.compact > svg:hover {
+    transform: scale(1.03);
+}
+
+/* Dark theme compact mode */
+.theme-dark .coalesce-backlinks-header.compact > svg:hover {
+    color: #ffffff;
+    opacity: 0.9;
+}
+
+/* Light theme compact mode */
+.theme-light .coalesce-backlinks-header.compact > svg:hover {
+    color: var(--text-normal);
+    opacity: 0.9;
+}
+
+.coalesce-backlinks-header.compact .coalesce-button-group {
+    margin-left: 0;
+}
+
+/* Header logo & Android-specific tweaks */
+.coalesce-backlinks-header-left > svg {
+    width: 48px;
+    height: 48px;
+    color: var(--text-faint);
+    opacity: 0.6;
+    transition: all 0.3s ease;
+}
+
+.coalesce-backlinks-header-left > svg:hover {
+    transform: scale(1.03);
+}
+
+/* Dark theme - get bright on hover */
+.theme-dark .coalesce-backlinks-header-left > svg:hover {
+    color: #ffffff;
+    opacity: 0.9;
+}
+
+/* Light theme - get darker on hover */
+.theme-light .coalesce-backlinks-header-left > svg:hover {
+    color: var(--text-normal);
+    opacity: 0.9;
+}
+
+/* Android-specific SVG visibility fixes - only for the Coalesce icon */
+.is-mobile .coalesce-backlinks-header-left > svg,
+.is-phone .coalesce-backlinks-header-left > svg {
+    display: block;
+    visibility: visible;
+    opacity: 0.7;
+    width: 48px;
+    height: 48px;
+    color: var(--text-muted);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.08))
+        drop-shadow(0 0 6px rgba(var(--interactive-accent-rgb), 0.04));
+}
+
+/* Ensure SVG elements render properly on Android - only for the Coalesce icon */
+.is-mobile .coalesce-backlinks-header-left > svg *,
+.is-phone .coalesce-backlinks-header-left > svg * {
+    fill: inherit;
+    stroke: none;
+}
+
+/* Compact mode on Android - only for the Coalesce icon */
+.is-mobile .coalesce-backlinks-header.compact > svg,
+.is-phone .coalesce-backlinks-header.compact > svg {
+    width: 36px;
+    height: 36px;
+    display: block;
+    visibility: visible;
+    opacity: 0.7;
+    color: var(--text-muted);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.08))
+        drop-shadow(0 0 6px rgba(var(--interactive-accent-rgb), 0.04));
+}
+
+/* Settings popup checkmarks */
+.coalesce-settings-item[data-style] .coalesce-checkmark-container,
+.coalesce-settings-item[data-position] .coalesce-checkmark-container,
+.coalesce-settings-item[data-strategy] .coalesce-checkmark-container,
+.coalesce-settings-item[data-theme] .coalesce-checkmark-container {
+    margin-left: auto;
+}
+
+.coalesce-settings-item[data-style] .coalesce-checkmark-container .coalesce-checkmark,
+.coalesce-settings-item[data-position] .coalesce-checkmark-container .coalesce-checkmark,
+.coalesce-settings-item[data-strategy] .coalesce-checkmark-container .coalesce-checkmark,
+.coalesce-settings-item[data-theme] .coalesce-checkmark-container .coalesce-checkmark {
+    display: none;
+}
+
+.coalesce-settings-item[data-style] .coalesce-checkmark-container.is-checked .coalesce-checkmark,
+.coalesce-settings-item[data-position] .coalesce-checkmark-container.is-checked .coalesce-checkmark,
+.coalesce-settings-item[data-strategy] .coalesce-checkmark-container.is-checked .coalesce-checkmark,
+.coalesce-settings-item[data-theme] .coalesce-checkmark-container.is-checked .coalesce-checkmark {
+    display: block;
+}
+
+.coalesce-settings-submenu-item {
+    padding-left: 24px;
+}
+
+/* Sort/Collapse icon sizes inside header */
+.coalesce-backlinks-header .coalesce-button-group .coalesce-sort-button svg,
+.coalesce-backlinks-header .coalesce-button-group .coalesce-collapse-button svg {
+    width: var(--coalesce-icon-size-md);
+    height: var(--coalesce-icon-size-md);
+}

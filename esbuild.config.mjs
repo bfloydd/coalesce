@@ -52,23 +52,50 @@ if (prod) {
 		console.log('Production build completed successfully');
 
 		// Minify CSS in production mode
-		if (fs.existsSync("styles.css")) {
-			console.log("Processing CSS...");
-			const css = fs.readFileSync("styles.css", "utf8");
-			console.log("CSS file read, starting minification...");
+		// Build CSS bundle from modular sources into a single styles.css
+		const cssSources = [
+			"styles/base/variables.css",
+			"styles/base/reset.css",
+			"styles/components/backlinks.css",
+			"styles/components/header.css",
+			"styles/components/blocks.css",
+			"styles/components/settings.css",
+			"styles/themes/default.css",
+			"styles/themes/compact.css",
+			"styles/themes/modern.css",
+			"styles/themes/naked.css"
+		];
+
+		let combinedCss = '';
+
+		// Read all existing CSS sources in a defined order
+		for (const cssPath of cssSources) {
+			if (fs.existsSync(cssPath)) {
+				const contents = fs.readFileSync(cssPath, "utf8");
+				if (contents.trim().length > 0) {
+					combinedCss += `/* Source: ${cssPath} */\n` + contents + "\n\n";
+				}
+			}
+		}
+
+		if (combinedCss.length === 0) {
+			console.log("No CSS sources found, skipping CSS processing");
+		} else {
+			console.log("Processing CSS bundle from modular sources...");
+			console.log("CSS bundle assembled, starting minification...");
 
 			try {
-				// Use esbuild's CSS minification
-				const result = await esbuild.transform(css, {
+				// Use esbuild's CSS minification on the combined bundle
+				const result = await esbuild.transform(combinedCss, {
 					loader: "css",
 					minify: true
 				});
 
-				// Write to dist directory
+				// Write to dist directory as a single styles.css
 				const cssOutPath = path.join(distDir, "styles.css");
 				fs.writeFileSync(cssOutPath, result.code);
 				console.log('CSS processing completed', {
-					originalSize: css.length,
+					originalSize: combinedCss.length,
 					minifiedSize: result.code.length,
 					outputPath: cssOutPath
 				});
@@ -76,8 +103,6 @@ if (prod) {
 				console.error('Failed to process CSS:', error);
 				process.exit(1);
 			}
-		} else {
-			console.log("No styles.css found, skipping CSS processing");
 		}
 
 		// Copy manifest.json to dist directory
@@ -106,6 +131,48 @@ if (prod) {
 } else {
 	console.log('Starting development watch mode...');
 	try {
+		// Build CSS bundle once for development so modular files are compiled into styles.css
+		const cssSources = [
+			"styles/base/variables.css",
+			"styles/base/reset.css",
+			"styles/components/backlinks.css",
+			"styles/components/header.css",
+			"styles/components/blocks.css",
+			"styles/components/settings.css",
+			"styles/themes/default.css",
+			"styles/themes/compact.css",
+			"styles/themes/modern.css",
+			"styles/themes/naked.css"
+		];
+
+		let combinedCss = "";
+
+		for (const cssPath of cssSources) {
+			if (fs.existsSync(cssPath)) {
+				const contents = fs.readFileSync(cssPath, "utf8");
+				if (contents.trim().length > 0) {
+					combinedCss += `/* Source: ${cssPath} */\n` + contents + "\n\n";
+				}
+			}
+		}
+
+		if (combinedCss.length > 0) {
+			console.log("Processing CSS bundle (development)...");
+			const result = await esbuild.transform(combinedCss, {
+				loader: "css",
+				minify: false
+			});
+			const cssOutPath = path.join(distDir, "styles.css");
+			fs.writeFileSync(cssOutPath, result.code);
+			console.log('CSS bundle (development) written', {
+				originalSize: combinedCss.length,
+				minifiedSize: result.code.length,
+				outputPath: cssOutPath
+			});
+		} else {
+			console.log("No CSS sources found, skipping CSS processing (development)");
+		}
+
 		await context.watch();
 		console.log('Watch mode started successfully');
 	} catch (error) {

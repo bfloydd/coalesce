@@ -1,0 +1,20 @@
+/* ============================
+   Coalesce Modern Theme Styles
+   ============================ */
+
+/* Modern theme: more padding, rounded header, secondary backgrounds */
+.theme-modern .coalesce-backlinks-header {
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--background-secondary);
+}
+
+.theme-modern .coalesce-block-header {
+    padding: 8px 12px;
+    background: var(--background-secondary-alt);
+    border-radius: 6px;
+}
+
+.theme-modern .coalesce-backlink-item {
+    padding: 3px 0px;
+}
