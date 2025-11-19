@@ -10,7 +10,8 @@
 		"test": "jest",
 		"test:watch": "jest --watch",
 		"test:coverage": "jest --coverage",
-		"lint:css": "stylelint \"styles/**/*.css\""
+		"lint:css": "stylelint \"styles/**/*.css\"",
+		"lint:css:unused": "node scripts/check-unused-css.mjs"
 	},
 	"keywords": [],
 	"author": "",

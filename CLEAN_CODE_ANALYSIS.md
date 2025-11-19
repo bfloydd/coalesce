@@ -485,7 +485,7 @@ styles/
   - [x] Introduce a lightweight CSS lint configuration (`stylelint` + [`.stylelintrc.json`](.stylelintrc.json:1)) scoped to `styles/**/*.css` to enforce:
     - No ID selectors in plugin CSS.
     - A small, explicit set of allowed class prefixes for plugin and layout classes (`coalesce-`, `backlinks-`, `markdown-`, `theme-`, `is-`, `has-`, `no-`).
-  - [ ] Optionally add a simple “unused selector” check in CI (build + grep for key class names in HTML/DOM tests).
+  - [x] Add a simple “unused selector” check via `npm run lint:css:unused` using [`scripts/check-unused-css.mjs`](scripts/check-unused-css.mjs:1), which heuristically reports plugin-scoped CSS classes not referenced in `src/**/*.ts`/`.js` files (informational only; does not fail the build).
 
 This plan keeps the runtime surface unchanged (still a single `dist/styles.css`) while making the CSS layout more modular and slice-aware.
 
