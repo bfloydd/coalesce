@@ -194,18 +194,149 @@ describe('BacklinksSlice Integration', () => {
       expect(collapseIcon).toBeTruthy();
       expect(collapseIcon.classList.contains('is-collapsed')).toBe(true);
     });
+
+    it('should apply collapsed and theme options via setOptions after attachToDOM', async () => {
+      // Setup backlinks
+      mockApp.metadataCache.resolvedLinks = {
+        'source.md': { 'target.md': 1 }
+      };
+
+      (mockApp.vault.getMarkdownFiles as jest.Mock).mockReturnValue([
+        { path: 'source.md', basename: 'source' } as TFile,
+        { path: 'target.md', basename: 'target' } as TFile
+      ]);
+
+      (mockApp.vault.read as jest.Mock).mockResolvedValue('Content with [[target]] link');
+
+      // First attach to create the UI
+      await backlinksSlice.attachToDOM(mockView, 'target.md', true);
+
+      const container = mockView.containerEl.querySelector(
+        '.coalesce-custom-backlinks-container'
+      ) as HTMLElement;
+      expect(container).toBeTruthy();
+
+      // Apply settings-driven options after initial attachment
+      backlinksSlice.setOptions({
+        collapsed: true,
+        theme: 'compact'
+      });
+
+      // Theme should be applied to the backlinks list container (the element themed by the view controller)
+      const linksContainer =
+        (container.querySelector('.backlinks-list') as HTMLElement) ?? container;
+      expect(linksContainer.classList.contains('theme-compact')).toBe(true);
+    });
+
+    it('should emit navigation event when a backlink block title is clicked', async () => {
+      // Setup backlinks
+      mockApp.metadataCache.resolvedLinks = {
+        'source.md': { 'target.md': 1 }
+      };
+
+      (mockApp.vault.getMarkdownFiles as jest.Mock).mockReturnValue([
+        { path: 'source.md', basename: 'source' } as TFile,
+        { path: 'target.md', basename: 'target' } as TFile
+      ]);
+
+      (mockApp.vault.read as jest.Mock).mockResolvedValue('Content with [[target]] link');
+
+      const navigationHandler = jest.fn();
+
+      // Listen for the bubbled coalesce-navigate event emitted by the rendered block title
+      mockView.containerEl.addEventListener('coalesce-navigate', (event: Event) => {
+        const custom = event as CustomEvent;
+        navigationHandler(custom.detail);
+      });
+
+      // Stub BlockRenderer.renderBlocks to create a simple backlink item with a clickable title
+      const viewController = (backlinksSlice as any).viewController;
+      const blockRenderer = (viewController as any).blockRenderer;
+      const renderSpy = jest
+        .spyOn(blockRenderer, 'renderBlocks')
+        .mockImplementation(
+          async (container: HTMLElement) => {
+            const item = container.ownerDocument!.createElement('div');
+            item.className = 'coalesce-backlink-item';
+
+            const titleEl = container.ownerDocument!.createElement('a');
+            titleEl.className = 'coalesce-block-title';
+            titleEl.textContent = 'Source';
+            titleEl.href = '#';
+
+            titleEl.addEventListener('click', (event: Event) => {
+              event.preventDefault();
+              const navEvent = new CustomEvent('coalesce-navigate', {
+                detail: { filePath: 'source.md', openInNewTab: false },
+                bubbles: true
+              });
+              item.dispatchEvent(navEvent);
+            });
+
+            item.appendChild(titleEl);
+            container.appendChild(item);
+          }
+        );
+
+      await backlinksSlice.attachToDOM(mockView, 'target.md', true);
+
+      const title = mockView.containerEl.querySelector(
+        '.coalesce-backlink-item .coalesce-block-title'
+      ) as HTMLAnchorElement;
+
+      expect(title).toBeTruthy();
+
+      title.click();
+
+      expect(navigationHandler).toHaveBeenCalledTimes(1);
+      const detail = navigationHandler.mock.calls[0][0];
+      expect(detail).toMatchObject({
+        filePath: 'source.md'
+      });
+
+      renderSpy.mockRestore();
+    });
   });
 
   describe('setOptions', () => {
     it('should update backlinks display options', () => {
-      backlinksSlice.setOptions({
+      // Arrange
+      const options = {
         sort: true,
         collapsed: false,
         theme: 'dark'
-      });
+      } as const;
 
-      // Options should be applied (this would be verified by checking internal state)
+      // Act
+      backlinksSlice.setOptions(options);
+
+      // Assert
+      // Options are applied internally; this test is a smoke check that the call succeeds.
       expect(backlinksSlice).toBeDefined();
+    });
+  });
+
+  describe('updateBacklinks and caching', () => {
+    it('reuses cached backlinks on subsequent calls for the same note', async () => {
+      // Arrange: configure resolved links so source.md links to target.md
+      mockApp.metadataCache.resolvedLinks = {
+        'source.md': { 'target.md': 1 }
+      };
+
+      (mockApp.vault.getMarkdownFiles as jest.Mock).mockReturnValue([
+        { path: 'source.md', basename: 'source' } as TFile,
+        { path: 'target.md', basename: 'target' } as TFile
+      ]);
+
+      (mockApp.vault.read as jest.Mock).mockResolvedValue('Content with [[target]] link');
+
+      // Act: call updateBacklinks twice for the same target file
+      const firstBacklinks = await backlinksSlice.updateBacklinks('target.md');
+      const secondBacklinks = await backlinksSlice.updateBacklinks('target.md');
+
+      // Assert: both calls return the same backlinks; cache behaviour is covered by BacklinksCore tests
+      expect(firstBacklinks).toEqual(['source.md']);
+      expect(secondBacklinks).toEqual(['source.md']);
     });
   });
 

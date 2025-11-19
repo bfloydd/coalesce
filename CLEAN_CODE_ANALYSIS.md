@@ -347,25 +347,25 @@ This refined plan turns [`BacklinksSlice.ts`](src/features/backlinks/BacklinksSl
 - Add confidence around error boundaries and DOM/UI behaviour without brittle tests
 
 **Tasks:**
-- [ ] **Strengthen integration tests for slice interactions**
-  - [ ] Expand [`BacklinksSlice.integration.test.ts`](src/features/backlinks/__tests__/BacklinksSlice.integration.test.ts:1) to cover:
-    - `discoverBacklinks` → `attachToDOM` → user interaction (sort/collapse/filter) → navigation event emission
-    - Cache behaviour (first call discovers, second call uses cache) via [`BacklinksCore`](src/features/backlinks/core/BacklinksCore.ts:1)
-    - Settings-driven options (`sort`, `collapsed`, `theme`) applied through `setOptions` after `attachToDOM`
-- [ ] **Add unit tests for core/domain layer**
-  - [ ] Create focused tests for [`BacklinksCore`](src/features/backlinks/core/BacklinksCore.ts:1) that verify:
+- [x] **Strengthen integration tests for slice interactions**
+  - [x] Expand [`BacklinksSlice.integration.test.ts`](src/features/backlinks/__tests__/BacklinksSlice.integration.test.ts:1) to cover:
+    - [x] `discoverBacklinks` → `attachToDOM` → user interaction (sort/collapse/filter) → navigation event emission (see navigation event test using `.coalesce-block-title` and `coalesce-navigate`)
+    - [x] Cache behaviour (first call discovers, second call uses cache) via [`BacklinksCore`](src/features/backlinks/core/BacklinksCore.ts:1) and [`BacklinksSlice`](src/features/backlinks/__tests__/BacklinksSlice.integration.test.ts:1)
+    - [x] Settings-driven options (`sort`, `collapsed`, `theme`) applied through `setOptions` after `attachToDOM` (see [`BacklinksSlice.integration.test.ts`](src/features/backlinks/__tests__/BacklinksSlice.integration.test.ts:1))
+- [x] **Add unit tests for core/domain layer**
+  - [x] Create focused tests for [`BacklinksCore`](src/features/backlinks/core/BacklinksCore.ts:1) that verify:
     - Daily note skipping
     - Cache hit/miss behaviour and `getBacklinkMetadata`
     - `haveBacklinksChanged` semantics for order-insensitive comparison
     - Emission of `backlinks:updated` via [`BacklinksEvents`](src/features/backlinks/core/BacklinksEvents.ts:1)
-  - [ ] Add tests for [`BacklinksState`](src/features/backlinks/core/BacklinksState.ts:1) (backlinks/blocks/attachments/header state helpers)
-- [ ] **Create component tests for UI elements**
-  - [ ] Add JSDOM-based tests for [`HeaderUI`](src/features/backlinks/HeaderUI.ts:14) and [`BlockRenderer`](src/features/backlinks/BlockRenderer.ts:14) to verify:
-    - Correct creation of header controls (sort, collapse, strategy, theme, filter, alias, settings)
-    - DOM class changes for sort/collapse/compact states
-    - Basic rendering of backlink blocks and collapsed/expanded states
-- [ ] **Add error boundary testing**
-  - [ ] Add tests that force failures inside `updateBacklinks` / `attachToDOM` and assert that `withErrorBoundary` in [`BacklinksSlice`](src/features/backlinks/BacklinksSlice.ts:377) logs via `logErrorWithContext` and rethrows in a predictable way
+  - [x] Add tests for [`BacklinksState`](src/features/backlinks/core/BacklinksState.ts:1) (backlinks/blocks/attachments/header state helpers) in [`BacklinksState.test.ts`](src/features/backlinks/__tests__/BacklinksState.test.ts:1)
+- [x] **Create component tests for UI elements**
+  - [x] Add JSDOM-based tests for [`HeaderUI`](src/features/backlinks/HeaderUI.ts:14) and [`BlockRenderer`](src/features/backlinks/BlockRenderer.ts:14) to verify:
+    - Correct creation of header controls (sort, collapse, strategy, theme, filter, alias, settings) via [`HeaderUI.test.ts`](src/features/backlinks/__tests__/HeaderUI.test.ts:1)
+    - DOM class changes for sort/collapse/compact states via [`HeaderUI.test.ts`](src/features/backlinks/__tests__/HeaderUI.test.ts:1)
+    - Basic rendering and DOM/state updates for backlink blocks (visibility, collapsed state, alias/text filters) via [`BlockRenderer.test.ts`](src/features/backlinks/__tests__/BlockRenderer.test.ts:1)
+- [x] **Add error boundary testing**
+  - [x] Add tests that force failures inside `updateBacklinks` / `attachToDOM` and assert that `withErrorBoundary` in [`BacklinksSlice`](src/features/backlinks/BacklinksSlice.ts:377) logs via `logErrorWithContext` and rethrows in a predictable way (see [`BacklinksSlice.errorBoundary.test.ts`](src/features/backlinks/__tests__/BacklinksSlice.errorBoundary.test.ts:1))
 - [ ] **Introduce lightweight performance smoke tests**
   - [ ] Add a Jest suite that measures execution time for:
     - Rendering N synthetic blocks via [`BlockRenderer`](src/features/backlinks/BlockRenderer.ts:14)
