@@ -124,7 +124,7 @@ This document presents a comprehensive clean code analysis of the Obsidian Coale
 ### Week 2: Polish & Documentation
 - [x] Complete Shared UI adoption for any newly added in-view controls (no additional manual `coalesce-*` controls were introduced; new UI continues to use `src/shared/ui` primitives or Obsidian `Setting` where appropriate).
 - [x] Update architectural documentation to reflect the finalized Core/UI/Orchestrator pattern across slices (including Navigation).
-- [ ] Finalize test coverage for new components (`SettingsCore`, navigation refactors, and any new shared UI helpers).
+- [x] Finalize test coverage for new components (`SettingsCore`, navigation refactors, and any new shared UI helpers).
 
 ## Conclusion
 
