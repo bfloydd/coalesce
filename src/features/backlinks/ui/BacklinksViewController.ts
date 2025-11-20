@@ -16,6 +16,7 @@ import { StrategyManager } from '../StrategyManager';
 import { HeaderUI } from '../HeaderUI';
 import { FilterControls } from '../FilterControls';
 import { SettingsControls } from '../SettingsControls';
+import { HeaderController } from './HeaderController';
 
 /**
  * BacklinksViewController
@@ -41,9 +42,7 @@ export class BacklinksViewController {
     };
     private currentTheme = 'default';
 
-    private currentHeaders: Map<string, HTMLElement> = new Map();
-    private headerStatistics: HeaderStatistics;
-    private currentHeaderState: HeaderState;
+    private readonly headerController: HeaderController;
 
     private attachedViews: Map<string, { container: HTMLElement; lastUpdate: number }> = new Map();
 
@@ -69,41 +68,19 @@ export class BacklinksViewController {
             sortDescending: true
         };
 
-        // Initial header state mirrors BacklinksSlice defaults
-        this.currentHeaderState = {
-            fileCount: 0,
-            sortByPath: false,
-            sortDescending: true,
-            isCollapsed: false,
-            currentStrategy: 'default',
-            currentTheme: 'default',
-            showFullPathTitle: false,
-            currentAlias: null,
-            currentHeaderStyle: 'full',
-            currentFilter: '',
-            isCompact: false
-        };
-
-        this.renderOptions.collapsed = this.currentHeaderState.isCollapsed;
-
-        this.headerStatistics = {
-            totalHeadersCreated: 0,
-            totalFilterChanges: 0,
-            totalSortToggles: 0,
-            totalCollapseToggles: 0,
-            totalStrategyChanges: 0,
-            totalThemeChanges: 0,
-            totalAliasSelections: 0,
-            totalSettingsClicks: 0,
-            totalHeaderStyleChanges: 0
-        };
+        // Initialize header controller as the single source of truth for header state/statistics
+        this.headerController = new HeaderController(this.logger, this.headerUI);
+        const initialHeaderState = this.headerController.getHeaderState();
+        this.renderOptions.collapsed = initialHeaderState.isCollapsed;
 
         this.performanceMonitor = new PerformanceMonitor(
             this.logger.child('Performance'),
             () => Logger.getGlobalLogging().enabled
         );
 
-        this.logger.debug('BacklinksViewController initialized');
+        this.logger.debug('BacklinksViewController initialized', {
+            headerState: initialHeaderState
+        });
     }
 
     /**
@@ -147,24 +124,25 @@ export class BacklinksViewController {
         const container = document.createElement('div');
         container.className = 'coalesce-custom-backlinks-container';
 
-        // Create header
-        const headerElement = this.createHeader(container, {
+        // Create header using HeaderController (stateful)
+        const headerState = this.headerController.getHeaderState();
+        const headerElement = this.headerController.createHeader(container, {
             fileCount: backlinks.length,
-            sortDescending: this.currentHeaderState.sortDescending,
-            isCollapsed: this.currentHeaderState.isCollapsed,
-            currentStrategy: this.currentHeaderState.currentStrategy,
-            currentTheme: this.currentHeaderState.currentTheme,
-            showFullPathTitle: false,
+            sortDescending: headerState.sortDescending,
+            isCollapsed: headerState.isCollapsed,
+            currentStrategy: headerState.currentStrategy,
+            currentTheme: headerState.currentTheme,
+            showFullPathTitle: headerState.showFullPathTitle,
             aliases: [],
-            currentAlias: null,
+            currentAlias: headerState.currentAlias,
             unsavedAliases: [],
-            currentHeaderStyle: this.currentHeaderState.currentHeaderStyle,
-            currentFilter: this.currentHeaderState.currentFilter,
+            currentHeaderStyle: headerState.currentHeaderStyle,
+            currentFilter: headerState.currentFilter,
             onSortToggle: () => this.handleSortToggle(),
             onCollapseToggle: () => this.handleCollapseToggle(),
             onStrategyChange: (strategy: string) => this.handleStrategyChange(strategy),
             onThemeChange: (theme: string) => this.handleThemeChange(theme),
-            onFullPathTitleChange: (show: boolean) => this.updateHeaderState({ showFullPathTitle: show }),
+            onFullPathTitleChange: (show: boolean) => this.handleFullPathTitleChange(show),
             onAliasSelect: (alias: string | null) => this.handleAliasSelection(alias),
             onHeaderStyleChange: (style: string) => this.handleHeaderStyleChange(style),
             onFilterChange: (filterText: string) => this.handleFilterChange(filterText),
@@ -173,7 +151,6 @@ export class BacklinksViewController {
 
         if (headerElement) {
             container.appendChild(headerElement);
-            this.headerUI.updateHeader(headerElement, this.currentHeaderState);
         }
 
         // Create blocks container
@@ -213,26 +190,10 @@ export class BacklinksViewController {
     }): void {
         this.logger.debug('BacklinksViewController.setOptions', { options });
 
-        if (options.sort !== undefined) {
-            this.currentHeaderState.sortByPath = options.sort;
-        }
-        if (options.collapsed !== undefined) {
-            this.currentHeaderState.isCollapsed = options.collapsed;
-            this.renderOptions.collapsed = options.collapsed;
-        }
-        if (options.strategy !== undefined) {
-            this.currentHeaderState.currentStrategy = options.strategy;
-        }
-        if (options.theme !== undefined) {
-            this.currentHeaderState.currentTheme = options.theme;
-            this.currentTheme = options.theme;
-        }
-        if (options.alias !== undefined) {
-            this.currentHeaderState.currentAlias = options.alias;
-        }
-        if (options.filter !== undefined) {
-            this.currentHeaderState.currentFilter = options.filter;
-        }
+        const updatedState = this.headerController.updateStateFromOptions(options);
+
+        this.renderOptions.collapsed = updatedState.isCollapsed;
+        this.currentTheme = updatedState.currentTheme;
 
         this.applyCurrentOptions();
     }
@@ -271,52 +232,36 @@ export class BacklinksViewController {
     cleanup(): void {
         this.logger.debug('BacklinksViewController.cleanup');
         this.currentBlocks.clear();
-        this.currentHeaders.clear();
         this.attachedViews.clear();
+        this.headerController.reset();
     }
 
     // ===== Header methods =====
 
-    private createHeader(container: HTMLElement, options: HeaderCreateOptions): HTMLElement {
-        this.logger.debug('BacklinksViewController.createHeader', { options });
-
-        const header = this.headerUI.createHeader(container, options);
-        const headerId = this.generateHeaderId(container);
-        this.currentHeaders.set(headerId, header);
-
-        this.updateCurrentHeaderState(options);
-        this.headerStatistics.totalHeadersCreated++;
-
-        return header;
-    }
-
     private handleSortToggle(): void {
         this.logger.debug('BacklinksViewController.handleSortToggle');
 
-        this.headerStatistics.totalSortToggles++;
-        this.currentHeaderState.sortDescending = !this.currentHeaderState.sortDescending;
-        this.currentHeaderState.sortByPath = true;
+        const newState = this.headerController.toggleSort();
 
         if (this.lastRenderContext) {
-            this.applySortingToDOM(this.lastRenderContext.container, this.currentHeaderState.sortDescending);
+            this.applySortingToDOM(this.lastRenderContext.container, newState.sortDescending);
         }
     }
 
     private handleCollapseToggle(): void {
         this.logger.debug('BacklinksViewController.handleCollapseToggle');
 
-        this.headerStatistics.totalCollapseToggles++;
-        this.currentHeaderState.isCollapsed = !this.currentHeaderState.isCollapsed;
-        this.renderOptions.collapsed = this.currentHeaderState.isCollapsed;
+        const newState = this.headerController.toggleCollapse();
+        this.renderOptions.collapsed = newState.isCollapsed;
 
-        this.setAllBlocksCollapsed(this.currentHeaderState.isCollapsed);
+        this.setAllBlocksCollapsed(newState.isCollapsed);
 
         if (this.lastRenderContext) {
-            this.applyCollapseStateToDOM(this.lastRenderContext.container, this.currentHeaderState.isCollapsed);
+            this.applyCollapseStateToDOM(this.lastRenderContext.container, newState.isCollapsed);
         }
 
         const event = new CustomEvent('coalesce-settings-collapse-changed', {
-            detail: { collapsed: this.currentHeaderState.isCollapsed }
+            detail: { collapsed: newState.isCollapsed }
         });
         document.dispatchEvent(event);
     }
@@ -324,9 +269,8 @@ export class BacklinksViewController {
     private async handleStrategyChange(strategy: string): Promise<void> {
         this.logger.debug('BacklinksViewController.handleStrategyChange', { strategy });
 
-        this.headerStatistics.totalStrategyChanges++;
-        this.currentHeaderState.currentStrategy = strategy;
-        this.strategyManager.setCurrentStrategy(strategy);
+        const newState = this.headerController.changeStrategy(strategy);
+        this.strategyManager.setCurrentStrategy(newState.currentStrategy);
 
         if (this.lastRenderContext) {
             const { filePaths, currentNoteName, container, view } = this.lastRenderContext;
@@ -337,72 +281,50 @@ export class BacklinksViewController {
     private handleThemeChange(theme: string): void {
         this.logger.debug('BacklinksViewController.handleThemeChange', { theme });
 
-        this.headerStatistics.totalThemeChanges++;
-        this.currentHeaderState.currentTheme = theme;
-        this.currentTheme = theme;
+        const newState = this.headerController.changeTheme(theme);
+        this.currentTheme = newState.currentTheme;
 
-        this.applyThemeToContainer(theme);
+        this.applyThemeToContainer(newState.currentTheme);
     }
 
     private handleHeaderStyleChange(style: string): void {
         this.logger.debug('BacklinksViewController.handleHeaderStyleChange', { style });
 
-        this.headerStatistics.totalHeaderStyleChanges++;
-        this.currentHeaderState.currentHeaderStyle = style;
-        this.renderOptions.headerStyle = style;
+        const newState = this.headerController.changeHeaderStyle(style);
+        this.renderOptions.headerStyle = newState.currentHeaderStyle;
 
-        this.updateBlockTitleDisplay(style);
+        this.updateBlockTitleDisplay(newState.currentHeaderStyle);
     }
 
     private handleAliasSelection(alias: string | null): void {
         this.logger.debug('BacklinksViewController.handleAliasSelection', { alias });
 
-        this.headerStatistics.totalAliasSelections++;
-        this.currentHeaderState.currentAlias = alias;
+        const newState = this.headerController.selectAlias(alias);
 
         const currentNoteName = this.lastRenderContext?.currentNoteName || '';
-        this.filterBlocksByAlias(currentNoteName, alias);
+        this.filterBlocksByAlias(currentNoteName, newState.currentAlias);
     }
 
     private handleFilterChange(filterText: string): void {
         this.logger.debug('BacklinksViewController.handleFilterChange', { filterText });
 
-        this.headerStatistics.totalFilterChanges++;
-        this.currentHeaderState.currentFilter = filterText;
+        const newState = this.headerController.changeFilter(filterText);
 
-        this.filterBlocksByText('', filterText);
+        this.filterBlocksByText('', newState.currentFilter);
     }
 
     private handleSettingsClick(): void {
         this.logger.debug('BacklinksViewController.handleSettingsClick');
 
-        this.headerStatistics.totalSettingsClicks++;
+        this.headerController.settingsClicked();
         this.logger.debug('Settings click handled (delegated elsewhere)');
     }
 
-    private updateHeaderState(state: Partial<HeaderState>): void {
-        this.logger.debug('BacklinksViewController.updateHeaderState', { state });
-        this.currentHeaderState = { ...this.currentHeaderState, ...state };
-    }
+    private handleFullPathTitleChange(show: boolean): void {
+        this.logger.debug('BacklinksViewController.handleFullPathTitleChange', { show });
 
-    private updateCurrentHeaderState(options: HeaderCreateOptions): void {
-        this.currentHeaderState = {
-            fileCount: options.fileCount,
-            sortByPath: this.currentHeaderState.sortByPath,
-            sortDescending: this.currentHeaderState.sortDescending,
-            isCollapsed: options.isCollapsed,
-            currentStrategy: options.currentStrategy,
-            currentTheme: options.currentTheme,
-            showFullPathTitle: options.showFullPathTitle,
-            currentAlias: options.currentAlias,
-            currentHeaderStyle: options.currentHeaderStyle,
-            currentFilter: options.currentFilter,
-            isCompact: this.currentHeaderState.isCompact
-        };
-    }
-
-    private generateHeaderId(container: HTMLElement): string {
-        return `header-${container.id || 'unknown'}-${Date.now()}`;
+        const newState = this.headerController.changeFullPathTitle(show);
+        this.renderOptions.showFullPathTitle = newState.showFullPathTitle;
     }
 
     // ===== View / DOM helpers =====
@@ -675,16 +597,17 @@ export class BacklinksViewController {
     private applyCurrentOptions(): void {
         if (!this.lastRenderContext) return;
         const { container } = this.lastRenderContext;
+        const headerState = this.headerController.getHeaderState();
 
         this.applyThemeToContainer(this.currentTheme);
-        this.applyCollapseStateToDOM(container, this.currentHeaderState.isCollapsed);
+        this.applyCollapseStateToDOM(container, headerState.isCollapsed);
 
-        if (this.currentHeaderState.sortByPath) {
-            this.applySortingToDOM(container, this.currentHeaderState.sortDescending);
+        if (headerState.sortByPath) {
+            this.applySortingToDOM(container, headerState.sortDescending);
         }
 
-        if (this.currentHeaderState.currentFilter) {
-            this.applyTextFilterToDOM(container, this.currentHeaderState.currentFilter);
+        if (headerState.currentFilter) {
+            this.applyTextFilterToDOM(container, headerState.currentFilter);
         }
     }
 
@@ -716,10 +639,10 @@ export class BacklinksViewController {
     }
 
     getHeaderStatistics(): HeaderStatistics {
-        return { ...this.headerStatistics };
+        return this.headerController.getStatistics();
     }
 
     getHeaderState(): HeaderState {
-        return { ...this.currentHeaderState };
+        return this.headerController.getHeaderState();
     }
 }
