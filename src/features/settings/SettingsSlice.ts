@@ -1,256 +1,154 @@
 import { App } from 'obsidian';
 import { ISettingsSlice } from '../shared-contracts/slice-interfaces';
 import { CoalescePluginSettings, PluginInterface } from '../shared-contracts/plugin';
-import { ThemeManager } from './ThemeManager';
-import { SettingsStore } from './SettingsStore';
 import { SettingsUI } from './SettingsUI';
 import { Logger } from '../shared-utilities/Logger';
+import { SettingsCore } from './core/SettingsCore';
 
 /**
- * Settings Slice Implementation
- * 
- * This slice handles settings persistence, theme management,
- * and provides the settings UI for the vertical slice architecture.
+ * Settings Slice
+ *
+ * Thin orchestrator for plugin settings.
+ *
+ * Responsibilities:
+ * - Wire SettingsCore (domain/service) and SettingsUI (Obsidian settings tab)
+ * - Expose the ISettingsSlice API expected by the plugin orchestrator
+ * - Delegate persistence, validation, theme, and logging behaviour to SettingsCore
+ * - Delegate Obsidian UI concerns to SettingsUI
  */
 export class SettingsSlice implements ISettingsSlice {
     private app: App;
     private plugin: PluginInterface;
     private logger: Logger;
-    private settingsStore?: SettingsStore;
-    private themeManager: ThemeManager;
+
+    // Core/domain service
+    private core: SettingsCore;
+
+    // UI layer
     private settingsUI: SettingsUI;
-    private currentSettings: CoalescePluginSettings;
 
     constructor(app: App, plugin?: PluginInterface) {
         this.app = app;
         this.plugin = plugin || (app as any); // Fallback to app if plugin not provided
         this.logger = new Logger('SettingsSlice');
 
-        if (plugin) {
-            this.settingsStore = new SettingsStore(plugin, this.logger);
-        } else {
-            this.settingsStore = undefined;
-        }
-        this.themeManager = new ThemeManager(this.logger);
+        // Initialize core/domain service
+        this.core = new SettingsCore(this.logger, this.plugin);
+
+        // Initialize settings UI
         this.settingsUI = new SettingsUI(this.app, this.logger);
 
-        this.currentSettings = this.getDefaultSettings();
-
-        this.logger.debug('Settings slice initialized');
+        this.logger.debug('SettingsSlice initialized');
     }
 
     /**
-     * Start the settings slice (loads settings from storage)
+     * Start the settings slice (loads settings via core).
      */
     async start(): Promise<void> {
         this.logger.debug('Starting settings slice');
-        await this.loadSettings();
+        await this.core.start();
         this.logger.debug('Settings slice started successfully');
     }
 
     /**
-     * Load settings from storage
+     * Load settings from storage via core.
      */
     async loadSettings(): Promise<void> {
-        this.logger.debug('Loading settings from storage');
-
-        if (!this.settingsStore) {
-            this.logger.warn('No settings store available - using default settings');
-            this.currentSettings = this.getDefaultSettings();
-            return;
-        }
-
-        try {
-            this.currentSettings = await this.settingsStore.load();
-            this.themeManager.setCurrentTheme(this.currentSettings.theme);
-            this.logger.debug('Settings loaded successfully', {
-                theme: this.currentSettings.theme,
-                enableLogging: this.currentSettings.enableLogging
-            });
-        } catch (error) {
-            this.logger.error('Failed to load settings', error);
-            this.currentSettings = this.getDefaultSettings();
-            throw error;
-        }
+        this.logger.debug('Loading settings via core');
+        await this.core.loadSettings();
     }
 
     /**
-     * Save settings to storage
+     * Save settings to storage via core.
      */
     async saveSettings(): Promise<void> {
-        this.logger.debug('Saving settings to storage');
-
-        if (!this.settingsStore) {
-            this.logger.warn('No settings store available - settings not saved');
-            return;
-        }
-
-        try {
-            await this.settingsStore.save(this.currentSettings);
-            this.logger.debug('Settings saved successfully');
-        } catch (error) {
-            this.logger.error('Failed to save settings', error);
-            throw error;
-        }
+        this.logger.debug('Saving settings via core');
+        await this.core.saveSettings();
     }
 
     /**
-     * Get current settings
+     * Get current settings (copy) from core.
      */
     getSettings(): CoalescePluginSettings {
-        return { ...this.currentSettings };
+        return this.core.getSettings();
     }
 
     /**
-     * Update specific setting
+     * Update a specific setting key via core and refresh UI if present.
      */
     async updateSetting<K extends keyof CoalescePluginSettings>(
-        key: K, 
+        key: K,
         value: CoalescePluginSettings[K]
     ): Promise<void> {
-        this.logger.debug('Updating setting', { key, value });
-        
-        const oldValue = this.currentSettings[key];
-        this.currentSettings[key] = value;
-        
-        try {
-            // Handle special cases for certain settings
-            if (key === 'theme') {
-                this.themeManager.setCurrentTheme(value as string);
-            }
-            
-            if (key === 'enableLogging') {
-                this.updateLoggingState(value as boolean);
-            }
-            
-            await this.saveSettings();
-            this.logger.debug('Setting updated successfully', { key, oldValue, newValue: value });
-        } catch (error) {
-            // Revert the change if save failed
-            this.currentSettings[key] = oldValue;
-            this.logger.error('Failed to update setting', { key, value, error });
-            throw error;
+        this.logger.debug('Updating setting (slice)', { key, value });
+
+        await this.core.updateSetting(key, value);
+
+        // Keep UI in sync if the settings tab is active
+        if (this.settingsUI.isSettingsTabActive()) {
+            this.settingsUI.updateSettings(this.core.getSettings());
         }
     }
 
     /**
-     * Update multiple settings at once
+     * Update multiple settings at once via core and refresh UI.
      */
     async updateSettings(updates: Partial<CoalescePluginSettings>): Promise<void> {
-        this.logger.debug('Updating multiple settings', { updates });
-        
-        const oldSettings = { ...this.currentSettings };
-        
-        try {
-            // Apply all updates
-            Object.assign(this.currentSettings, updates);
-            
-            // Handle special cases
-            if (updates.theme !== undefined) {
-                this.themeManager.setCurrentTheme(updates.theme);
-            }
-            
-            if (updates.enableLogging !== undefined) {
-                this.updateLoggingState(updates.enableLogging);
-            }
-            
-            await this.saveSettings();
-            this.logger.debug('Multiple settings updated successfully', { updates });
-        } catch (error) {
-            // Revert all changes if save failed
-            this.currentSettings = oldSettings;
-            this.logger.error('Failed to update multiple settings', { updates, error });
-            throw error;
+        this.logger.debug('Updating multiple settings (slice)', { updates });
+
+        await this.core.updateSettings(updates);
+
+        if (this.settingsUI.isSettingsTabActive()) {
+            this.settingsUI.updateSettings(this.core.getSettings());
         }
     }
 
     /**
-     * Reset settings to defaults
+     * Reset settings to defaults via core and refresh UI.
      */
     async resetSettings(): Promise<void> {
-        this.logger.debug('Resetting settings to defaults');
-        
-        const oldSettings = { ...this.currentSettings };
-        
-        try {
-            this.currentSettings = this.getDefaultSettings();
-            this.themeManager.setCurrentTheme(this.currentSettings.theme);
-            this.updateLoggingState(this.currentSettings.enableLogging);
-            
-            await this.saveSettings();
-            this.logger.debug('Settings reset successfully');
-        } catch (error) {
-            // Revert if reset failed
-            this.currentSettings = oldSettings;
-            this.logger.error('Failed to reset settings', error);
-            throw error;
+        this.logger.debug('Resetting settings to defaults (slice)');
+
+        await this.core.resetSettings();
+
+        if (this.settingsUI.isSettingsTabActive()) {
+            this.settingsUI.updateSettings(this.core.getSettings());
         }
     }
 
     /**
-     * Get theme manager
+     * Get theme manager facade from core.
      */
     getThemeManager(): {
         getCurrentTheme(): string;
         setTheme(theme: string): void;
         getAvailableThemes(): string[];
     } {
-        return {
-            getCurrentTheme: () => this.themeManager.getCurrentTheme(),
-            setTheme: (theme: string) => {
-                this.logger.debug('Setting theme', { theme });
-                this.themeManager.setCurrentTheme(theme);
-                this.updateSetting('theme', theme);
-            },
-            getAvailableThemes: () => [...this.themeManager.getAvailableThemes()]
-        };
+        return this.core.getThemeManager();
     }
 
     /**
-     * Get settings UI component
+     * Get settings UI component.
+     *
+     * The caller is expected to use SettingsUI.createSettingsTab with
+     * the current settings and a change callback that delegates to this slice.
      */
     getSettingsUI(): SettingsUI {
         return this.settingsUI;
     }
 
     /**
-     * Validate settings
+     * Validate settings via core.
      */
     validateSettings(settings: Partial<CoalescePluginSettings>): {
         isValid: boolean;
         errors: string[];
     } {
-        const errors: string[] = [];
-        
-        // Validate theme
-        if (settings.theme !== undefined && !this.themeManager.isValidTheme(settings.theme)) {
-            errors.push(`Invalid theme: ${settings.theme}`);
-        }
-        
-        // Validate block boundary strategy
-        if (settings.blockBoundaryStrategy !== undefined) {
-            const validStrategies = ['default', 'headers-only', 'top-line'];
-            if (!validStrategies.includes(settings.blockBoundaryStrategy)) {
-                errors.push(`Invalid block boundary strategy: ${settings.blockBoundaryStrategy}`);
-            }
-        }
-        
-        // Validate header style
-        if (settings.headerStyle !== undefined) {
-            const validHeaderStyles = ['full', 'short', 'first-heading-bold', 'first-heading-short', 'first-heading-tidy'];
-            if (!validHeaderStyles.includes(settings.headerStyle)) {
-                errors.push(`Invalid header style: ${settings.headerStyle}`);
-            }
-        }
-        
-        return {
-            isValid: errors.length === 0,
-            errors
-        };
+        return this.core.validateSettings(settings);
     }
 
     /**
-     * Get settings statistics
+     * Get settings statistics via core.
      */
     getStatistics(): {
         totalSettings: number;
@@ -258,111 +156,35 @@ export class SettingsSlice implements ISettingsSlice {
         currentTheme: string;
         lastModified: Date;
     } {
-        const defaultSettings = this.getDefaultSettings();
-        const customSettings = Object.keys(this.currentSettings).filter(
-            key => this.currentSettings[key as keyof CoalescePluginSettings] !== 
-                   defaultSettings[key as keyof CoalescePluginSettings]
-        ).length;
-        
-        return {
-            totalSettings: Object.keys(this.currentSettings).length,
-            customSettings,
-            currentTheme: this.currentSettings.theme,
-            lastModified: new Date() // Could be enhanced to track actual last modified time
-        };
+        return this.core.getStatistics();
     }
 
     /**
-     * Cleanup resources used by this slice
+     * Handle collapse state change from header slice.
+     * Fire-and-forget delegation to core to preserve the existing void signature.
+     */
+    handleCollapseStateChange(payload: { collapsed: boolean }): void {
+        void this.core.handleCollapseStateChange(payload);
+    }
+
+    /**
+     * Handle sort state change from header slice.
+     * Fire-and-forget delegation to core to preserve the existing void signature.
+     */
+    handleSortStateChange(payload: { sortByPath: boolean; descending: boolean }): void {
+        void this.core.handleSortStateChange(payload);
+    }
+
+    /**
+     * Cleanup resources used by this slice.
      */
     cleanup(): void {
         this.logger.debug('Cleaning up Settings slice');
 
         this.settingsUI.cleanup();
-        this.themeManager.cleanup();
-        this.settingsStore?.cleanup();
+        this.core.cleanup();
 
         this.logger.debug('Settings slice cleanup completed');
-    }
-
-    /**
-     * Get default settings
-     */
-    private getDefaultSettings(): CoalescePluginSettings {
-        return {
-            mySetting: 'default',
-            sortDescending: true,
-            showInDailyNotes: false,
-            blockBoundaryStrategy: 'default',
-            theme: this.themeManager.getDefaultTheme(),
-            showFullPathTitle: false,
-            onlyDailyNotes: false,
-            headerStyle: 'full',
-            hideBacklinkLine: false,
-            hideFirstHeader: false,
-            sortByFullPath: false,
-            enableLogging: false,
-            blocksCollapsed: false
-        };
-    }
-
-
-    /**
-     * Handle collapse state change from header slice
-     */
-    handleCollapseStateChange(payload: { collapsed: boolean }): void {
-        const collapsed = payload?.collapsed || false;
-        this.logger.debug('Handling collapse state change', { collapsed });
-
-        try {
-            // Update the blocksCollapsed setting
-            this.updateSetting('blocksCollapsed', collapsed);
-            this.logger.debug('Collapse state saved to settings', { collapsed });
-        } catch (error) {
-            this.logger.error('Failed to save collapse state to settings', { collapsed, error });
-        }
-    }
-
-    /**
-     * Handle sort state change from header slice
-     */
-    handleSortStateChange(payload: { sortByPath: boolean; descending: boolean }): void {
-        const descending = payload?.descending || false;
-        this.logger.debug('Handling sort state change', { descending });
-
-        try {
-            // Update only the sort direction setting
-            this.updateSetting('sortDescending', descending);
-            this.logger.debug('Sort direction saved to settings', { descending });
-        } catch (error) {
-            this.logger.error('Failed to save sort direction to settings', { descending, error });
-        }
-    }
-
-    /**
-      * Update logging state based on settings
-      *
-      * Also drives the global Logger state so that PerformanceMonitor instances
-      * gated by Logger.getGlobalLogging() respect the user's preference.
-      */
-    private updateLoggingState(enabled: boolean): void {
-        this.logger.debug('Updating logging state', { enabled });
-
-        if (enabled) {
-            // Enable global logging so PerformanceMonitor becomes active
-            Logger.setGlobalLogging(true);
-            this.logger.on();
-        } else {
-            // Disable global logging so PerformanceMonitor becomes a no-op
-            Logger.setGlobalLogging(false);
-            this.logger.off();
-        }
-
-        // Emit event to notify other components about logging state change
-        const event = new CustomEvent('coalesce-logging-state-changed', {
-            detail: { enabled }
-        });
-        document.dispatchEvent(event);
     }
 }
 
