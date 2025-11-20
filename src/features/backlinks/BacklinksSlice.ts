@@ -17,8 +17,7 @@ import { HeaderUI } from './HeaderUI';
 import { FilterControls } from './FilterControls';
 import { SettingsControls } from './SettingsControls';
 import { NavigationService } from '../navigation/NavigationService';
-import { FileOpener } from '../navigation/FileOpener';
-import { LinkHandler } from '../navigation/LinkHandler';
+import { getSharedNavigation } from '../navigation/NavigationFacade';
 
 /**
  * BacklinksSlice
@@ -66,11 +65,9 @@ export class BacklinksSlice implements IBacklinksSlice {
         this.app = app;
         this.logger = new Logger('BacklinksSlice');
 
-        // Initialize navigation service used for link-style navigation
-        const navigationLogger = this.logger.child('Navigation');
-        const fileOpener = new FileOpener(this.app, navigationLogger);
-        const linkHandler = new LinkHandler(this.app, navigationLogger);
-        this.navigationService = new NavigationService(this.app, fileOpener, linkHandler, navigationLogger);
+        // Initialize shared navigation service used for link-style navigation
+        const sharedNavigation = getSharedNavigation(this.app, this.logger);
+        this.navigationService = sharedNavigation.navigationService;
 
         // Set default options
         this.options = {

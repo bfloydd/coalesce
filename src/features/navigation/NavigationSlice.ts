@@ -3,6 +3,7 @@ import { INavigationSlice } from '../shared-contracts/slice-interfaces';
 import { NavigationService } from './NavigationService';
 import { LinkHandler } from './LinkHandler';
 import { FileOpener } from './FileOpener';
+import { getSharedNavigation } from './NavigationFacade';
 import { Logger } from '../shared-utilities/Logger';
 import { PerformanceMonitor } from '../shared-utilities/PerformanceMonitor';
 import { CommonHelpers } from '../shared-utilities/CommonHelpers';
@@ -28,14 +29,10 @@ export class NavigationSlice implements INavigationSlice {
         this.app = app;
         this.logger = new Logger('NavigationSlice');
         
-        this.fileOpener = new FileOpener(app, this.logger);
-        this.linkHandler = new LinkHandler(app, this.logger);
-        this.navigationService = new NavigationService(
-            app,
-            this.fileOpener,
-            this.linkHandler,
-            this.logger
-        );
+        const shared = getSharedNavigation(app, this.logger);
+        this.fileOpener = shared.fileOpener;
+        this.linkHandler = shared.linkHandler;
+        this.navigationService = shared.navigationService;
 
         this.performanceMonitor = new PerformanceMonitor(
             this.logger.child('Performance'),
