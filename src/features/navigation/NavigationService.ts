@@ -45,6 +45,27 @@ export class NavigationService {
     }
 
     /**
+     * Open a wiki-style link (e.g. [[path]] or [[path#^block]]) using Obsidian's workspace.
+     * This centralizes openLinkText usage so feature slices don't touch App.workspace directly.
+     */
+    async openWikiLink(linkText: string, openInNewTab: boolean = false): Promise<void> {
+        this.logger.debug('Opening wiki link via navigation service', { linkText, openInNewTab });
+
+        try {
+            // Use empty source path to let Obsidian resolve from the current context
+            (this.app.workspace as any).openLinkText(linkText, '', openInNewTab);
+            this.logger.debug('Wiki link navigation initiated', { linkText, openInNewTab });
+        } catch (error) {
+            this.logger.error('Failed to open wiki link via navigation service', {
+                linkText,
+                openInNewTab,
+                error
+            });
+            throw error;
+        }
+    }
+
+    /**
      * Process and open a link
      */
     async openLink(linkPath: string, openInNewTab: boolean = false, source: string = 'unknown'): Promise<void> {

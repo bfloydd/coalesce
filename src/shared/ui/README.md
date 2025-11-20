@@ -10,9 +10,10 @@ This package contains thin, DOM-based helpers for constructing UI elements in a 
 - Keep all components framework-free (plain DOM + CSS).
 
 Current primitives:
-
+ 
 - `Button` helper: `src/shared/ui/Button.ts`
 - `IconButton` helper: `src/shared/ui/IconButton.ts`
+- `Dropdown` helper: `src/shared/ui/Dropdown.ts`
 - `Panel` helper: `src/shared/ui/Panel.ts`
 
 ---
@@ -96,9 +97,46 @@ Use this for **icon-only** controls such as:
 
 ---
 
-## Panel
+## Dropdown
 
-**File**: `src/shared/ui/Panel.ts`  
+**File**: `src/shared/ui/Dropdown.ts`
+**Base class**: `.coalesce-dropdown`
+
+```ts
+import { createDropdown } from 'src/shared/ui/Dropdown';
+
+const select = createDropdown({
+  parent: containerEl,
+  items: [
+    { value: 'default', label: 'Default' },
+    { value: 'modern', label: 'Modern' },
+    { value: 'compact', label: 'Compact' },
+    { value: 'naked', label: 'Naked' }
+  ],
+  value: 'default',
+  ariaLabel: 'Backlinks theme',
+  classes: ['coalesce-theme-select'],
+  onChange: (value) => {
+    // handle selection
+  }
+});
+```
+
+### Behavior
+
+- Uses `parent.createEl('select', ...)` when available, otherwise falls back to `document.createElement('select')`.
+- Always includes the `.coalesce-dropdown` class plus any extra `classes`.
+- Populates options from the provided `items: { value, label }[]`.
+- Applies the initial `value` if provided.
+- Calls `onChange(value)` whenever the selection changes.
+
+Use this for any **plugin-scoped dropdowns** (e.g., strategy/theme selectors) instead of hand-rolled `<select>` creation, so styling and behavior remain consistent.
+
+---
+
+## Panel
+ 
+**File**: `src/shared/ui/Panel.ts`
 **Base class**: `.coalesce-panel`
 
 ```ts

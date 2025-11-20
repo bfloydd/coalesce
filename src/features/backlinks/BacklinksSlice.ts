@@ -16,6 +16,9 @@ import { StrategyManager } from './StrategyManager';
 import { HeaderUI } from './HeaderUI';
 import { FilterControls } from './FilterControls';
 import { SettingsControls } from './SettingsControls';
+import { NavigationService } from '../navigation/NavigationService';
+import { FileOpener } from '../navigation/FileOpener';
+import { LinkHandler } from '../navigation/LinkHandler';
 
 /**
  * BacklinksSlice
@@ -42,6 +45,10 @@ export class BacklinksSlice implements IBacklinksSlice {
     private readonly backlinkDiscoverer: BacklinkDiscoverer;
     private readonly linkResolver: LinkResolver;
     private readonly backlinkCache: BacklinkCache;
+
+    // Navigation service used for link-based navigation (shared with navigation slice pattern)
+    private readonly navigationService: NavigationService;
+
     private options: BacklinkDiscoveryOptions;
 
     // View-layer dependencies (owned by this slice, used by the controller)
@@ -58,6 +65,12 @@ export class BacklinksSlice implements IBacklinksSlice {
     constructor(app: App, options?: Partial<BacklinkDiscoveryOptions>) {
         this.app = app;
         this.logger = new Logger('BacklinksSlice');
+
+        // Initialize navigation service used for link-style navigation
+        const navigationLogger = this.logger.child('Navigation');
+        const fileOpener = new FileOpener(this.app, navigationLogger);
+        const linkHandler = new LinkHandler(this.app, navigationLogger);
+        this.navigationService = new NavigationService(this.app, fileOpener, linkHandler, navigationLogger);
 
         // Set default options
         this.options = {
@@ -332,19 +345,17 @@ export class BacklinksSlice implements IBacklinksSlice {
 
     /**
      * Handle navigation from backlinks (file opening, block scrolling).
+     *
+     * Delegates to the shared NavigationService using wiki-link style text so
+     * that Obsidian handles headings and block references consistently.
      */
     handleNavigation(filePath: string, openInNewTab = false, blockId?: string): void {
-        try {
-            this.logger.debug('Handling navigation from backlinks', { filePath, openInNewTab, blockId });
+        this.logger.debug('Handling navigation from backlinks', { filePath, openInNewTab, blockId });
 
-            if (blockId) {
-                const linkText = `[[${filePath}#^${blockId}]]`;
-                this.app.workspace.openLinkText(linkText, '', openInNewTab);
-                this.logger.debug('Block reference navigation initiated', { filePath, blockId });
-            } else {
-                this.app.workspace.openLinkText(`[[${filePath}]]`, '', openInNewTab);
-                this.logger.debug('File navigation initiated', { filePath });
-            }
+        const linkText = blockId ? `[[${filePath}#^${blockId}]]` : `[[${filePath}]]`;
+
+        try {
+            void this.navigationService.openWikiLink(linkText, openInNewTab);
         } catch (error) {
             this.logger.logErrorWithContext(
                 error as Error,
