@@ -3,98 +3,107 @@
 ## Scope
 
 - Refactor 1: Align orchestrator and slice contracts with implementation.
-- Refactor 2: Factor [`CoalescePlugin`](main.ts:6) into smaller, testable modules.
+- Refactor 2: Factor [`CoalescePlugin`](main.ts:9) into smaller, testable modules.
 
 This file is implementation‑oriented and intended for Code mode to execute.
 
 ## Refactor 1 – Orchestrator and slice contracts
 
-### Current state
+### Status
 
-- [`IPluginOrchestrator`](src/features/shared-contracts/slice-interfaces.ts:272) describes an orchestrator API that does not match [`PluginOrchestrator`](src/orchestrator/PluginOrchestrator.ts:20).
-- Callers (for example [`CoalescePlugin`](main.ts:11)) construct [`PluginOrchestrator`](src/orchestrator/PluginOrchestrator.ts:20) directly and use methods like `initialize()`, `start()`, `getSlice()`, and `emit()` that are not part of [`IPluginOrchestrator`](src/features/shared-contracts/slice-interfaces.ts:272).
+- Completed:
+  - Outdated `IPluginOrchestrator` / `ISliceFactory` contracts were removed from [`slice-interfaces.ts`](src/features/shared-contracts/slice-interfaces.ts:1), so that file now describes only slice-level APIs.
+  - Orchestrator contracts live in [`src/orchestrator/types.ts`](src/orchestrator/types.ts:1) and are exported via [`src/orchestrator/index.ts`](src/orchestrator/index.ts:1), matching the concrete [`PluginOrchestrator`](src/orchestrator/PluginOrchestrator.ts:20) implementation.
+- Still planned:
+  - Add/update orchestrator-level tests to validate initialization order, `getSlice()`, and event/statistics behavior.
 
-### Target design decisions
+### Notes
 
-- Treat [`PluginOrchestrator`](src/orchestrator/PluginOrchestrator.ts:20) as the single source of truth for orchestrator behavior.
-- Remove or deprecate the outdated [`IPluginOrchestrator`](src/features/shared-contracts/slice-interfaces.ts:272) and related factory APIs that are not used by production code.
-- Keep slice interfaces (for example [`ISharedUtilitiesSlice`](src/features/shared-contracts/slice-interfaces.ts:16), [`ISettingsSlice`](src/features/shared-contracts/slice-interfaces.ts:51), [`INavigationSlice`](src/features/shared-contracts/slice-interfaces.ts:86), [`IBacklinksSlice`](src/features/shared-contracts/slice-interfaces.ts:138), [`IViewIntegrationSlice`](src/features/shared-contracts/slice-interfaces.ts:173)) as the stable contracts between orchestrator and features.
-
-### Implementation checklist
-
-1. In [`slice-interfaces.ts`](src/features/shared-contracts/slice-interfaces.ts:1), either:
-   - Remove [`IPluginOrchestrator`](src/features/shared-contracts/slice-interfaces.ts:272) and [`ISliceFactory`](src/features/shared-contracts/slice-interfaces.ts:259) if they are truly unused in runtime code; or
-   - Move them into a `legacy` or `experimental` section with a clear comment that [`PluginOrchestrator`](src/orchestrator/PluginOrchestrator.ts:20) is the canonical implementation.
-2. Search for all TypeScript references to `IPluginOrchestrator` and `ISliceFactory` and update or remove them so they do not misrepresent the active orchestrator API.
-3. If you keep a type for the orchestrator, introduce a minimal `IPluginOrchestratorPublic` interface in [`src/orchestrator/types.ts`](src/orchestrator/types.ts:1) that matches the actual methods used by callers (for example `initialize()`, `start()`, `stop()`, `getSlice()`, `emit()`, `on()`, `off()`, `getState()`, `getStatistics()`).
-4. Ensure [`src/orchestrator/index.ts`](src/orchestrator/index.ts:1) re‑exports [`PluginOrchestrator`](src/orchestrator/PluginOrchestrator.ts:20) and any new public interface so external imports are consistent.
-5. Add or update unit tests around the orchestrator public surface (in `src/orchestrator/__tests__`), verifying at least:
-   - Slices are initialized in the intended order.
-   - `getSlice()` returns the correct instances for at least [`settings`](src/features/settings/SettingsSlice.ts:19), [`backlinks`](src/features/backlinks/BacklinksSlice.ts:35), [`viewIntegration`](src/features/view-integration/ViewIntegrationSlice.ts:144).
-   - `emit()` routes events through [`EventBus`](src/orchestrator/EventBus.ts:3) and updates statistics.
+- [`PluginOrchestrator`](src/orchestrator/PluginOrchestrator.ts:20) is the single source of truth for orchestrator behavior.
+- Slice interfaces (for example [`ISharedUtilitiesSlice`](src/features/shared-contracts/slice-interfaces.ts:16), [`ISettingsSlice`](src/features/shared-contracts/slice-interfaces.ts:51), [`INavigationSlice`](src/features/shared-contracts/slice-interfaces.ts:86), [`IBacklinksSlice`](src/features/shared-contracts/slice-interfaces.ts:138), [`IViewIntegrationSlice`](src/features/shared-contracts/slice-interfaces.ts:173)) remain the stable contracts between orchestrator and features.
 
 ## Refactor 2 – Factor CoalescePlugin
 
-### Current state
+### Current structure (after refactor step 1–3)
 
-[`CoalescePlugin`](main.ts:6) currently:
+- [`CoalescePlugin`](main.ts:9) now:
+  - Uses [`createAndStartOrchestrator()`](src/orchestrator/PluginBootstrap.ts:31) from [`PluginBootstrap`](src/orchestrator/PluginBootstrap.ts:1) in `onload` instead of manually constructing and starting the orchestrator.
+  - Delegates debug commands to [`PluginDebugCommands`](src/orchestrator/PluginDebugCommands.ts:1) via [`attachDebugCommands()`](src/orchestrator/PluginDebugCommands.ts:21) and [`detachDebugCommands()`](src/orchestrator/PluginDebugCommands.ts:108), with a small local `coalesceUpdateLogging` that still calls [`Logger.setGlobalLogging`](src/features/shared-utilities/Logger.ts:1).
+  - Delegates DOM, workspace, and orchestrator event wiring to [`registerPluginEvents()`](src/orchestrator/PluginEvents.ts:26) in [`PluginEvents`](src/orchestrator/PluginEvents.ts:1).
+  - Still owns view initialization and duplicate suppression via [`shouldProcessFile()`](main.ts:100), [`updateCoalesceUIForFile()`](main.ts:122), and [`initializeExistingViews()`](main.ts:395).
 
-- Bootstraps [`PluginOrchestrator`](src/orchestrator/PluginOrchestrator.ts:20) and manages configuration.
-- Pulls a logger from [`SharedUtilitiesSlice`](src/features/shared-utilities/SharedUtilitiesSlice.ts:13) with runtime validation and a fallback logger.
-- Registers many debug helpers on `this.app` in [`setupDebugMethods()`](main.ts:89).
-- Registers DOM custom events and workspace events in [`registerEventHandlers()`](main.ts:300).
-- Handles duplicate‑file throttling and backlinks UI refresh in [`shouldProcessFile()`](main.ts:210) and [`updateCoalesceUIForFile()`](main.ts:232).
-- Performs view initialization in [`initializeExistingViews()`](main.ts:505).
+- New helpers:
+  - [`PluginBootstrap`](src/orchestrator/PluginBootstrap.ts:1) – `createOrchestrator` and `createAndStartOrchestrator`.
+  - [`PluginDebugCommands`](src/orchestrator/PluginDebugCommands.ts:1) – `attachDebugCommands(app, plugin, orchestrator, logger)` and `detachDebugCommands(app)`.
+  - [`PluginEvents`](src/orchestrator/PluginEvents.ts:1) – `registerPluginEvents(app, plugin, orchestrator, logger, updateCoalesceUIForFile?)`.
 
 ### Target structure
 
-Organize plugin responsibilities into small, focused modules under `src/orchestrator` or a new `src/plugin` folder, for example:
+Organize plugin responsibilities into small, focused modules under `src/orchestrator` (or a future `src/plugin` folder):
 
 - `PluginBootstrap` – constructs [`PluginOrchestrator`](src/orchestrator/PluginOrchestrator.ts:20), initializes slices, and wires settings/logging.
 - `PluginDebugCommands` – defines functions that attach and detach all `coalesce*` debug helpers on `app`.
-- `PluginDomEventHandlers` – encapsulates registration logic for DOM custom events (`coalesce-settings-*`, `coalesce-navigate*`).
-- `PluginWorkspaceEventHandlers` – encapsulates workspace event wiring (`file-open`, `layout-change`, `active-leaf-change`).
-- `PluginViewInitializer` – handles `initializeExistingViews()` and the duplicate‑processing logic for backlinks UI.
+- `PluginEvents` – encapsulates registration logic for DOM custom events (`coalesce-settings-*`, `coalesce-navigate*`), workspace events, and orchestrator events.
+- `PluginViewInitializer` – planned: handles `initializeExistingViews()` and the duplicate‑processing logic for backlinks UI.
 
-After this refactor, [`CoalescePlugin`](main.ts:6) should be largely a thin adapter from Obsidian lifecycle (`onload`, `onunload`) to these helper modules.
+After this refactor, [`CoalescePlugin`](main.ts:9) should be largely a thin adapter from Obsidian lifecycle (`onload`, `onunload`) to these helper modules.
 
-### Implementation checklist
+### Implementation checklist and status
 
-1. Extract a `plugin-bootstrap` module
-   - Create `src/orchestrator/PluginBootstrap.ts` with a small function like `createAndStartOrchestrator(app, plugin, config)` that:
-     - Instantiates [`PluginOrchestrator`](src/orchestrator/PluginOrchestrator.ts:20).
-     - Calls `initialize()` and `start()`.
-     - Returns the orchestrator instance.
-   - Update [`CoalescePlugin.onload`](main.ts:11) to delegate orchestrator creation to this helper.
+1. Extract a plugin bootstrap module – **Completed**
+   - [`PluginBootstrap`](src/orchestrator/PluginBootstrap.ts:1) provides `createAndStartOrchestrator(app, plugin, config)`.
+   - [`CoalescePlugin.onload`](main.ts:14) now uses `createAndStartOrchestrator` instead of manual `new PluginOrchestrator(...)` and separate `initialize()` / `start()` calls.
 
-2. Extract debug command wiring
-   - Move the bodies of [`setupDebugMethods()`](main.ts:89) into a new module, for example `src/orchestrator/PluginDebugCommands.ts`, exposing:
-     - `attachDebugCommands(app, orchestrator, logger)`.
-     - `detachDebugCommands(app)`.
-   - In [`onload`](main.ts:11), call `attachDebugCommands` instead of inlining logic.
-   - In [`onunload`](main.ts:562), call `detachDebugCommands` instead of manually deleting each property.
+2. Extract debug command wiring – **Completed**
+   - [`PluginDebugCommands`](src/orchestrator/PluginDebugCommands.ts:1) now owns all `coalesce*` debug helpers.
+   - [`CoalescePlugin.setupDebugMethods`](main.ts:86) calls `attachDebugCommands(this.app, this, this.orchestrator, this.logger)` and defines only `coalesceUpdateLogging` locally to call [`Logger.setGlobalLogging`](src/features/shared-utilities/Logger.ts:1).
+   - [`CoalescePlugin.onunload`](main.ts:452) calls `detachDebugCommands(this.app)` instead of manually deleting each debug property.
 
-3. Extract DOM and workspace event registration
-   - Move the logic from [`registerEventHandlers()`](main.ts:300) into a module such as `src/orchestrator/PluginEvents.ts` that exposes:
-     - `registerDomEvents(document, app, orchestrator, logger)`.
-     - `registerWorkspaceEvents(app, orchestrator, logger)`.
-   - Have each function return unsubscribes/cleanup callbacks (if needed) so [`onunload`](main.ts:562) can tear them down explicitly if Obsidian lifecycle does not already do so.
+3. Extract DOM+workspace+orchestrator event registration – **Completed**
+   - [`PluginEvents`](src/orchestrator/PluginEvents.ts:1) implements `registerPluginEvents(app, plugin, orchestrator, logger, updateCoalesceUIForFile?)`, wiring:
+     - DOM events: `coalesce-settings-collapse-changed`, `coalesce-logging-state-changed`, `coalesce-navigate`, `coalesce-navigate-complete`.
+     - Workspace events: `file-open`, `layout-change`, `active-leaf-change`.
+     - Orchestrator events: `file:opened`, `layout:changed`, `active-leaf:changed`.
+   - [`CoalescePlugin.registerEventHandlers`](main.ts:190) now delegates to:
 
-4. Extract view initialization and duplicate‑processing logic
-   - Move [`shouldProcessFile()`](main.ts:210), [`updateCoalesceUIForFile()`](main.ts:232), and [`initializeExistingViews()`](main.ts:505) into a dedicated helper such as `src/orchestrator/PluginViewInitializer.ts`.
-   - Give this helper a small, testable surface, for example:
-     - `createViewInitializer(app, orchestrator, logger)` returning an object with `updateForFile(path)` and `initializeExistingViews()`.
-   - Update both DOM event handlers and orchestrator `file:opened` listeners to call into this helper instead of duplicating attachment logic.
+     ```ts
+     registerPluginEvents(
+       this.app,
+       this,
+       this.orchestrator,
+       this.logger,
+       this.updateCoalesceUIForFile.bind(this)
+     );
+     ```
 
-5. Add tests for the new modules
-   - For `PluginDebugCommands`, verify that attaching and detaching populates and cleans up the expected properties on a mocked `app`.
-   - For `PluginEvents`, verify that firing `coalesce-*` events invokes the expected orchestrator or slice methods (using spies or mocks).
-   - For `PluginViewInitializer`, verify that duplicate‑processing suppression works and that backlinks UI is attached only when the correct slices and active view are present.
+4. Extract view initialization and duplicate‑processing logic – **Planned**
+   - Introduce a `PluginViewInitializer` helper, for example:
 
-## Suggested implementation order
+     ```ts
+     const viewInitializer = createViewInitializer(app, orchestrator, logger);
+     viewInitializer.updateForFile(path);
+     viewInitializer.initializeExistingViews();
+     ```
 
-1. Complete Refactor 1 (contracts alignment) and make sure all references to `IPluginOrchestrator`/`ISliceFactory` are updated or removed.
-2. Implement Refactor 2 (CoalescePlugin factoring) in the sequence: bootstrap → debug commands → events → view initializer.
-3. Once both are in place and covered by tests, consider tackling the next roadmap items (navigation unification, validation centralization, logging standardization).
+   - Migrate [`shouldProcessFile()`](main.ts:100), [`updateCoalesceUIForFile()`](main.ts:122), and [`initializeExistingViews()`](main.ts:395) out of `main.ts` into this helper.
+   - Update:
+     - `PluginEvents.registerPluginEvents` call sites to use `viewInitializer.updateForFile(...)` instead of calling `updateCoalesceUIForFile` directly.
+     - `CoalescePlugin.onload` to call `viewInitializer.initializeExistingViews()` rather than its own method.
 
-This plan is now the source of truth for the first two clean‑code refactors and can be kept in sync as the implementation evolves.
+5. Add tests for the new modules – **Planned**
+   - `PluginDebugCommands`:
+     - Verify that `attachDebugCommands` attaches the expected `coalesce*` functions on a mocked `app`, and that `detachDebugCommands` removes them.
+   - `PluginEvents`:
+     - Verify that firing `coalesce-*` events invokes the expected orchestrator or slice methods (using spies/mocks for `settings`, `backlinks`, `viewIntegration`, and `navigation` behaviors).
+     - Verify that `file:opened` drives `initializeView` + `attachToDOM` + `setOptions` as expected when slices are present.
+   - `PluginViewInitializer` (once added):
+     - Verify that duplicate‑processing suppression works (`shouldProcessFile` semantics preserved).
+     - Verify that backlinks UI is attached only when the correct slices and active view are present.
+
+## Suggested implementation order (updated)
+
+1. Refactor 1 (orchestrator/slice contracts) – **Completed**.
+2. Refactor 2 (CoalescePlugin) – **Partially completed**:
+   - Done: bootstrap extraction, debug command extraction, event wiring extraction.
+   - Remaining: view initializer helper and tests for new modules.
+3. After these are complete and covered by tests, proceed to the next roadmap items (navigation unification, validation centralization, logging standardization), using this document as living design notes.
