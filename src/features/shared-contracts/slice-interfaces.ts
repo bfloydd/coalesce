@@ -253,48 +253,10 @@ export interface HeaderState {
     selectedAlias: string | null;
 }
 
-// ============================
-// Slice Factory Interface
-// ============================
-
-export interface ISliceFactory {
-    createSharedUtilitiesSlice(): ISharedUtilitiesSlice;
-    createSettingsSlice(app: App): ISettingsSlice;
-    createNavigationSlice(app: App): INavigationSlice;
-    createNoteEditingSlice(app: App): INoteEditingSlice;
-    createBacklinksSlice(app: App): IBacklinksSlice;
-    createViewIntegrationSlice(app: App): IViewIntegrationSlice;
-}
-
-// ============================
-// Orchestrator Interface
-// ============================
-
-export interface IPluginOrchestrator extends EventDispatcher {
-    /**
-     * Initialize all slices
-     */
-    initialize(app: App): Promise<void>;
-
-    /**
-     * Cleanup all slices
-     */
-    cleanup(): void;
-
-    /**
-     * Get slice instances
-     */
-    getSlices(): {
-        sharedUtilities: ISharedUtilitiesSlice;
-        settings: ISettingsSlice;
-        navigation: INavigationSlice;
-        noteEditing: INoteEditingSlice;
-        backlinks: IBacklinksSlice;
-        viewIntegration: IViewIntegrationSlice;
-    };
-
-    /**
-     * Get slice factory
-     */
-    getSliceFactory(): ISliceFactory;
-}
+// Note:
+// Orchestrator contracts and types (such as IPluginOrchestrator) now live under
+// [`src/orchestrator/types.ts`](src/orchestrator/types.ts:1) and are exported
+// via [`src/orchestrator/index.ts`](src/orchestrator/index.ts:1).
+//
+// This file is intentionally limited to slice-level contracts shared between
+// features and the orchestrator.
