@@ -1,4 +1,4 @@
-// ============================
+﻿// ============================
 // Plugin Orchestrator Types
 // ============================
 
@@ -21,14 +21,18 @@ export interface OrchestratorConfig {
 // Slice Registry
 // ============================
 
-export interface SliceRegistry {
-    sharedUtilities: any;
-    sharedContracts: any;
-    settings: any;
-    navigation: any;
-    noteEditing: any;
-    backlinks: any; // Consolidated slice - includes blocks and header functionality
-    viewIntegration: any;
+export interface IPluginSlice {
+    initialize(dependencies: SliceDependencies): Promise<void>;
+    start(): Promise<void>;
+    stop(): Promise<void>;
+    cleanup(): Promise<void>;
+    [key: string]: any; // Allow other properties/methods
+}
+
+export type SliceFactory = (app: App, config: any) => IPluginSlice;
+
+export interface SliceMap {
+    [key: string]: IPluginSlice | null;
 }
 
 // ============================
@@ -134,12 +138,7 @@ export interface OrchestratorOptions {
 // Slice Factory
 // ============================
 
-export interface SliceFactory {
-    createSlice<T>(sliceName: string, dependencies: SliceDependencies, options?: any): T;
-    destroySlice(sliceName: string): void;
-    getSlice<T>(sliceName: string): T | null;
-    getAllSlices(): Record<string, any>;
-}
+
 
 // ============================
 // Event Bus
@@ -187,52 +186,52 @@ export interface IPluginOrchestrator {
      * Initialize the orchestrator
      */
     initialize(): Promise<void>;
-    
+
     /**
      * Start the orchestrator
      */
     start(): Promise<void>;
-    
+
     /**
      * Stop the orchestrator
      */
     stop(): Promise<void>;
-    
+
     /**
      * Get a slice by name
      */
     getSlice<T>(sliceName: string): T | null;
-    
+
     /**
      * Get all slices
      */
-    getAllSlices(): SliceRegistry;
-    
+    getAllSlices(): SliceMap;
+
     /**
      * Get orchestrator state
      */
     getState(): OrchestratorState;
-    
+
     /**
      * Get orchestrator statistics
      */
     getStatistics(): OrchestratorStatistics;
-    
+
     /**
      * Emit an event
      */
     emit(event: string, data: any): void;
-    
+
     /**
      * Add event listener
      */
     on(event: string, handler: Function): void;
-    
+
     /**
      * Remove event listener
      */
     off(event: string, handler: Function): void;
-    
+
     /**
      * Cleanup resources
      */

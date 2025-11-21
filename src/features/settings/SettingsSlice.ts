@@ -1,5 +1,6 @@
-import { App } from 'obsidian';
+﻿import { App } from 'obsidian';
 import { ISettingsSlice } from '../shared-contracts/slice-interfaces';
+import { IPluginSlice, SliceDependencies } from '../../orchestrator/types';
 import { CoalescePluginSettings, PluginInterface } from '../shared-contracts/plugin';
 import { SettingsUI } from './SettingsUI';
 import { Logger } from '../shared-utilities/Logger';
@@ -16,7 +17,7 @@ import { SettingsCore } from './core/SettingsCore';
  * - Delegate persistence, validation, theme, and logging behaviour to SettingsCore
  * - Delegate Obsidian UI concerns to SettingsUI
  */
-export class SettingsSlice implements ISettingsSlice {
+export class SettingsSlice implements IPluginSlice, ISettingsSlice {
     private app: App;
     private plugin: PluginInterface;
     private logger: Logger;
@@ -32,6 +33,15 @@ export class SettingsSlice implements ISettingsSlice {
         this.plugin = plugin || (app as any); // Fallback to app if plugin not provided
         this.logger = new Logger('SettingsSlice');
 
+        // Components will be initialized in initialize()
+    }
+
+    /**
+     * Initialize the slice
+     */
+    async initialize(dependencies: SliceDependencies): Promise<void> {
+        this.logger.debug('Initializing SettingsSlice');
+
         // Initialize core/domain service
         this.core = new SettingsCore(this.logger, this.plugin);
 
@@ -39,6 +49,13 @@ export class SettingsSlice implements ISettingsSlice {
         this.settingsUI = new SettingsUI(this.app, this.logger);
 
         this.logger.debug('SettingsSlice initialized');
+    }
+
+    /**
+     * Stop the slice
+     */
+    async stop(): Promise<void> {
+        this.logger.debug('Stopping SettingsSlice');
     }
 
     /**
@@ -178,7 +195,7 @@ export class SettingsSlice implements ISettingsSlice {
     /**
      * Cleanup resources used by this slice.
      */
-    cleanup(): void {
+    async cleanup(): Promise<void> {
         this.logger.debug('Cleaning up Settings slice');
 
         this.settingsUI.cleanup();

@@ -17,7 +17,7 @@ export interface ISharedUtilitiesSlice {
     /**
      * Logger instance for debugging and error reporting
      */
-    getLogger(): (prefix?: string) => {
+    getLogger(prefix?: string): {
         debug(message?: unknown, ...optionalParams: unknown[]): void;
         info(message?: unknown, ...optionalParams: unknown[]): void;
         warn(message?: unknown, ...optionalParams: unknown[]): void;
@@ -25,11 +25,9 @@ export interface ISharedUtilitiesSlice {
         on(level?: any): void;
         off(): void;
         isEnabled(): boolean;
+        child(prefix: string): any;
     };
 
-    /**
-     * Daily note detection and helper functions
-     */
     getDailyNote(): {
         isDaily(app: AppWithInternalPlugins, filePath: string): boolean;
         getDailyNotePath(app: AppWithInternalPlugins, date?: Date): string | null;

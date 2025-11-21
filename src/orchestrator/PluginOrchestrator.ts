@@ -1,15 +1,10 @@
-import { App } from 'obsidian';
-import { IPluginOrchestrator, OrchestratorConfig, SliceRegistry, OrchestratorState, OrchestratorStatistics, EventWiringConfig, SliceDependencies, OrchestratorEvent, SliceLifecycleEvent } from './types';
+﻿import { App } from 'obsidian';
+import { IPluginOrchestrator, OrchestratorConfig, SliceMap, OrchestratorState, OrchestratorStatistics, EventWiringConfig, SliceDependencies, OrchestratorEvent, SliceLifecycleEvent } from './types';
 import { EventBus } from './EventBus';
 import { Logger } from '../features/shared-utilities/Logger';
 
-// Import all slices
-import { SharedUtilitiesSlice } from '../features/shared-utilities/SharedUtilitiesSlice';
-import { SettingsSlice } from '../features/settings/SettingsSlice';
-import { NavigationSlice } from '../features/navigation/NavigationSlice';
-import { NoteEditingSlice } from '../features/note-editing/NoteEditingSlice';
-import { BacklinksSlice } from '../features/backlinks/BacklinksSlice';
-import { ViewIntegrationSlice } from '../features/view-integration/ViewIntegrationSlice';
+import { SliceRegistry } from './SliceRegistry';
+import { IPluginSlice, SliceFactory } from './types';
 
 /**
  * Plugin Orchestrator Implementation
@@ -23,7 +18,8 @@ export class PluginOrchestrator implements IPluginOrchestrator {
     private config: OrchestratorConfig;
     private logger: Logger;
     private eventBus: EventBus;
-    private slices: SliceRegistry;
+    private slices: Record<string, IPluginSlice | null>;
+    private sliceRegistry: SliceRegistry;
     private state: OrchestratorState;
     private statistics: OrchestratorStatistics;
     private eventWiring: EventWiringConfig[];
@@ -32,7 +28,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
     constructor(app: App, plugin?: any, config?: Partial<OrchestratorConfig>) {
         this.app = app;
         this.plugin = plugin;
-        
+
         // Set default configuration
         this.config = {
             enableLogging: true,
@@ -43,24 +39,19 @@ export class PluginOrchestrator implements IPluginOrchestrator {
             retryDelay: 1000,
             ...config
         };
-        
+
         // Initialize logger
         this.logger = new Logger('PluginOrchestrator');
-        
+
         // Initialize event bus
         this.eventBus = new EventBus(this.logger);
-        
-        // Initialize slices registry
-        this.slices = {
-            sharedUtilities: null,
-            sharedContracts: null,
-            settings: null,
-            navigation: null,
-            noteEditing: null,
-            backlinks: null, // Now consolidated - includes blocks and header functionality
-            viewIntegration: null
-        };
-        
+
+        // Initialize slice registry
+        this.sliceRegistry = new SliceRegistry();
+
+        // Initialize slices map
+        this.slices = {};
+
         // Initialize state
         this.state = {
             isInitialized: false,
@@ -69,7 +60,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
             lastActivity: new Date(),
             errorCount: 0
         };
-        
+
         // Initialize statistics
         this.statistics = {
             totalInitializations: 0,
@@ -81,13 +72,20 @@ export class PluginOrchestrator implements IPluginOrchestrator {
             averageEventProcessingTime: 0,
             uptime: 0
         };
-        
+
         // Initialize event wiring
         this.eventWiring = [];
-        
+
         this.startTime = new Date();
-        
+
         this.logger.debug('PluginOrchestrator initialized');
+    }
+
+    /**
+     * Register a slice factory
+     */
+    registerSlice(name: string, factory: SliceFactory): void {
+        this.sliceRegistry.register(name, factory);
     }
 
     /**
@@ -95,28 +93,28 @@ export class PluginOrchestrator implements IPluginOrchestrator {
      */
     async initialize(): Promise<void> {
         this.logger.debug('Initializing PluginOrchestrator');
-        
+
         try {
             // Update state
             this.state.isInitialized = true;
             this.state.lastActivity = new Date();
-            
+
             // Initialize slices in dependency order
             await this.initializeSlices();
-            
+
             // Wire up events between slices
             this.wireUpEvents();
-            
+
             // Update statistics
             this.statistics.totalInitializations++;
             this.statistics.lastInitialization = new Date();
-            
+
             // Emit event
             this.emitOrchestratorEvent('orchestrator:initialized', {
-                slicesInitialized: Object.keys(this.slices).filter(key => this.slices[key as keyof SliceRegistry] !== null),
+                slicesInitialized: Object.keys(this.slices).filter(key => this.slices[key] !== null),
                 eventWiringCount: this.eventWiring.length
             });
-            
+
             this.logger.debug('PluginOrchestrator initialized successfully', {
                 slicesCount: Object.keys(this.slices).length,
                 eventWiringCount: this.eventWiring.length
@@ -125,10 +123,10 @@ export class PluginOrchestrator implements IPluginOrchestrator {
             this.logger.error('Failed to initialize PluginOrchestrator', { error });
             this.state.errorCount++;
             this.state.lastError = error;
-            
+
             // Emit error event
             this.emitOrchestratorEvent('orchestrator:error', { error, context: 'initialization' });
-            
+
             throw error;
         }
     }
@@ -174,33 +172,33 @@ export class PluginOrchestrator implements IPluginOrchestrator {
      */
     async stop(): Promise<void> {
         this.logger.debug('Stopping PluginOrchestrator');
-        
+
         try {
             // Update state
             this.state.isShuttingDown = true;
             this.state.lastActivity = new Date();
-            
+
             // Stop all slices
             await this.stopSlices();
-            
+
             // Update state
             this.state.isStarted = false;
-            
+
             // Emit event
             this.emitOrchestratorEvent('orchestrator:stopped', {
                 uptime: this.calculateUptime(),
                 totalEventsProcessed: this.statistics.totalEventHandled
             });
-            
+
             this.logger.debug('PluginOrchestrator stopped successfully');
         } catch (error) {
             this.logger.error('Failed to stop PluginOrchestrator', { error });
             this.state.errorCount++;
             this.state.lastError = error;
-            
+
             // Emit error event
             this.emitOrchestratorEvent('orchestrator:error', { error, context: 'shutdown' });
-            
+
             throw error;
         }
     }
@@ -208,11 +206,11 @@ export class PluginOrchestrator implements IPluginOrchestrator {
     /**
      * Get a slice by name
      */
-    getSlice<T>(sliceName: keyof SliceRegistry): T | null {
+    getSlice<T>(sliceName: string): T | null {
         try {
             const slice = this.slices[sliceName];
             this.logger.debug('Getting slice', { sliceName, found: !!slice });
-            return slice as T;
+            return slice as unknown as T;
         } catch (error) {
             this.logger.error('Failed to get slice', { sliceName, error });
             return null;
@@ -222,7 +220,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
     /**
      * Get all slices
      */
-    getAllSlices(): SliceRegistry {
+    getAllSlices(): SliceMap {
         return { ...this.slices };
     }
 
@@ -249,15 +247,15 @@ export class PluginOrchestrator implements IPluginOrchestrator {
      */
     emit(event: string, data: any): void {
         this.logger.debug('Emitting event', { event, data });
-        
+
         try {
             // Update statistics
             this.statistics.totalEventFired++;
             this.state.lastActivity = new Date();
-            
+
             // Emit through event bus
             this.eventBus.emit(event, data);
-            
+
             // Emit orchestrator event
             this.emitOrchestratorEvent('orchestrator:eventFired', { event, data });
         } catch (error) {
@@ -273,11 +271,11 @@ export class PluginOrchestrator implements IPluginOrchestrator {
      */
     on(event: string, handler: Function): void {
         this.logger.debug('Adding event listener', { event });
-        
+
         try {
             // Add to event bus
             this.eventBus.on(event, handler);
-            
+
             this.logger.debug('Event listener added successfully', { event });
         } catch (error) {
             this.logger.error('Failed to add event listener', { event, error });
@@ -289,11 +287,11 @@ export class PluginOrchestrator implements IPluginOrchestrator {
      */
     off(event: string, handler: Function): void {
         this.logger.debug('Removing event listener', { event });
-        
+
         try {
             // Remove from event bus
             this.eventBus.off(event, handler);
-            
+
             this.logger.debug('Event listener removed successfully', { event });
         } catch (error) {
             this.logger.error('Failed to remove event listener', { event, error });
@@ -305,19 +303,19 @@ export class PluginOrchestrator implements IPluginOrchestrator {
      */
     async cleanup(): Promise<void> {
         this.logger.debug('Cleaning up PluginOrchestrator');
-        
+
         try {
             // Stop orchestrator if running
             if (this.state.isStarted) {
                 await this.stop();
             }
-            
+
             // Cleanup all slices
             await this.cleanupSlices();
-            
+
             // Cleanup event bus
             this.eventBus.cleanup();
-            
+
             // Reset state
             this.state = {
                 isInitialized: false,
@@ -326,7 +324,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                 lastActivity: new Date(),
                 errorCount: 0
             };
-            
+
             // Reset statistics
             this.statistics = {
                 totalInitializations: 0,
@@ -338,7 +336,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                 averageEventProcessingTime: 0,
                 uptime: 0
             };
-            
+
             this.logger.debug('PluginOrchestrator cleanup completed');
         } catch (error) {
             this.logger.error('Failed to cleanup PluginOrchestrator', { error });
@@ -350,7 +348,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
      */
     private async initializeSlices(): Promise<void> {
         this.logger.debug('Initializing slices');
-        
+
         try {
             // Create dependencies
             const dependencies: SliceDependencies = {
@@ -360,29 +358,23 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                 sharedUtilities: null, // Will be set after shared utilities slice is created
                 sharedContracts: null
             };
-            
+
             // Initialize slices in dependency order
-            const sliceOrder = [
-                'sharedUtilities',
-                'sharedContracts',
-                'settings',
-                'navigation',
-                'noteEditing',
-                'backlinks', // Now consolidated - includes blocks and header functionality
-                'viewIntegration'
-            ];
-            
+            // Initialize slices in registration order
+            const sliceOrder = this.sliceRegistry.getAllNames();
+
             for (const sliceName of sliceOrder) {
                 await this.initializeSlice(sliceName, dependencies);
-                
+
                 // Update dependencies for next slices
+                // Note: This is a temporary bridge until we have a full DI container
                 if (sliceName === 'sharedUtilities') {
-                    dependencies.sharedUtilities = this.slices.sharedUtilities;
+                    dependencies.sharedUtilities = this.slices[sliceName];
                 } else if (sliceName === 'settings') {
-                    dependencies.settings = this.slices.settings;
+                    dependencies.settings = this.slices[sliceName];
                 }
             }
-            
+
             this.logger.debug('All slices initialized successfully');
         } catch (error) {
             this.logger.error('Failed to initialize slices', { error });
@@ -395,58 +387,35 @@ export class PluginOrchestrator implements IPluginOrchestrator {
      */
     private async initializeSlice(sliceName: string, dependencies: SliceDependencies): Promise<void> {
         this.logger.debug('Initializing slice', { sliceName });
-        
+
         try {
-            let slice: any = null;
-            
-            switch (sliceName) {
-                case 'sharedUtilities':
-                    slice = new SharedUtilitiesSlice();
-                    break;
-                case 'sharedContracts':
-                    // Shared contracts is just types, no initialization needed
-                    slice = {};
-                    break;
-                case 'settings':
-                    slice = new SettingsSlice(this.app, this.plugin);
-                    break;
-                case 'navigation':
-                    slice = new NavigationSlice(this.app);
-                    break;
-                case 'noteEditing':
-                    slice = new NoteEditingSlice(this.app, dependencies.sharedUtilities);
-                    break;
-                case 'backlinks':
-                    // Consolidated slice - includes blocks and header functionality
-                    slice = new BacklinksSlice(this.app, dependencies.sharedUtilities);
-                    break;
-                case 'viewIntegration':
-                    slice = new ViewIntegrationSlice(this.app);
-                    break;
-                default:
-                    this.logger.warn('Unknown slice name', { sliceName });
-                    return;
-            }
-            
+            // Create slice using registry
+            const slice = this.sliceRegistry.create(sliceName, this.app, { plugin: this.plugin });
+
             // Store slice
             (this.slices as any)[sliceName] = slice;
-            
+
+            // Initialize slice
+            if (slice && typeof slice.initialize === 'function') {
+                await slice.initialize(dependencies);
+            }
+
             // Emit slice lifecycle event
             this.emitSliceLifecycleEvent('slice:initialized', sliceName, {
                 slice: sliceName,
                 initialized: true
             });
-            
+
             this.logger.debug('Slice initialized successfully', { sliceName });
         } catch (error) {
             this.logger.error('Failed to initialize slice', { sliceName, error });
-            
+
             // Emit slice lifecycle event
             this.emitSliceLifecycleEvent('slice:error', sliceName, {
                 slice: sliceName,
                 error
             });
-            
+
             throw error;
         }
     }
@@ -456,7 +425,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
      */
     private wireUpEvents(): void {
         this.logger.debug('Wiring up events between slices');
-        
+
         try {
             // Define event wiring configuration
             // Note: Backlinks functionality is now consolidated within the Backlinks slice,
@@ -474,22 +443,22 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                 // Navigation events from backlinks (now handled internally by backlinks slice)
                 // The backlinks slice handles its own navigation, so no external wiring needed
             ];
-            
+
             // Apply event wiring
             for (const wiring of this.eventWiring) {
                 if (wiring.enabled) {
                     this.applyEventWiring(wiring);
                 }
             }
-            
+
             // Update statistics
             this.statistics.totalEventWiring = this.eventWiring.length;
-            
+
             // Emit orchestrator event
             this.emitOrchestratorEvent('orchestrator:eventWired', {
                 wiringCount: this.eventWiring.length
             });
-            
+
             this.logger.debug('Event wiring completed', { wiringCount: this.eventWiring.length });
         } catch (error) {
             this.logger.error('Failed to wire up events', { error });
@@ -503,13 +472,13 @@ export class PluginOrchestrator implements IPluginOrchestrator {
         try {
             const sourceSlice = (this.slices as any)[wiring.source];
             const targetSlice = (this.slices as any)[wiring.target];
-            
+
             if (sourceSlice && targetSlice && typeof targetSlice[wiring.handler] === 'function') {
                 // Add event listener
                 sourceSlice.addEventListener(wiring.eventType, (event: any) => {
                     targetSlice[wiring.handler](event.payload);
                 });
-                
+
                 this.logger.debug('Event wiring applied', {
                     source: wiring.source,
                     target: wiring.target,
@@ -563,12 +532,12 @@ export class PluginOrchestrator implements IPluginOrchestrator {
      */
     private async stopSlices(): Promise<void> {
         this.logger.debug('Stopping all slices');
-        
+
         try {
             for (const [sliceName, slice] of Object.entries(this.slices)) {
                 if (slice && typeof slice.stop === 'function') {
                     await slice.stop();
-                    
+
                     // Emit slice lifecycle event
                     this.emitSliceLifecycleEvent('slice:stopped', sliceName, {
                         slice: sliceName,
@@ -576,7 +545,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                     });
                 }
             }
-            
+
             this.logger.debug('All slices stopped successfully');
         } catch (error) {
             this.logger.error('Failed to stop slices', { error });
@@ -588,14 +557,14 @@ export class PluginOrchestrator implements IPluginOrchestrator {
      */
     private async cleanupSlices(): Promise<void> {
         this.logger.debug('Cleaning up all slices');
-        
+
         try {
             for (const [sliceName, slice] of Object.entries(this.slices)) {
                 if (slice && typeof slice.cleanup === 'function') {
                     await slice.cleanup();
                 }
             }
-            
+
             // Clear slices registry
             this.slices = {
                 sharedUtilities: null,
@@ -606,7 +575,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                 backlinks: null, // Consolidated slice
                 viewIntegration: null
             };
-            
+
             this.logger.debug('All slices cleaned up successfully');
         } catch (error) {
             this.logger.error('Failed to cleanup slices', { error });
@@ -629,7 +598,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
             timestamp: new Date(),
             data
         };
-        
+
         this.eventBus.emit('orchestrator:event', event);
     }
 
@@ -643,7 +612,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
             timestamp: new Date(),
             data
         };
-        
+
         this.eventBus.emit('slice:lifecycle', event);
     }
 }

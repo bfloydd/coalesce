@@ -5,7 +5,7 @@ describe('BacklinksSlice error boundaries', () => {
   let mockApp: jest.Mocked<App>;
   let slice: BacklinksSlice;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockApp = {
       metadataCache: {
         resolvedLinks: {},
@@ -33,6 +33,13 @@ describe('BacklinksSlice error boundaries', () => {
     } as any;
 
     slice = new BacklinksSlice(mockApp);
+    await slice.initialize({
+      app: mockApp,
+      logger: { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any,
+      settings: {} as any,
+      sharedUtilities: {} as any,
+      sharedContracts: {} as any
+    });
   });
 
   afterEach(() => {

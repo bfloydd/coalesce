@@ -1,5 +1,6 @@
-import { App, MarkdownView } from 'obsidian';
+﻿import { App, MarkdownView } from 'obsidian';
 import { IBacklinksSlice } from '../shared-contracts/slice-interfaces';
+import { IPluginSlice, SliceDependencies } from '../../orchestrator/types';
 import { BacklinkDiscoverer } from './BacklinkDiscoverer';
 import { LinkResolver } from './LinkResolver';
 import { BacklinkCache } from './BacklinkCache';
@@ -31,43 +32,39 @@ import { getSharedNavigation } from '../navigation/NavigationFacade';
  * - Delegate all DOM and header/block UI behaviour to BacklinksViewController.
  * - Own construction/cleanup of supporting components (discoverer, cache, renderer, header UI).
  */
-export class BacklinksSlice implements IBacklinksSlice {
+export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
     private readonly app: App;
     private readonly logger: Logger;
 
     // Core/domain services
-    private readonly state: BacklinksState;
-    private readonly events: BacklinksEvents;
-    private readonly core: BacklinksCore;
+    private state: BacklinksState;
+    private events: BacklinksEvents;
+    private core: BacklinksCore;
 
     // Backlink components exposed for backward compatibility
-    private readonly backlinkDiscoverer: BacklinkDiscoverer;
-    private readonly linkResolver: LinkResolver;
-    private readonly backlinkCache: BacklinkCache;
+    private backlinkDiscoverer: BacklinkDiscoverer;
+    private linkResolver: LinkResolver;
+    private backlinkCache: BacklinkCache;
 
     // Navigation service used for link-based navigation (shared with navigation slice pattern)
-    private readonly navigationService: NavigationService;
+    private navigationService: NavigationService;
 
     private options: BacklinkDiscoveryOptions;
 
     // View-layer dependencies (owned by this slice, used by the controller)
-    private readonly blockExtractor: BlockExtractor;
-    private readonly blockRenderer: BlockRenderer;
-    private readonly strategyManager: StrategyManager;
-    private readonly headerUI: HeaderUI;
-    private readonly filterControls: FilterControls;
-    private readonly settingsControls: SettingsControls;
+    private blockExtractor: BlockExtractor;
+    private blockRenderer: BlockRenderer;
+    private strategyManager: StrategyManager;
+    private headerUI: HeaderUI;
+    private filterControls: FilterControls;
+    private settingsControls: SettingsControls;
 
     // View controller (UI layer)
-    private readonly viewController: BacklinksViewController;
+    private viewController: BacklinksViewController;
 
     constructor(app: App, options?: Partial<BacklinkDiscoveryOptions>) {
         this.app = app;
         this.logger = new Logger('BacklinksSlice');
-
-        // Initialize shared navigation service used for link-style navigation
-        const sharedNavigation = getSharedNavigation(this.app, this.logger);
-        this.navigationService = sharedNavigation.navigationService;
 
         // Set default options
         this.options = {
@@ -79,6 +76,19 @@ export class BacklinksSlice implements IBacklinksSlice {
             ...options
         };
 
+        // Components will be initialized in initialize()
+    }
+
+    /**
+     * Initialize the slice
+     */
+    async initialize(dependencies: SliceDependencies): Promise<void> {
+        this.logger.debug('Initializing BacklinksSlice');
+
+        // Initialize shared navigation service used for link-style navigation
+        const sharedNavigation = getSharedNavigation(this.app, this.logger);
+        this.navigationService = sharedNavigation.navigationService;
+
         // Initialize core/domain services
         this.state = new BacklinksState();
         this.events = new BacklinksEvents(this.logger);
@@ -87,20 +97,20 @@ export class BacklinksSlice implements IBacklinksSlice {
         // Use core-owned components for backward compatible methods
         this.backlinkDiscoverer = this.core.getBacklinkDiscoverer();
         this.backlinkCache = this.core.getBacklinkCache();
-        this.linkResolver = new LinkResolver(app, this.logger);
+        this.linkResolver = new LinkResolver(this.app, this.logger);
 
         // Initialize block and header UI components used by the view controller
-        this.blockExtractor = new BlockExtractor(app, this.logger);
-        this.blockRenderer = new BlockRenderer(app, this.logger);
+        this.blockExtractor = new BlockExtractor(this.app, this.logger);
+        this.blockRenderer = new BlockRenderer(this.app, this.logger);
         this.strategyManager = new StrategyManager(this.logger, 'default');
 
         this.settingsControls = new SettingsControls(this.logger);
-        this.headerUI = new HeaderUI(app, this.logger, this.settingsControls);
+        this.headerUI = new HeaderUI(this.app, this.logger, this.settingsControls);
         this.filterControls = new FilterControls(this.logger);
 
         // Initialize view controller (UI layer)
         this.viewController = new BacklinksViewController(
-            app,
+            this.app,
             this.logger,
             this.core,
             this.blockExtractor,
@@ -115,6 +125,20 @@ export class BacklinksSlice implements IBacklinksSlice {
     }
 
     /**
+     * Start the slice
+     */
+    async start(): Promise<void> {
+        this.logger.debug('Starting BacklinksSlice');
+    }
+
+    /**
+     * Stop the slice
+     */
+    async stop(): Promise<void> {
+        this.logger.debug('Stopping BacklinksSlice');
+    }
+
+    /**
      * Update backlinks for a file.
      *
      * Delegates to BacklinksCore for discovery, caching, state updates,
@@ -125,7 +149,7 @@ export class BacklinksSlice implements IBacklinksSlice {
             () => this.core.updateBacklinks(filePath, leafId),
             `updateBacklinks(${filePath})`
         );
-        }
+    }
 
     /**
      * Get current backlinks for a file (from shared state via BacklinksCore).
@@ -403,7 +427,7 @@ export class BacklinksSlice implements IBacklinksSlice {
     /**
      * Cleanup resources used by this slice.
      */
-    cleanup(): void {
+    async cleanup(): Promise<void> {
         this.logger.debug('Cleaning up BacklinksSlice');
 
         try {

@@ -4,12 +4,13 @@
 
 export { PluginOrchestrator } from './PluginOrchestrator';
 export { EventBus } from './EventBus';
+export { SliceRegistry } from './SliceRegistry';
 
 // Export interfaces for external use
-export type { 
+export type {
     IPluginOrchestrator,
     OrchestratorConfig,
-    SliceRegistry,
+    SliceMap,
     OrchestratorState,
     OrchestratorStatistics,
     EventWiringConfig,

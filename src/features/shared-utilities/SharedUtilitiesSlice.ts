@@ -1,4 +1,5 @@
-import { ISharedUtilitiesSlice } from '../shared-contracts/slice-interfaces';
+﻿import { ISharedUtilitiesSlice } from '../shared-contracts/slice-interfaces';
+import { IPluginSlice, SliceDependencies } from '../../orchestrator/types';
 import { Logger } from './Logger';
 import { DailyNote } from './DailyNote';
 import { CommonHelpers } from './CommonHelpers';
@@ -10,7 +11,7 @@ import { AppWithInternalPlugins } from '../shared-contracts/obsidian';
  * This slice provides shared utilities and helper functions
  * used across multiple vertical slices in the architecture.
  */
-export class SharedUtilitiesSlice implements ISharedUtilitiesSlice {
+export class SharedUtilitiesSlice implements IPluginSlice, ISharedUtilitiesSlice {
     private logger: Logger;
     private dailyNote: typeof DailyNote;
     private commonHelpers: typeof CommonHelpers;
@@ -19,38 +20,36 @@ export class SharedUtilitiesSlice implements ISharedUtilitiesSlice {
         this.logger = new Logger('SharedUtilities');
         this.dailyNote = DailyNote;
         this.commonHelpers = CommonHelpers;
-        
+    }
+
+    /**
+     * Initialize the slice
+     */
+    async initialize(dependencies: SliceDependencies): Promise<void> {
+        this.logger.debug('Initializing SharedUtilitiesSlice');
+        // No external dependencies needed for this slice
         this.logger.debug('SharedUtilities slice initialized');
+    }
+
+    /**
+     * Start the slice
+     */
+    async start(): Promise<void> {
+        this.logger.debug('Starting SharedUtilitiesSlice');
+    }
+
+    /**
+     * Stop the slice
+     */
+    async stop(): Promise<void> {
+        this.logger.debug('Stopping SharedUtilitiesSlice');
     }
 
     /**
      * Get logger instance for debugging and error reporting
      */
-    getLogger(): (prefix?: string) => {
-        debug(message?: unknown, ...optionalParams: unknown[]): void;
-        info(message?: unknown, ...optionalParams: unknown[]): void;
-        warn(message?: unknown, ...optionalParams: unknown[]): void;
-        error(message?: unknown, ...optionalParams: unknown[]): void;
-        on(level?: any): void;
-        off(): void;
-        isEnabled(): boolean;
-    } {
-        return (prefix?: string) => {
-            const logger = new Logger(prefix ? `SharedUtilities-${prefix}` : 'SharedUtilities');
-            return {
-                debug: (message?: unknown, ...optionalParams: unknown[]) => 
-                    logger.debug(message, ...optionalParams),
-                info: (message?: unknown, ...optionalParams: unknown[]) => 
-                    logger.info(message, ...optionalParams),
-                warn: (message?: unknown, ...optionalParams: unknown[]) => 
-                    logger.warn(message, ...optionalParams),
-                error: (message?: unknown, ...optionalParams: unknown[]) => 
-                    logger.error(message, ...optionalParams),
-                on: (level?: any) => logger.on(level),
-                off: () => logger.off(),
-                isEnabled: () => logger.isEnabled()
-            };
-        };
+    getLogger(prefix?: string): any {
+        return new Logger(prefix ? `SharedUtilities-${prefix}` : 'SharedUtilities');
     }
 
     /**
@@ -151,15 +150,15 @@ export class SharedUtilitiesSlice implements ISharedUtilitiesSlice {
                     !path.includes('|') &&
                     !path.includes('?') &&
                     !path.includes('*'));
-                
+
                 this.logger.debug('File path validation result', { path, isValid });
                 return isValid;
             },
             isValidMarkdownPath: (path: string) => {
                 this.logger.debug('Validating markdown path', { path });
-                const isValid = this.getValidationUtils().isValidFilePath(path) && 
+                const isValid = this.getValidationUtils().isValidFilePath(path) &&
                     path.toLowerCase().endsWith('.md');
-                
+
                 this.logger.debug('Markdown path validation result', { path, isValid });
                 return isValid;
             },
@@ -169,7 +168,7 @@ export class SharedUtilitiesSlice implements ISharedUtilitiesSlice {
                     .replace(/[<>:"|?*]/g, '')
                     .replace(/\s+/g, ' ')
                     .trim();
-                
+
                 this.logger.debug('File name sanitization result', { name, sanitized });
                 return sanitized;
             }
@@ -202,17 +201,17 @@ export class SharedUtilitiesSlice implements ISharedUtilitiesSlice {
                     'TimeoutError',
                     'ConnectionError'
                 ];
-                
+
                 const isRetryable = retryableErrors.includes(error.name) ||
                     error.message.includes('timeout') ||
                     error.message.includes('network');
-                
-                this.logger.debug('Checking if error is retryable', { 
-                    errorName: error.name, 
-                    errorMessage: error.message, 
-                    isRetryable 
+
+                this.logger.debug('Checking if error is retryable', {
+                    errorName: error.name,
+                    errorMessage: error.message,
+                    isRetryable
                 });
-                
+
                 return isRetryable;
             }
         };
@@ -221,7 +220,7 @@ export class SharedUtilitiesSlice implements ISharedUtilitiesSlice {
     /**
      * Cleanup resources used by this slice
      */
-    cleanup(): void {
+    async cleanup(): Promise<void> {
         this.logger.debug('Cleaning up SharedUtilities slice');
         // No specific cleanup needed for this slice currently
         this.logger.debug('SharedUtilities slice cleanup completed');

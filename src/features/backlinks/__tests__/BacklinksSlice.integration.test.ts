@@ -5,7 +5,7 @@ describe('BacklinksSlice Integration', () => {
   let mockApp: jest.Mocked<App>;
   let backlinksSlice: BacklinksSlice;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Create comprehensive mock app
     mockApp = {
       metadataCache: {
@@ -35,6 +35,13 @@ describe('BacklinksSlice Integration', () => {
 
     // Create BacklinksSlice (logger is created internally)
     backlinksSlice = new BacklinksSlice(mockApp);
+    await backlinksSlice.initialize({
+      app: mockApp,
+      logger: { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any,
+      settings: {} as any,
+      sharedUtilities: {} as any,
+      sharedContracts: {} as any
+    });
   });
 
   afterEach(() => {
