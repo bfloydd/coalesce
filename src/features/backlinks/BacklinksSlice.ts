@@ -122,6 +122,19 @@ export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
         );
 
         this.logger.debug('BacklinksSlice initialized', { options: this.options });
+
+        // Subscribe to events via EventBus
+        if (dependencies.eventBus) {
+            dependencies.eventBus.on('noteEditing:headingAdded', (data: any) => {
+                this.logger.debug('Received noteEditing:headingAdded event', { data });
+                // Handle the event - e.g., refresh backlinks for the file
+                if (data && data.filePath) {
+                    this.updateBacklinks(data.filePath).catch(err =>
+                        this.logger.error('Failed to update backlinks on heading added', { error: err })
+                    );
+                }
+            });
+        }
     }
 
     /**

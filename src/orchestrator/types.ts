@@ -85,9 +85,8 @@ export interface EventWiringConfig {
 export interface SliceDependencies {
     app: App;
     logger: any;
-    settings: any;
-    sharedUtilities: any;
-    sharedContracts: any;
+    eventBus: EventBus;
+    [key: string]: any; // Allow dynamic access to other slices
 }
 
 // ============================

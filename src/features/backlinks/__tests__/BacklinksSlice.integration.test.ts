@@ -40,7 +40,8 @@ describe('BacklinksSlice Integration', () => {
       logger: { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() } as any,
       settings: {} as any,
       sharedUtilities: {} as any,
-      sharedContracts: {} as any
+      sharedContracts: {} as any,
+      eventBus: { on: jest.fn(), emit: jest.fn(), off: jest.fn() } as any
     });
   });
 

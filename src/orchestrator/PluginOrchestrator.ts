@@ -103,7 +103,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
             await this.initializeSlices();
 
             // Wire up events between slices
-            this.wireUpEvents();
+            // this.wireUpEvents(); // Deprecated: Slices now handle their own event subscriptions via EventBus
 
             // Update statistics
             this.statistics.totalInitializations++;
@@ -351,12 +351,12 @@ export class PluginOrchestrator implements IPluginOrchestrator {
 
         try {
             // Create dependencies
+            // Create dependencies
             const dependencies: SliceDependencies = {
                 app: this.app,
                 logger: this.logger,
-                settings: null, // Will be set after settings slice is created
-                sharedUtilities: null, // Will be set after shared utilities slice is created
-                sharedContracts: null
+                eventBus: this.eventBus,
+                ...this.slices // Inject all slices
             };
 
             // Initialize slices in dependency order
@@ -364,15 +364,10 @@ export class PluginOrchestrator implements IPluginOrchestrator {
             const sliceOrder = this.sliceRegistry.getAllNames();
 
             for (const sliceName of sliceOrder) {
-                await this.initializeSlice(sliceName, dependencies);
+                // Update dependencies with latest slices map
+                Object.assign(dependencies, this.slices);
 
-                // Update dependencies for next slices
-                // Note: This is a temporary bridge until we have a full DI container
-                if (sliceName === 'sharedUtilities') {
-                    dependencies.sharedUtilities = this.slices[sliceName];
-                } else if (sliceName === 'settings') {
-                    dependencies.settings = this.slices[sliceName];
-                }
+                await this.initializeSlice(sliceName, dependencies);
             }
 
             this.logger.debug('All slices initialized successfully');
