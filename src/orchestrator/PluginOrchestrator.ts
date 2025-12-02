@@ -1,4 +1,4 @@
-﻿import { App } from 'obsidian';
+﻿import { App, Plugin } from 'obsidian';
 import { IPluginOrchestrator, OrchestratorConfig, SliceMap, OrchestratorState, OrchestratorStatistics, EventWiringConfig, SliceDependencies, OrchestratorEvent, SliceLifecycleEvent } from './types';
 import { EventBus } from './EventBus';
 import { Logger } from '../features/shared-utilities/Logger';
@@ -14,7 +14,7 @@ import { IPluginSlice, SliceFactory } from './types';
  */
 export class PluginOrchestrator implements IPluginOrchestrator {
     private app: App;
-    private plugin: any;
+    private plugin: Plugin;
     private config: OrchestratorConfig;
     private logger: Logger;
     private eventBus: EventBus;
@@ -25,7 +25,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
     private eventWiring: EventWiringConfig[];
     private startTime: Date;
 
-    constructor(app: App, plugin?: any, config?: Partial<OrchestratorConfig>) {
+    constructor(app: App, plugin: Plugin, config?: Partial<OrchestratorConfig>) {
         this.app = app;
         this.plugin = plugin;
 

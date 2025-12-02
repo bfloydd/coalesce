@@ -75,6 +75,21 @@ export interface ISettingsSlice {
         setTheme(theme: string): void;
         getAvailableThemes(): readonly string[];
     };
+
+    /**
+     * Update multiple settings at once
+     */
+    updateSettings(updates: Partial<CoalescePluginSettings>): Promise<void>;
+
+    /**
+     * Reset settings to defaults
+     */
+    resetSettings(): Promise<void>;
+
+    /**
+     * Get settings UI component
+     */
+    getSettingsUI(): any;
 }
 
 // ============================

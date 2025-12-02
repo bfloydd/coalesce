@@ -1,90 +1,50 @@
-import { Plugin, TFile, MarkdownView } from 'obsidian';
-import { PluginOrchestrator } from './src/orchestrator';
-import { CoalescePluginSettings, ExtendedApp } from './src/features/shared-contracts';
+import { Plugin } from 'obsidian';
+import { PluginOrchestrator } from './src/orchestrator/PluginOrchestrator';
 import { Logger } from './src/features/shared-utilities/Logger';
-import { createAndStartOrchestrator } from './src/orchestrator/PluginBootstrap';
+import { CoalescePluginSettings } from './src/features/shared-contracts/plugin';
+import { ISettingsSlice } from './src/features/shared-contracts/slice-interfaces';
 import { attachDebugCommands, detachDebugCommands } from './src/orchestrator/PluginDebugCommands';
 import { registerPluginEvents } from './src/orchestrator/PluginEvents';
-import { createViewInitializer, PluginViewInitializer } from './src/orchestrator/PluginViewInitializer';
+import { PluginViewInitializer } from './src/orchestrator/PluginViewInitializer';
+import { ExtendedApp } from './src/features/shared-contracts/obsidian';
 
 export default class CoalescePlugin extends Plugin {
 	private orchestrator: PluginOrchestrator;
-	private logger: any;
+	private logger: Logger;
+	private settings: CoalescePluginSettings;
 	private viewInitializer: PluginViewInitializer;
 
 	async onload() {
-		try {
-			// Initialize and start orchestrator with configuration
-			this.orchestrator = await createAndStartOrchestrator(this.app, this, {
-				enableLogging: true,
-				enableEventDebugging: false,
-				enablePerformanceMonitoring: true,
-				enableErrorRecovery: true,
-				maxRetries: 3,
-				retryDelay: 1000
-			});
+		// Initialize logger
+		this.logger = new Logger('CoalescePlugin');
 
-			// Initialize logger from shared utilities
-			const sharedUtilities = this.orchestrator.getSlice('sharedUtilities') as { getLogger: (prefix?: string) => any };
-			try {
-				this.logger = sharedUtilities?.getLogger?.('Coalesce');
-				// Verify the logger has the expected methods
-				if (!this.logger || typeof this.logger.debug !== 'function') {
-					throw new Error('Logger not properly initialized');
-				}
-			} catch (error) {
-				console.warn('Failed to initialize logger from shared utilities, using fallback:', error);
-				// Fallback logger
-				this.logger = {
-					debug: (message?: any, ...args: any[]) => console.debug('[Coalesce]', message, ...args),
-					info: (message?: any, ...args: any[]) => console.info('[Coalesce]', message, ...args),
-					warn: (message?: any, ...args: any[]) => console.warn('[Coalesce]', message, ...args),
-					error: (message?: any, ...args: any[]) => console.error('[Coalesce]', message, ...args)
-				};
-			}
+		// Initialize orchestrator
+		this.orchestrator = new PluginOrchestrator(this.app, this);
+		await this.orchestrator.initialize();
+		await this.orchestrator.start();
 
-			// Set initial global logging state based on settings
-			const settingsSliceInit = this.orchestrator.getSlice('settings') as any;
-			if (settingsSliceInit) {
-				const settings = settingsSliceInit.getSettings?.() || {};
-				Logger.setGlobalLogging(settings.enableLogging || false);
-			}
-
-			// Create view initializer helper
-			this.viewInitializer = createViewInitializer(this.app, this.orchestrator, this.logger);
-
-			// Setup debug methods for development
-			this.setupDebugMethods();
-
-			// Register event handlers
-			this.registerEventHandlers();
-
-			// Add settings tab
-			const settingsSlice = this.orchestrator.getSlice('settings') as any;
-			if (settingsSlice) {
-				// Ensure settings are loaded before creating settings tab
-				await settingsSlice.loadSettings();
-				
-				const settingsUI = settingsSlice.getSettingsUI();
-				const settingsTab = settingsUI.createSettingsTab(
-					this,
-					settingsSlice.getSettings(),
-					(settings: Partial<CoalescePluginSettings>) => {
-						settingsSlice.updateSettings(settings);
-					}
-				);
-				this.addSettingTab(settingsTab);
-			}
-
-			// Initialize existing views
-			this.viewInitializer.initializeExistingViews();
-
-			if (this.logger?.debug) {
-				this.logger.debug("Plugin initialization complete");
-			}
-		} catch (error) {
-			console.error("Failed to initialize Coalesce plugin:", error);
+		// Get settings slice
+		const settingsSlice = this.orchestrator.getSlice<ISettingsSlice>('settings');
+		if (settingsSlice) {
+			const settingsUI = settingsSlice.getSettingsUI();
+			const settingsTab = settingsUI.createSettingsTab(
+				this,
+				settingsSlice.getSettings(),
+				(newSettings: Partial<CoalescePluginSettings>) => settingsSlice.updateSettings(newSettings)
+			);
+			this.addSettingTab(settingsTab);
 		}
+
+		// Initialize view initializer
+		this.viewInitializer = new PluginViewInitializer(this.app, this.orchestrator);
+
+		// Setup debug methods
+		this.setupDebugMethods();
+
+		// Register event handlers
+		this.registerEventHandlers();
+
+		this.logger.debug("Plugin initialization complete");
 	}
 
 	private setupDebugMethods() {
