@@ -282,16 +282,23 @@ export class SettingsCore {
 
     /**
      * Handle sort state change from header slice.
+     *
+     * Persists both the sort direction and whether path-based sorting is enabled,
+     * mapping the in-memory header state to the persisted settings fields.
      */
     async handleSortStateChange(payload: { sortByPath: boolean; descending: boolean }): Promise<void> {
-        const descending = payload?.descending || false;
-        this.logger.debug('Handling sort state change', { descending });
+        const descending = payload?.descending ?? false;
+        const sortByPath = payload?.sortByPath ?? false;
+        this.logger.debug('Handling sort state change', { sortByPath, descending });
 
         try {
-            await this.updateSetting('sortDescending', descending);
-            this.logger.debug('Sort direction saved to settings', { descending });
+            await this.updateSettings({
+                sortDescending: descending,
+                sortByFullPath: sortByPath
+            });
+            this.logger.debug('Sort settings saved', { sortByPath, descending });
         } catch (error) {
-            this.logger.error('Failed to save sort direction to settings', { descending, error });
+            this.logger.error('Failed to save sort settings', { sortByPath, descending, error });
         }
     }
 

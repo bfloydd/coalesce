@@ -143,6 +143,7 @@ export class PluginViewInitializer {
           if (uiAttached) {
             backlinksSlice.setOptions?.({
               sort: settings.sortByFullPath || false,
+              sortDescending: settings.sortDescending ?? true,
               collapsed: settings.blocksCollapsed || false,
               strategy: 'default', // Default strategy
               theme: settings.theme || 'default',

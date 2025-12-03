@@ -45,6 +45,62 @@ export function registerPluginEvents(
     }
   });
 
+  // coalesce-settings-sort-changed
+  document.addEventListener('coalesce-settings-sort-changed', (event: CustomEvent) => {
+    const { sortByPath, descending } = event.detail || {};
+    logger?.debug?.('Received coalesce-settings-sort-changed event', {
+      sortByPath,
+      descending,
+    });
+
+    try {
+      const settingsSlice = orchestrator.getSlice('settings') as any;
+      if (settingsSlice && typeof settingsSlice.handleSortStateChange === 'function') {
+        settingsSlice.handleSortStateChange({
+          sortByPath: !!sortByPath,
+          descending: !!descending,
+        });
+      } else {
+        logger?.warn?.(
+          'Settings slice not available or handleSortStateChange method not found',
+        );
+      }
+    } catch (error) {
+      logger?.error?.('Failed to handle coalesce-settings-sort-changed event', {
+        sortByPath,
+        descending,
+        error,
+      });
+    }
+  });
+
+  // coalesce-settings-theme-changed
+  document.addEventListener('coalesce-settings-theme-changed', (event: CustomEvent) => {
+    const { theme } = event.detail || {};
+    logger?.debug?.('Received coalesce-settings-theme-changed event', { theme });
+
+    if (!theme) {
+      return;
+    }
+
+    try {
+      const settingsSlice = orchestrator.getSlice('settings') as any;
+      if (settingsSlice && typeof settingsSlice.updateSetting === 'function') {
+        // Fire-and-forget persistence of theme changes from the header UI
+        void settingsSlice.updateSetting('theme', theme);
+      } else {
+        logger?.warn?.(
+          'Settings slice not available or updateSetting method not found for theme change',
+        );
+      }
+    } catch (error) {
+      logger?.error?.('Failed to handle coalesce-settings-theme-changed event', {
+        theme,
+        error,
+      });
+    }
+  });
+
   // coalesce-logging-state-changed
   document.addEventListener('coalesce-logging-state-changed', (event: CustomEvent) => {
     const { enabled } = event.detail;
@@ -202,6 +258,7 @@ export function registerPluginEvents(
 
           (backlinks as any)?.setOptions?.({
             sort: settings.sortByFullPath || false,
+            sortDescending: settings.sortDescending ?? true,
             collapsed: settings.blocksCollapsed || false,
             strategy: 'default',
             theme: settings.theme || 'default',

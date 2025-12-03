@@ -199,6 +199,7 @@ export class BacklinksViewController {
      */
     setOptions(options: {
         sort?: boolean;
+        sortDescending?: boolean;
         collapsed?: boolean;
         strategy?: string;
         theme?: string;
@@ -210,6 +211,8 @@ export class BacklinksViewController {
         const updatedState = this.headerController.updateStateFromOptions(options);
 
         this.renderOptions.collapsed = updatedState.isCollapsed;
+        this.renderOptions.sortByPath = updatedState.sortByPath;
+        this.renderOptions.sortDescending = updatedState.sortDescending;
         this.currentTheme = updatedState.currentTheme;
 
         this.applyCurrentOptions();
@@ -260,9 +263,22 @@ export class BacklinksViewController {
 
         const newState = this.headerController.toggleSort();
 
+        // Keep render options in sync with header state
+        this.renderOptions.sortByPath = newState.sortByPath;
+        this.renderOptions.sortDescending = newState.sortDescending;
+
         if (this.lastRenderContext) {
             this.applySortingToDOM(this.lastRenderContext.container, newState.sortDescending);
         }
+
+        // Persist sort direction to settings via DOM custom event
+        const event = new CustomEvent('coalesce-settings-sort-changed', {
+            detail: {
+                sortByPath: newState.sortByPath,
+                descending: newState.sortDescending
+            }
+        });
+        document.dispatchEvent(event);
     }
 
     private handleCollapseToggle(): void {
@@ -302,6 +318,12 @@ export class BacklinksViewController {
         this.currentTheme = newState.currentTheme;
 
         this.applyThemeToContainer(newState.currentTheme);
+
+        // Persist theme selection to settings via DOM custom event
+        const event = new CustomEvent('coalesce-settings-theme-changed', {
+            detail: { theme: newState.currentTheme }
+        });
+        document.dispatchEvent(event);
     }
 
     private handleHeaderStyleChange(style: string): void {

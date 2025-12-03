@@ -353,6 +353,7 @@ export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
      */
     setOptions(options: {
         sort?: boolean;
+        sortDescending?: boolean;
         collapsed?: boolean;
         strategy?: string;
         theme?: string;

@@ -290,6 +290,7 @@ export class HeaderController {
      */
     updateStateFromOptions(options: {
         sort?: boolean;
+        sortDescending?: boolean;
         collapsed?: boolean;
         strategy?: string;
         theme?: string;
@@ -302,6 +303,10 @@ export class HeaderController {
 
         if (options.sort !== undefined) {
             updated.sortByPath = options.sort;
+        }
+
+        if (options.sortDescending !== undefined) {
+            updated.sortDescending = options.sortDescending;
         }
 
         if (options.collapsed !== undefined) {
