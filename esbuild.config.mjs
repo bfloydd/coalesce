@@ -4,11 +4,13 @@ import builtins from "builtin-modules";
 import fs from "fs";
 import path from "path";
 
-const prod = (process.argv[2] === "production");
+const mode = process.argv[2];
+const prod = (mode === "production");
+const qa = (mode === "qa");
 const distDir = prod ? "dist" : ".";
 
 console.log('Starting build process', {
-	mode: prod ? 'production' : 'development',
+	mode: prod ? 'production' : (qa ? 'qa' : 'development'),
 	distDir
 });
 
@@ -125,6 +127,60 @@ if (prod) {
 		console.log('Production build process completed successfully');
 	} catch (error) {
 		console.error('Production build failed:', error);
+		process.exit(1);
+	}
+	process.exit(0);
+} else if (qa) {
+	console.log('Building for qa (one-time build to current directory)...');
+	try {
+		await context.rebuild();
+		console.log('QA build completed successfully');
+
+		// Build CSS bundle (non-minified, like dev mode)
+		const cssSources = [
+			"styles/base/variables.css",
+			"styles/base/reset.css",
+			"styles/components/backlinks.css",
+			"styles/components/header.css",
+			"styles/components/blocks.css",
+			"styles/components/settings.css",
+			"styles/themes/default.css",
+			"styles/themes/compact.css",
+			"styles/themes/modern.css",
+			"styles/themes/naked.css"
+		];
+
+		let combinedCss = "";
+
+		for (const cssPath of cssSources) {
+			if (fs.existsSync(cssPath)) {
+				const contents = fs.readFileSync(cssPath, "utf8");
+				if (contents.trim().length > 0) {
+					combinedCss += `/* Source: ${cssPath} */\n` + contents + "\n\n";
+				}
+			}
+		}
+
+		if (combinedCss.length > 0) {
+			console.log("Processing CSS bundle (qa)...");
+			const result = await esbuild.transform(combinedCss, {
+				loader: "css",
+				minify: false
+			});
+			const cssOutPath = path.join(distDir, "styles.css");
+			fs.writeFileSync(cssOutPath, result.code);
+			console.log('CSS bundle (qa) written', {
+				originalSize: combinedCss.length,
+				minifiedSize: result.code.length,
+				outputPath: cssOutPath
+			});
+		} else {
+			console.log("No CSS sources found, skipping CSS processing (qa)");
+		}
+
+		console.log('QA build process completed successfully');
+	} catch (error) {
+		console.error('QA build failed:', error);
 		process.exit(1);
 	}
 	process.exit(0);
