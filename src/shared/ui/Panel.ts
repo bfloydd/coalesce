@@ -1,3 +1,5 @@
+import { hasCreateDiv, ObsidianHTMLElement } from '../type-utils';
+
 export interface PanelOptions {
     parent: HTMLElement;
     /**
@@ -28,16 +30,18 @@ export function createPanel(options: PanelOptions): HTMLDivElement {
     const className = ['coalesce-panel', ...classes].join(' ');
 
     // Prefer Obsidian's createDiv helper when available
-    const created = (parent as any).createDiv?.({
-        cls: className
-    }) as HTMLDivElement | undefined;
-
-    const panel = created ?? (() => {
-        const div = document.createElement('div');
-        div.className = className;
-        parent.appendChild(div);
-        return div;
-    })();
+    let panel: HTMLDivElement;
+    if (hasCreateDiv(parent)) {
+        const created = parent.createDiv({
+            cls: className
+        });
+        panel = created;
+    } else {
+        panel = document.createElement('div');
+        panel.className = className;
+        // TypeScript needs explicit type here - parent is HTMLElement in else branch
+        (parent as HTMLElement).appendChild(panel);
+    }
 
     if (role) {
         panel.setAttribute('role', role);

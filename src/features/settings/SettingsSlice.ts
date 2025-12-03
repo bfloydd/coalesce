@@ -21,6 +21,9 @@ export class SettingsSlice implements IPluginSlice, ISettingsSlice {
     private app: App;
     private plugin: PluginInterface;
     private logger: Logger;
+    
+    // Index signature to satisfy IPluginSlice interface
+    [key: string]: unknown;
 
     // Core/domain service
     private core: SettingsCore;
@@ -30,7 +33,8 @@ export class SettingsSlice implements IPluginSlice, ISettingsSlice {
 
     constructor(app: App, plugin?: PluginInterface) {
         this.app = app;
-        this.plugin = plugin || (app as any); // Fallback to app if plugin not provided
+        // Fallback to app if plugin not provided (app implements PluginInterface in Obsidian)
+        this.plugin = plugin || (app as unknown as PluginInterface);
         this.logger = new Logger('SettingsSlice');
 
         // Components will be initialized in initialize()

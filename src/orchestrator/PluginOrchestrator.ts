@@ -18,7 +18,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
     private config: OrchestratorConfig;
     private logger: Logger;
     private eventBus: EventBus;
-    private slices: Record<string, IPluginSlice | null>;
+    private slices: Map<string, IPluginSlice | null>;
     private sliceRegistry: SliceRegistry;
     private state: OrchestratorState;
     private statistics: OrchestratorStatistics;
@@ -50,7 +50,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
         this.sliceRegistry = new SliceRegistry();
 
         // Initialize slices map
-        this.slices = {};
+        this.slices = new Map();
 
         // Initialize state
         this.state = {
@@ -111,12 +111,12 @@ export class PluginOrchestrator implements IPluginOrchestrator {
 
             // Emit event
             this.emitOrchestratorEvent('orchestrator:initialized', {
-                slicesInitialized: Object.keys(this.slices).filter(key => this.slices[key] !== null),
+                slicesInitialized: Array.from(this.slices.keys()).filter(key => this.slices.get(key) !== null),
                 eventWiringCount: this.eventWiring.length
             });
 
             this.logger.debug('PluginOrchestrator initialized successfully', {
-                slicesCount: Object.keys(this.slices).length,
+                slicesCount: this.slices.size,
                 eventWiringCount: this.eventWiring.length
             });
         } catch (error) {
@@ -206,11 +206,11 @@ export class PluginOrchestrator implements IPluginOrchestrator {
     /**
      * Get a slice by name
      */
-    getSlice<T>(sliceName: string): T | null {
+    getSlice<T extends IPluginSlice = IPluginSlice>(sliceName: string): T | null {
         try {
-            const slice = this.slices[sliceName];
+            const slice = this.slices.get(sliceName);
             this.logger.debug('Getting slice', { sliceName, found: !!slice });
-            return slice as unknown as T;
+            return (slice as T) || null;
         } catch (error) {
             this.logger.error('Failed to get slice', { sliceName, error });
             return null;
@@ -221,7 +221,11 @@ export class PluginOrchestrator implements IPluginOrchestrator {
      * Get all slices
      */
     getAllSlices(): SliceMap {
-        return { ...this.slices };
+        const sliceMap: SliceMap = {};
+        for (const [name, slice] of this.slices.entries()) {
+            sliceMap[name] = slice;
+        }
+        return sliceMap;
     }
 
     /**
@@ -359,13 +363,14 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                 ...this.slices // Inject all slices
             };
 
-            // Initialize slices in dependency order
             // Initialize slices in registration order
             const sliceOrder = this.sliceRegistry.getAllNames();
 
             for (const sliceName of sliceOrder) {
                 // Update dependencies with latest slices map
-                Object.assign(dependencies, this.slices);
+                for (const [name, slice] of this.slices.entries()) {
+                    dependencies[name] = slice;
+                }
 
                 await this.initializeSlice(sliceName, dependencies);
             }
@@ -388,7 +393,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
             const slice = this.sliceRegistry.create(sliceName, this.app, { plugin: this.plugin });
 
             // Store slice
-            (this.slices as any)[sliceName] = slice;
+            this.slices.set(sliceName, slice);
 
             // Initialize slice
             if (slice && typeof slice.initialize === 'function') {
@@ -465,14 +470,17 @@ export class PluginOrchestrator implements IPluginOrchestrator {
      */
     private applyEventWiring(wiring: EventWiringConfig): void {
         try {
-            const sourceSlice = (this.slices as any)[wiring.source];
-            const targetSlice = (this.slices as any)[wiring.target];
+            const sourceSlice = this.slices.get(wiring.source);
+            const targetSlice = this.slices.get(wiring.target);
 
-            if (sourceSlice && targetSlice && typeof targetSlice[wiring.handler] === 'function') {
+            if (sourceSlice && targetSlice && typeof (targetSlice as Record<string, unknown>)[wiring.handler] === 'function') {
                 // Add event listener
-                sourceSlice.addEventListener(wiring.eventType, (event: any) => {
-                    targetSlice[wiring.handler](event.payload);
-                });
+                const handler = (targetSlice as Record<string, (payload: unknown) => void>)[wiring.handler];
+                if (typeof sourceSlice.addEventListener === 'function') {
+                    sourceSlice.addEventListener(wiring.eventType, (event: { payload?: unknown }) => {
+                        handler(event.payload);
+                    });
+                }
 
                 this.logger.debug('Event wiring applied', {
                     source: wiring.source,
@@ -488,7 +496,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
                     handler: wiring.handler,
                     sourceExists: !!sourceSlice,
                     targetExists: !!targetSlice,
-                    handlerExists: targetSlice && typeof targetSlice[wiring.handler] === 'function'
+                    handlerExists: targetSlice && typeof (targetSlice as Record<string, unknown>)[wiring.handler] === 'function'
                 });
             }
         } catch (error) {
@@ -503,7 +511,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
         this.logger.debug('Starting all slices');
 
         try {
-            for (const [sliceName, slice] of Object.entries(this.slices)) {
+            for (const [sliceName, slice] of this.slices.entries()) {
                 if (slice && typeof slice.start === 'function') {
                     await slice.start();
 
@@ -529,7 +537,7 @@ export class PluginOrchestrator implements IPluginOrchestrator {
         this.logger.debug('Stopping all slices');
 
         try {
-            for (const [sliceName, slice] of Object.entries(this.slices)) {
+            for (const [sliceName, slice] of this.slices.entries()) {
                 if (slice && typeof slice.stop === 'function') {
                     await slice.stop();
 
@@ -554,22 +562,14 @@ export class PluginOrchestrator implements IPluginOrchestrator {
         this.logger.debug('Cleaning up all slices');
 
         try {
-            for (const [sliceName, slice] of Object.entries(this.slices)) {
+            for (const [sliceName, slice] of this.slices.entries()) {
                 if (slice && typeof slice.cleanup === 'function') {
                     await slice.cleanup();
                 }
             }
 
             // Clear slices registry
-            this.slices = {
-                sharedUtilities: null,
-                sharedContracts: null,
-                settings: null,
-                navigation: null,
-                noteEditing: null,
-                backlinks: null, // Consolidated slice
-                viewIntegration: null
-            };
+            this.slices.clear();
 
             this.logger.debug('All slices cleaned up successfully');
         } catch (error) {

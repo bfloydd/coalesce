@@ -166,8 +166,10 @@ export class BacklinkDiscoverer implements IBacklinkDiscoverer {
                 return backlinks;
             }
 
-            const fileName = (file as any).basename;
-            const fullName = (file as any).name;
+            // Use type-safe property access
+            const fileWithProps = file as { basename: string; name: string };
+            const fileName = fileWithProps.basename;
+            const fullName = fileWithProps.name;
 
             this.logger.debug('Searching for unresolved backlinks by name', {
                 currentFilePath,

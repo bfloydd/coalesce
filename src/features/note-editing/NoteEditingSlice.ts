@@ -18,6 +18,9 @@ import { CoalesceEvent, EventHandler, NoteEditingHeadingAddedEvent } from '../sh
 export class NoteEditingSlice implements IPluginSlice, INoteEditingSlice {
     private app: App;
     private logger: Logger;
+    
+    // Index signature to satisfy IPluginSlice interface
+    [key: string]: unknown;
     private contentEditor: ContentEditor;
     private headingManager: HeadingManager;
     private fileModifier: FileModifier;
@@ -58,8 +61,9 @@ export class NoteEditingSlice implements IPluginSlice, INoteEditingSlice {
         this.logger.debug('Initializing NoteEditingSlice');
 
         // Use shared logger if available
-        if (dependencies.sharedUtilities?.getLogger) {
-            this.logger = dependencies.sharedUtilities.getLogger('NoteEditingSlice');
+        const sharedUtilities = dependencies.sharedUtilities as { getLogger?: (prefix?: string) => Logger } | undefined;
+        if (sharedUtilities?.getLogger) {
+            this.logger = sharedUtilities.getLogger('NoteEditingSlice');
         }
 
         // Initialize components

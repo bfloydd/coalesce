@@ -35,6 +35,9 @@ import { getSharedNavigation } from '../navigation/NavigationFacade';
 export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
     private readonly app: App;
     private readonly logger: Logger;
+    
+    // Index signature to satisfy IPluginSlice interface
+    [key: string]: unknown;
 
     // Core/domain services
     private state: BacklinksState;
@@ -297,7 +300,7 @@ export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
                 headerStats.totalStrategyChanges +
                 headerStats.totalThemeChanges +
                 headerStats.totalAliasSelections
-        } as any;
+        };
     }
 
     /**

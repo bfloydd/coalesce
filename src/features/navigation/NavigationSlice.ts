@@ -17,6 +17,8 @@ import { CoalesceEvent, EventHandler } from '../shared-contracts/events';
  * for the vertical slice architecture.
  */
 export class NavigationSlice implements IPluginSlice, INavigationSlice {
+    // Index signature to satisfy IPluginSlice interface
+    [key: string]: unknown;
     private app: App;
     private logger: Logger;
     private navigationService: NavigationService;

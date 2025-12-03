@@ -1,3 +1,5 @@
+import { hasCreateEl, ObsidianHTMLElement } from '../type-utils';
+
 export interface DropdownItem {
   value: string;
   label: string;
@@ -53,20 +55,21 @@ export function createDropdown(options: DropdownOptions): HTMLSelectElement {
 
   const className = ['coalesce-dropdown', ...classes].join(' ');
 
-  const created = (parent as any).createEl?.('select', {
-    cls: className,
-    attr: ariaLabel ? { 'aria-label': ariaLabel } : undefined
-  }) as HTMLSelectElement | undefined;
-
-  const select = created ?? (() => {
-    const el = document.createElement('select');
-    el.className = className;
+  let select: HTMLSelectElement;
+  if (hasCreateEl(parent)) {
+    const created = parent.createEl('select', {
+      cls: className,
+      attr: ariaLabel ? { 'aria-label': ariaLabel } : undefined
+    });
+    select = created as HTMLSelectElement;
+  } else {
+    select = document.createElement('select');
+    select.className = className;
     if (ariaLabel) {
-      el.setAttribute('aria-label', ariaLabel);
+      select.setAttribute('aria-label', ariaLabel);
     }
-    parent.appendChild(el);
-    return el;
-  })();
+    parent.appendChild(select);
+  }
 
   // Clear any existing options
   while (select.firstChild) {

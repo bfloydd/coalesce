@@ -26,7 +26,8 @@ export interface IPluginSlice {
     start(): Promise<void>;
     stop(): Promise<void>;
     cleanup(): Promise<void>;
-    [key: string]: any; // Allow other properties/methods
+    // Allow other properties/methods with proper typing
+    [key: string]: unknown;
 }
 
 export type SliceFactory = (app: App, config: any) => IPluginSlice;
@@ -84,9 +85,10 @@ export interface EventWiringConfig {
 
 export interface SliceDependencies {
     app: App;
-    logger: any;
+    logger: unknown; // Logger type - using unknown to avoid circular dependency
     eventBus: EventBus;
-    [key: string]: any; // Allow dynamic access to other slices
+    // Allow dynamic access to other slices with proper typing
+    [key: string]: App | unknown | EventBus | IPluginSlice | null | undefined;
 }
 
 // ============================
@@ -199,7 +201,7 @@ export interface IPluginOrchestrator {
     /**
      * Get a slice by name
      */
-    getSlice<T>(sliceName: string): T | null;
+    getSlice<T extends IPluginSlice = IPluginSlice>(sliceName: string): T | null;
 
     /**
      * Get all slices

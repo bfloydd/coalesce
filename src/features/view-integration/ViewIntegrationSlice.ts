@@ -23,6 +23,9 @@ interface WorkspaceLeafWithID extends WorkspaceLeaf {
 export class ViewIntegrationSlice implements IPluginSlice, IViewIntegrationSlice {
     private app: App;
     private logger: Logger;
+    
+    // Index signature to satisfy IPluginSlice interface
+    [key: string]: unknown;
     private viewManager: ViewManager;
     private domAttachmentService: DOMAttachmentService;
     private viewLifecycleHandler: ViewLifecycleHandler;

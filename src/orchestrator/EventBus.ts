@@ -229,7 +229,13 @@ export class EventBus implements IEventBus {
     /**
      * Get statistics
      */
-    getStatistics(): any {
+    getStatistics(): {
+        totalEventsEmitted: number;
+        totalListenersAdded: number;
+        totalListenersRemoved: number;
+        totalEventProcessingTime: number;
+        lastEventEmitted?: Date;
+    } {
         return { ...this.statistics };
     }
 

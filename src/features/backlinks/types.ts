@@ -164,6 +164,11 @@ export interface BacklinkStatistics {
     averageBacklinksPerFile: number;
     cacheHitRate: number;
     lastDiscoveryTime?: Date;
+    // Additional statistics from view layer
+    totalBlocksExtracted?: number;
+    totalBlocksRendered?: number;
+    totalHeadersCreated?: number;
+    totalUserInteractions?: number;
 }
 
 // ============================

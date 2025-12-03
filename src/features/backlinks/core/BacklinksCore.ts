@@ -124,7 +124,7 @@ export class BacklinksCore {
                         leafId: leafId || '',
                         count: backlinks.length
                     }
-                } as any;
+                } as CoalesceEvent;
                 this.events.emitEvent(event);
 
                 this.logger.debug('Backlinks updated successfully', {

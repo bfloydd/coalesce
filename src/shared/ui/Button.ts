@@ -1,4 +1,5 @@
 import { IconProvider, IconName, IconSize } from '../../features/shared-utilities/IconProvider';
+import { hasCreateEl, ObsidianHTMLElement } from '../type-utils';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 
@@ -22,23 +23,22 @@ export interface ButtonOptions {
 export function createButton(options: ButtonOptions): HTMLButtonElement {
     const { parent, label, onClick, variant = 'ghost', ariaLabel, icon, iconSize = 'sm', classes = [] } = options;
 
-    const button = (parent as any).createEl?.('button', {
-        cls: ['coalesce-btn', `coalesce-btn-${variant}`, ...classes].join(' '),
-        attr: {
-            type: 'button',
-            'aria-label': ariaLabel ?? label
-        }
-    }) as HTMLButtonElement;
-
-    if (!button) {
-        const fallback = document.createElement('button');
-        fallback.className = ['coalesce-btn', `coalesce-btn-${variant}`, ...classes].join(' ');
-        fallback.type = 'button';
-        fallback.setAttribute('aria-label', ariaLabel ?? label);
-        fallback.textContent = label;
-        fallback.addEventListener('click', onClick);
-        parent.appendChild(fallback);
-        return fallback;
+    let button: HTMLButtonElement;
+    if (hasCreateEl(parent)) {
+        const created = parent.createEl('button', {
+            cls: ['coalesce-btn', `coalesce-btn-${variant}`, ...classes].join(' '),
+            attr: {
+                type: 'button',
+                'aria-label': ariaLabel ?? label
+            }
+        });
+        button = created as HTMLButtonElement;
+    } else {
+        button = document.createElement('button');
+        button.className = ['coalesce-btn', `coalesce-btn-${variant}`, ...classes].join(' ');
+        button.type = 'button';
+        button.setAttribute('aria-label', ariaLabel ?? label);
+        parent.appendChild(button);
     }
 
     button.textContent = label;

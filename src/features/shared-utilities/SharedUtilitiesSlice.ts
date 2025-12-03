@@ -14,6 +14,9 @@ import { AppWithInternalPlugins } from '../shared-contracts/obsidian';
 export class SharedUtilitiesSlice implements IPluginSlice, ISharedUtilitiesSlice {
     private logger: Logger;
     private dailyNote: typeof DailyNote;
+    
+    // Index signature to satisfy IPluginSlice interface
+    [key: string]: unknown;
     private commonHelpers: typeof CommonHelpers;
 
     constructor() {
@@ -184,11 +187,11 @@ export class SharedUtilitiesSlice implements IPluginSlice, ISharedUtilitiesSlice
         isRetryableError(error: Error): boolean;
     } {
         return {
-            createError: (context: string, message: string, data?: any) => {
+            createError: (context: string, message: string, data?: unknown) => {
                 this.logger.debug('Creating error', { context, message });
                 const error = new Error(`${context}: ${message}`);
-                (error as any).context = context;
-                (error as any).data = data;
+                // Add context and data as properties (using type assertion for extended Error)
+                Object.assign(error, { context, data });
                 return error;
             },
             logError: (error: Error, context: string, data?: any) => {

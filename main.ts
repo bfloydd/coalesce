@@ -1,8 +1,10 @@
 import { Plugin } from 'obsidian';
+import { createAndStartOrchestrator } from './src/orchestrator/PluginBootstrap';
 import { PluginOrchestrator } from './src/orchestrator/PluginOrchestrator';
 import { Logger } from './src/features/shared-utilities/Logger';
 import { CoalescePluginSettings } from './src/features/shared-contracts/plugin';
 import { ISettingsSlice } from './src/features/shared-contracts/slice-interfaces';
+import { IPluginSlice } from './src/orchestrator/types';
 import { attachDebugCommands, detachDebugCommands } from './src/orchestrator/PluginDebugCommands';
 import { registerPluginEvents } from './src/orchestrator/PluginEvents';
 import { PluginViewInitializer } from './src/orchestrator/PluginViewInitializer';
@@ -18,13 +20,11 @@ export default class CoalescePlugin extends Plugin {
 		// Initialize logger
 		this.logger = new Logger('CoalescePlugin');
 
-		// Initialize orchestrator
-		this.orchestrator = new PluginOrchestrator(this.app, this);
-		await this.orchestrator.initialize();
-		await this.orchestrator.start();
+		// Initialize orchestrator (this registers all slices and initializes them)
+		this.orchestrator = await createAndStartOrchestrator(this.app, this);
 
 		// Get settings slice
-		const settingsSlice = this.orchestrator.getSlice<ISettingsSlice>('settings');
+		const settingsSlice = this.orchestrator.getSlice<ISettingsSlice & IPluginSlice>('settings');
 		if (settingsSlice) {
 			const settingsUI = settingsSlice.getSettingsUI();
 			const settingsTab = settingsUI.createSettingsTab(
@@ -36,7 +36,10 @@ export default class CoalescePlugin extends Plugin {
 		}
 
 		// Initialize view initializer
-		this.viewInitializer = new PluginViewInitializer(this.app, this.orchestrator);
+		this.viewInitializer = new PluginViewInitializer(this.app, this.orchestrator, this.logger);
+
+		// Initialize existing views (files already open when plugin loads)
+		this.viewInitializer.initializeExistingViews();
 
 		// Setup debug methods
 		this.setupDebugMethods();

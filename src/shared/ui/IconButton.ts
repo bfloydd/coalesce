@@ -1,4 +1,5 @@
 import { IconProvider, IconName, IconSize } from '../../features/shared-utilities/IconProvider';
+import { hasCreateEl } from '../type-utils';
 
 export interface IconButtonOptions {
     parent: HTMLElement;
@@ -18,23 +19,22 @@ export interface IconButtonOptions {
 export function createIconButton(options: IconButtonOptions): HTMLButtonElement {
     const { parent, icon, onClick, ariaLabel, size = 'sm', classes = [] } = options;
 
-    const button = (parent as any).createEl?.('button', {
-        cls: ['coalesce-icon-button', ...classes].join(' '),
-        attr: {
-            type: 'button',
-            'aria-label': ariaLabel
-        }
-    }) as HTMLButtonElement;
-
-    if (!button) {
-        const fallback = document.createElement('button');
-        fallback.className = ['coalesce-icon-button', ...classes].join(' ');
-        fallback.type = 'button';
-        fallback.setAttribute('aria-label', ariaLabel);
-        parent.appendChild(fallback);
-        fallback.addEventListener('click', onClick);
-        IconProvider.setIcon(fallback, icon, { size });
-        return fallback;
+    let button: HTMLButtonElement;
+    if (hasCreateEl(parent)) {
+        const created = parent.createEl('button', {
+            cls: ['coalesce-icon-button', ...classes].join(' '),
+            attr: {
+                type: 'button',
+                'aria-label': ariaLabel
+            }
+        });
+        button = created as HTMLButtonElement;
+    } else {
+        button = document.createElement('button');
+        button.className = ['coalesce-icon-button', ...classes].join(' ');
+        button.type = 'button';
+        button.setAttribute('aria-label', ariaLabel);
+        parent.appendChild(button);
     }
 
     IconProvider.setIcon(button, icon, { size });
