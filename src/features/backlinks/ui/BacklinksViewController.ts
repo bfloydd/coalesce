@@ -320,7 +320,7 @@ export class BacklinksViewController {
 
         // Get current note name from last render context or extract from view
         let currentNoteName = this.lastRenderContext?.currentNoteName || '';
-        if (!currentNoteName && this.lastRenderContext?.filePaths.length > 0) {
+        if (!currentNoteName && this.lastRenderContext && this.lastRenderContext.filePaths.length > 0) {
             // Extract note name from the first file path (should be the current note)
             const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
             if (activeView?.file) {
