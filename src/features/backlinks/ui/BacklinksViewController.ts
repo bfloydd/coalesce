@@ -124,6 +124,9 @@ export class BacklinksViewController {
         const container = document.createElement('div');
         container.className = 'coalesce-custom-backlinks-container';
 
+        // Extract aliases from current note's frontmatter
+        const aliases = this.extractAliasesFromNote(currentNotePath);
+
         // Create header using HeaderController (stateful)
         const headerState = this.headerController.getHeaderState();
         const headerElement = this.headerController.createHeader(container, {
@@ -133,7 +136,7 @@ export class BacklinksViewController {
             currentStrategy: headerState.currentStrategy,
             currentTheme: headerState.currentTheme,
             showFullPathTitle: headerState.showFullPathTitle,
-            aliases: [],
+            aliases: aliases,
             currentAlias: headerState.currentAlias,
             unsavedAliases: [],
             currentHeaderStyle: headerState.currentHeaderStyle,
@@ -158,8 +161,22 @@ export class BacklinksViewController {
         blocksContainer.className = 'backlinks-list';
         container.appendChild(blocksContainer);
 
+        // Extract note name (basename without extension) for alias matching
+        const file = this.app.vault.getAbstractFileByPath(currentNotePath);
+        const currentNoteName = file && file instanceof TFile ? file.basename : currentNotePath.replace(/\.md$/, '').split('/').pop() || '';
+
         // Extract and render blocks
-        await this.extractAndRenderBlocks(backlinks, currentNotePath, blocksContainer, view);
+        await this.extractAndRenderBlocks(backlinks, currentNoteName, blocksContainer, view);
+
+        // Apply current alias filter after blocks are rendered
+        const currentAlias = headerState.currentAlias;
+        if (currentAlias !== null) {
+            this.filterBlocksByAlias(currentNoteName, currentAlias);
+        } else {
+            // If no alias selected, ensure all blocks are visible
+            const blocks = this.getCurrentBlocks(currentNoteName);
+            this.blockRenderer.filterBlocksByAlias(blocks, null, currentNoteName);
+        }
 
         // Apply current theme
         this.applyThemeToContainer(this.currentTheme);
@@ -301,7 +318,15 @@ export class BacklinksViewController {
 
         const newState = this.headerController.selectAlias(alias);
 
-        const currentNoteName = this.lastRenderContext?.currentNoteName || '';
+        // Get current note name from last render context or extract from view
+        let currentNoteName = this.lastRenderContext?.currentNoteName || '';
+        if (!currentNoteName && this.lastRenderContext?.filePaths.length > 0) {
+            // Extract note name from the first file path (should be the current note)
+            const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+            if (activeView?.file) {
+                currentNoteName = activeView.file.basename;
+            }
+        }
         this.filterBlocksByAlias(currentNoteName, newState.currentAlias);
     }
 
@@ -585,6 +610,43 @@ export class BacklinksViewController {
 
     private getCurrentBlocks(currentNoteName: string): BlockData[] {
         return this.currentBlocks.get(currentNoteName) || [];
+    }
+
+    /**
+     * Extract aliases from the current note's frontmatter
+     */
+    private extractAliasesFromNote(notePath: string): string[] {
+        try {
+            const file = this.app.vault.getAbstractFileByPath(notePath);
+            if (!file || !(file instanceof TFile)) {
+                this.logger.debug('File not found or not TFile', { notePath });
+                return [];
+            }
+
+            const cache = this.app.metadataCache.getFileCache(file);
+            if (!cache || !cache.frontmatter) {
+                this.logger.debug('No frontmatter found', { notePath });
+                return [];
+            }
+
+            const aliases = cache.frontmatter.aliases;
+            if (!aliases) {
+                this.logger.debug('No aliases in frontmatter', { notePath });
+                return [];
+            }
+
+            // Handle both array and single string aliases
+            const aliasArray = Array.isArray(aliases) ? aliases : [aliases];
+            const validAliases = aliasArray.filter(
+                (alias): alias is string => typeof alias === 'string' && alias.trim().length > 0
+            );
+
+            this.logger.debug('Aliases extracted from note', { notePath, aliases: validAliases });
+            return validAliases;
+        } catch (error) {
+            this.logger.error('Failed to extract aliases from note', { notePath, error });
+            return [];
+        }
     }
 
     private addNoBacklinksMessage(container: HTMLElement): void {
