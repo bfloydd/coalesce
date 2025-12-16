@@ -74,7 +74,8 @@ export default class CoalescePlugin extends Plugin {
 			this,
 			this.orchestrator,
 			this.logger,
-			this.viewInitializer.updateForFile.bind(this.viewInitializer)
+			this.viewInitializer.updateForFile.bind(this.viewInitializer),
+			this.viewInitializer // Pass viewInitializer to check cold start status
 		);
 	}
 

@@ -47,6 +47,8 @@ export class BacklinksViewController {
     private attachedViews: Map<string, { container: HTMLElement; lastUpdate: number }> = new Map();
     // Track views that showed "No backlinks found" and might need retry
     private pendingRetries: Map<string, { filePath: string; view: MarkdownView; retryCount: number }> = new Map();
+    // Track views currently being processed to prevent concurrent attachToDOM calls
+    private processingViews: Set<string> = new Set();
 
     constructor(
         private readonly app: App,
@@ -111,197 +113,247 @@ export class BacklinksViewController {
             metadataCacheState
         });
 
-        // Check if UI is already attached and recent (within last 5 seconds), unless force refresh is requested
-        const existingAttachment = this.attachedViews.get(viewId);
-        if (!forceRefresh && existingAttachment && Date.now() - existingAttachment.lastUpdate < 5000) {
-            this.logger.debug('UI already attached recently, skipping', { viewId, currentNotePath });
+        // CRITICAL: Prevent concurrent attachToDOM calls for the same view
+        if (this.processingViews.has(viewId)) {
+            this.logger.warn('BLOCKED: attachToDOM already in progress for this view, skipping duplicate call', {
+                currentNotePath,
+                viewId,
+                forceRefresh,
+                timestamp: startTime,
+                callStack: new Error().stack?.split('\n').slice(1, 6).join(' -> ')
+            });
             return false;
         }
 
-        // Clear any existing coalesce containers from the view
-        const existingContainers = view.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
-        existingContainers.forEach(container => container.remove());
+        // Mark as processing immediately to prevent concurrent calls
+        this.processingViews.add(viewId);
 
-        // Get backlinks for the current note via core
-        const backlinksStartTime = Date.now();
-        this.logger.info('Calling core.updateBacklinks', {
-            currentNotePath,
-            viewId,
-            metadataCacheStateBefore: {
-                resolvedLinksCount: Object.keys(this.app.metadataCache.resolvedLinks).length,
-                unresolvedLinksCount: Object.keys(this.app.metadataCache.unresolvedLinks).length,
-                hasContent: Object.keys(this.app.metadataCache.resolvedLinks).length > 0 || 
-                           Object.keys(this.app.metadataCache.unresolvedLinks).length > 0
+        try {
+            // CRITICAL: Check if UI is already attached in the DOM - this is an ERROR condition
+            const existingContainersInDOM = view.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
+            if (existingContainersInDOM.length > 0) {
+                this.logger.error('ERROR: Attempting to attach coalesce UI to a note that already has it!', {
+                    currentNotePath,
+                    viewId,
+                    existingContainerCount: existingContainersInDOM.length,
+                    forceRefresh,
+                    timestamp: startTime,
+                    callStack: new Error().stack?.split('\n').slice(1, 6).join(' -> ')
+                });
+                // Still clear and reattach to prevent duplicates, but log the error
+                existingContainersInDOM.forEach(container => container.remove());
             }
-        });
-        
-        let backlinks = await this.core.updateBacklinks(currentNotePath, viewId);
-        
-        const backlinksDuration = Date.now() - backlinksStartTime;
-        this.logger.info('core.updateBacklinks completed', {
-            currentNotePath,
-            viewId,
-            backlinkCount: backlinks.length,
-            duration: backlinksDuration,
-            metadataCacheStateAfter: {
-                resolvedLinksCount: Object.keys(this.app.metadataCache.resolvedLinks).length,
-                unresolvedLinksCount: Object.keys(this.app.metadataCache.unresolvedLinks).length,
-                hasContent: Object.keys(this.app.metadataCache.resolvedLinks).length > 0 || 
-                           Object.keys(this.app.metadataCache.unresolvedLinks).length > 0
-            }
-        });
 
-        // If no backlinks found and metadata cache appears empty, schedule a retry
-        if (backlinks.length === 0) {
-            const metadataCacheReady = Object.keys(this.app.metadataCache.resolvedLinks).length > 0 ||
-                                      Object.keys(this.app.metadataCache.unresolvedLinks).length > 0;
+            // Check if UI is already attached and recent (within last 5 seconds), unless force refresh is requested
+            const existingAttachment = this.attachedViews.get(viewId);
+            if (!forceRefresh && existingAttachment && Date.now() - existingAttachment.lastUpdate < 5000) {
+                this.logger.debug('UI already attached recently, skipping', { viewId, currentNotePath });
+                return false;
+            }
+
+            // Clear any existing coalesce containers from the view (defensive cleanup)
+            const existingContainers = view.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
+            existingContainers.forEach(container => container.remove());
+
+            // Get backlinks for the current note via core
+            const backlinksStartTime = Date.now();
+            this.logger.info('Calling core.updateBacklinks', {
+                currentNotePath,
+                viewId,
+                metadataCacheStateBefore: {
+                    resolvedLinksCount: Object.keys(this.app.metadataCache.resolvedLinks).length,
+                    unresolvedLinksCount: Object.keys(this.app.metadataCache.unresolvedLinks).length,
+                    hasContent: Object.keys(this.app.metadataCache.resolvedLinks).length > 0 || 
+                               Object.keys(this.app.metadataCache.unresolvedLinks).length > 0
+                }
+            });
             
-            if (!metadataCacheReady) {
-                // Metadata cache might not be ready yet, schedule a retry
-                const retryInfo = this.pendingRetries.get(viewId);
-                const retryCount = retryInfo ? retryInfo.retryCount : 0;
+            let backlinks = await this.core.updateBacklinks(currentNotePath, viewId);
+            
+            const backlinksDuration = Date.now() - backlinksStartTime;
+            this.logger.info('core.updateBacklinks completed', {
+                currentNotePath,
+                viewId,
+                backlinkCount: backlinks.length,
+                duration: backlinksDuration,
+                metadataCacheStateAfter: {
+                    resolvedLinksCount: Object.keys(this.app.metadataCache.resolvedLinks).length,
+                    unresolvedLinksCount: Object.keys(this.app.metadataCache.unresolvedLinks).length,
+                    hasContent: Object.keys(this.app.metadataCache.resolvedLinks).length > 0 || 
+                               Object.keys(this.app.metadataCache.unresolvedLinks).length > 0
+                }
+            });
+
+            // If no backlinks found and metadata cache appears empty, schedule a retry
+            if (backlinks.length === 0) {
+                const metadataCacheReady = Object.keys(this.app.metadataCache.resolvedLinks).length > 0 ||
+                                          Object.keys(this.app.metadataCache.unresolvedLinks).length > 0;
                 
-                if (retryCount < 3) { // Max 3 retries
-                    this.logger.debug('No backlinks found and metadata cache appears empty, scheduling retry', {
-                        currentNotePath,
-                        viewId,
-                        retryCount: retryCount + 1
-                    });
+                if (!metadataCacheReady) {
+                    // Metadata cache might not be ready yet, schedule a retry
+                    const retryInfo = this.pendingRetries.get(viewId);
+                    const retryCount = retryInfo ? retryInfo.retryCount : 0;
                     
-                    this.pendingRetries.set(viewId, {
-                        filePath: currentNotePath,
-                        view,
-                        retryCount: retryCount + 1
-                    });
-                    
-                    // Retry after a delay (increasing delay for each retry)
-                    setTimeout(async () => {
-                        const pendingRetry = this.pendingRetries.get(viewId);
-                        if (pendingRetry && pendingRetry.filePath === currentNotePath) {
-                            this.logger.debug('Retrying backlink discovery after delay', {
-                                currentNotePath,
-                                viewId,
-                                retryCount: pendingRetry.retryCount
-                            });
-                            
-                            // Retry with force refresh to bypass duplicate suppression
-                            await this.attachToDOM(view, currentNotePath, true);
-                        }
-                    }, 1000 + (retryCount * 500)); // 1s, 1.5s, 2s delays
+                    if (retryCount < 3) { // Max 3 retries
+                        this.logger.debug('No backlinks found and metadata cache appears empty, scheduling retry', {
+                            currentNotePath,
+                            viewId,
+                            retryCount: retryCount + 1
+                        });
+                        
+                        this.pendingRetries.set(viewId, {
+                            filePath: currentNotePath,
+                            view,
+                            retryCount: retryCount + 1
+                        });
+                        
+                        // Retry after a delay (increasing delay for each retry)
+                        setTimeout(async () => {
+                            const pendingRetry = this.pendingRetries.get(viewId);
+                            if (pendingRetry && pendingRetry.filePath === currentNotePath) {
+                                this.logger.debug('Retrying backlink discovery after delay', {
+                                    currentNotePath,
+                                    viewId,
+                                    retryCount: pendingRetry.retryCount
+                                });
+                                
+                                // Retry with force refresh to bypass duplicate suppression
+                                await this.attachToDOM(view, currentNotePath, true);
+                            }
+                        }, 1000 + (retryCount * 500)); // 1s, 1.5s, 2s delays
+                    } else {
+                        this.logger.debug('Max retries reached, showing no backlinks message', {
+                            currentNotePath,
+                            viewId
+                        });
+                        this.pendingRetries.delete(viewId);
+                    }
                 } else {
-                    this.logger.debug('Max retries reached, showing no backlinks message', {
-                        currentNotePath,
-                        viewId
+                    // Metadata cache is ready, so there really are no backlinks
+                    this.logger.debug('No backlinks found (metadata cache ready), will render UI with no backlinks message', {
+                        currentNotePath
                     });
                     this.pendingRetries.delete(viewId);
                 }
             } else {
-                // Metadata cache is ready, so there really are no backlinks
-                this.logger.debug('No backlinks found (metadata cache ready), will render UI with no backlinks message', {
-                    currentNotePath
-                });
+                // Backlinks found, clear any pending retry
                 this.pendingRetries.delete(viewId);
             }
-        } else {
-            // Backlinks found, clear any pending retry
-            this.pendingRetries.delete(viewId);
+
+            // Create main container for the backlinks UI
+            const container = document.createElement('div');
+            container.className = 'coalesce-custom-backlinks-container';
+
+            // Extract aliases from current note's frontmatter
+            const aliases = this.extractAliasesFromNote(currentNotePath);
+
+            // Create header using HeaderController (stateful)
+            const headerState = this.headerController.getHeaderState();
+            const headerElement = this.headerController.createHeader(container, {
+                fileCount: backlinks.length,
+                sortDescending: headerState.sortDescending,
+                isCollapsed: headerState.isCollapsed,
+                currentStrategy: headerState.currentStrategy,
+                currentTheme: headerState.currentTheme,
+                showFullPathTitle: headerState.showFullPathTitle,
+                aliases: aliases,
+                currentAlias: headerState.currentAlias,
+                unsavedAliases: [],
+                currentHeaderStyle: headerState.currentHeaderStyle,
+                currentFilter: headerState.currentFilter,
+                onSortToggle: () => this.handleSortToggle(),
+                onCollapseToggle: () => this.handleCollapseToggle(),
+                onStrategyChange: (strategy: string) => this.handleStrategyChange(strategy),
+                onThemeChange: (theme: string) => this.handleThemeChange(theme),
+                onFullPathTitleChange: (show: boolean) => this.handleFullPathTitleChange(show),
+                onAliasSelect: (alias: string | null) => this.handleAliasSelection(alias),
+                onHeaderStyleChange: (style: string) => this.handleHeaderStyleChange(style),
+                onFilterChange: (filterText: string) => this.handleFilterChange(filterText),
+                onSettingsClick: () => this.handleSettingsClick()
+            });
+
+            if (headerElement) {
+                container.appendChild(headerElement);
+            }
+
+            // Create blocks container
+            const blocksContainer = document.createElement('div');
+            blocksContainer.className = 'backlinks-list';
+            container.appendChild(blocksContainer);
+
+            // Extract note name (basename without extension) for alias matching
+            const file = this.app.vault.getAbstractFileByPath(currentNotePath);
+            const currentNoteName = file && file instanceof TFile ? file.basename : currentNotePath.replace(/\.md$/, '').split('/').pop() || '';
+
+            // Extract and render blocks
+            this.logger.info('Extracting and rendering blocks', {
+                currentNotePath,
+                currentNoteName,
+                backlinkCount: backlinks.length,
+                viewId
+            });
+            
+            await this.extractAndRenderBlocks(backlinks, currentNoteName, blocksContainer, view);
+            
+            this.logger.info('Blocks extraction and rendering completed', {
+                currentNotePath,
+                currentNoteName,
+                backlinkCount: backlinks.length,
+                viewId,
+                blocksContainerChildren: blocksContainer.children.length
+            });
+
+            // Apply current alias filter after blocks are rendered
+            const currentAlias = headerState.currentAlias;
+            if (currentAlias !== null) {
+                this.filterBlocksByAlias(currentNoteName, currentAlias);
+            } else {
+                // If no alias selected, ensure all blocks are visible
+                const blocks = this.getCurrentBlocks(currentNoteName);
+                this.blockRenderer.filterBlocksByAlias(blocks, null, currentNoteName);
+            }
+
+            // Apply current theme
+            this.applyThemeToContainer(this.currentTheme);
+
+            // CRITICAL: Check RIGHT BEFORE attaching if UI is already attached - this catches concurrent calls
+            const existingContainersBeforeAttach = view.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
+            if (existingContainersBeforeAttach.length > 0) {
+                this.logger.error('ERROR: About to attach coalesce UI to a note that already has it! (detected right before attach)', {
+                    currentNotePath,
+                    viewId,
+                    existingContainerCount: existingContainersBeforeAttach.length,
+                    forceRefresh,
+                    timestamp: Date.now(),
+                    callStack: new Error().stack?.split('\n').slice(1, 8).join(' -> ')
+                });
+                // Remove existing containers to prevent duplicates
+                existingContainersBeforeAttach.forEach(container => container.remove());
+            }
+
+            // Attach the container to the view (after the content)
+            this.attachContainerToView(view, container);
+
+            // Track the attachment
+            this.attachedViews.set(viewId, {
+                container,
+                lastUpdate: Date.now()
+            });
+
+            // If backlinks were found, clear any pending retry
+            if (backlinks.length > 0) {
+                this.pendingRetries.delete(viewId);
+            }
+
+            this.logger.debug('Backlinks UI attached successfully (controller)', { 
+                currentNotePath,
+                backlinkCount: backlinks.length
+            });
+            return true;
+        } finally {
+            // Always remove from processing set, even if an error occurred
+            this.processingViews.delete(viewId);
         }
-
-        // Create main container for the backlinks UI
-        const container = document.createElement('div');
-        container.className = 'coalesce-custom-backlinks-container';
-
-        // Extract aliases from current note's frontmatter
-        const aliases = this.extractAliasesFromNote(currentNotePath);
-
-        // Create header using HeaderController (stateful)
-        const headerState = this.headerController.getHeaderState();
-        const headerElement = this.headerController.createHeader(container, {
-            fileCount: backlinks.length,
-            sortDescending: headerState.sortDescending,
-            isCollapsed: headerState.isCollapsed,
-            currentStrategy: headerState.currentStrategy,
-            currentTheme: headerState.currentTheme,
-            showFullPathTitle: headerState.showFullPathTitle,
-            aliases: aliases,
-            currentAlias: headerState.currentAlias,
-            unsavedAliases: [],
-            currentHeaderStyle: headerState.currentHeaderStyle,
-            currentFilter: headerState.currentFilter,
-            onSortToggle: () => this.handleSortToggle(),
-            onCollapseToggle: () => this.handleCollapseToggle(),
-            onStrategyChange: (strategy: string) => this.handleStrategyChange(strategy),
-            onThemeChange: (theme: string) => this.handleThemeChange(theme),
-            onFullPathTitleChange: (show: boolean) => this.handleFullPathTitleChange(show),
-            onAliasSelect: (alias: string | null) => this.handleAliasSelection(alias),
-            onHeaderStyleChange: (style: string) => this.handleHeaderStyleChange(style),
-            onFilterChange: (filterText: string) => this.handleFilterChange(filterText),
-            onSettingsClick: () => this.handleSettingsClick()
-        });
-
-        if (headerElement) {
-            container.appendChild(headerElement);
-        }
-
-        // Create blocks container
-        const blocksContainer = document.createElement('div');
-        blocksContainer.className = 'backlinks-list';
-        container.appendChild(blocksContainer);
-
-        // Extract note name (basename without extension) for alias matching
-        const file = this.app.vault.getAbstractFileByPath(currentNotePath);
-        const currentNoteName = file && file instanceof TFile ? file.basename : currentNotePath.replace(/\.md$/, '').split('/').pop() || '';
-
-        // Extract and render blocks
-        this.logger.info('Extracting and rendering blocks', {
-            currentNotePath,
-            currentNoteName,
-            backlinkCount: backlinks.length,
-            viewId
-        });
-        
-        await this.extractAndRenderBlocks(backlinks, currentNoteName, blocksContainer, view);
-        
-        this.logger.info('Blocks extraction and rendering completed', {
-            currentNotePath,
-            currentNoteName,
-            backlinkCount: backlinks.length,
-            viewId,
-            blocksContainerChildren: blocksContainer.children.length
-        });
-
-        // Apply current alias filter after blocks are rendered
-        const currentAlias = headerState.currentAlias;
-        if (currentAlias !== null) {
-            this.filterBlocksByAlias(currentNoteName, currentAlias);
-        } else {
-            // If no alias selected, ensure all blocks are visible
-            const blocks = this.getCurrentBlocks(currentNoteName);
-            this.blockRenderer.filterBlocksByAlias(blocks, null, currentNoteName);
-        }
-
-        // Apply current theme
-        this.applyThemeToContainer(this.currentTheme);
-
-        // Attach the container to the view (after the content)
-        this.attachContainerToView(view, container);
-
-        // Track the attachment
-        this.attachedViews.set(viewId, {
-            container,
-            lastUpdate: Date.now()
-        });
-
-        // If backlinks were found, clear any pending retry
-        if (backlinks.length > 0) {
-            this.pendingRetries.delete(viewId);
-        }
-
-        this.logger.debug('Backlinks UI attached successfully (controller)', { 
-            currentNotePath,
-            backlinkCount: backlinks.length
-        });
-        return true;
     }
 
     /**
@@ -363,6 +415,7 @@ export class BacklinksViewController {
         this.logger.debug('BacklinksViewController.cleanup');
         this.currentBlocks.clear();
         this.attachedViews.clear();
+        this.processingViews.clear();
         this.headerController.reset();
     }
 
@@ -488,6 +541,20 @@ export class BacklinksViewController {
 
     private attachContainerToView(view: MarkdownView, container: HTMLElement): void {
         this.logger.debug('BacklinksViewController.attachContainerToView', { filePath: view.file?.path });
+
+        // FINAL CHECK: Right before DOM insertion, check if container already exists
+        // This catches the case where two calls are racing and both pass earlier checks
+        const existingContainers = view.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
+        if (existingContainers.length > 0) {
+            this.logger.error('ERROR: About to insert coalesce container but one already exists in DOM! (final check)', {
+                filePath: view.file?.path,
+                viewId: (view.leaf as any).id || 'unknown',
+                existingContainerCount: existingContainers.length,
+                callStack: new Error().stack?.split('\n').slice(1, 8).join(' -> ')
+            });
+            // Remove existing containers to prevent duplicates
+            existingContainers.forEach(existing => existing.remove());
+        }
 
         const markdownSection = view.containerEl.querySelector('.markdown-preview-section') as HTMLElement;
         if (markdownSection) {
