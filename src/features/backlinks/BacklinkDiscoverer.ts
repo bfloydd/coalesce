@@ -563,6 +563,27 @@ export class BacklinkDiscoverer implements IBacklinkDiscoverer {
             const waitStartTime = Date.now();
             let resolved = false;
             
+            // Declare checkInterval in outer scope so it's accessible to checkCache and handleResolved
+            let checkInterval: NodeJS.Timeout | null = null;
+            
+            // Listen for 'resolved' event which indicates metadata cache is fully loaded
+            // Declare handleResolved before checkCache so it's accessible
+            const handleResolved = () => {
+                if (resolved) return;
+                resolved = true;
+                this.app.metadataCache.off('resolved', handleResolved);
+                if (checkInterval) clearInterval(checkInterval);
+                const waitDuration = Date.now() - waitStartTime;
+                const finalResolvedCount = Object.keys(this.app.metadataCache.resolvedLinks).length;
+                const finalUnresolvedCount = Object.keys(this.app.metadataCache.unresolvedLinks).length;
+                this.logger.info('Metadata cache resolved event received', {
+                    waitDuration,
+                    resolvedCount: finalResolvedCount,
+                    unresolvedCount: finalUnresolvedCount
+                });
+                resolve();
+            };
+            
             // Check if cache gets populated (handles case where event already fired)
             const checkCache = () => {
                 if (resolved) return;
@@ -594,26 +615,9 @@ export class BacklinkDiscoverer implements IBacklinkDiscoverer {
             
             // Also check periodically (every 50ms) in case cache populates asynchronously
             // This handles the case where the 'resolved' event already fired before we set up the listener
-            const checkInterval = setInterval(() => {
+            checkInterval = setInterval(() => {
                 checkCache();
             }, 50);
-            
-            // Listen for 'resolved' event which indicates metadata cache is fully loaded
-            const handleResolved = () => {
-                if (resolved) return;
-                resolved = true;
-                this.app.metadataCache.off('resolved', handleResolved);
-                if (checkInterval) clearInterval(checkInterval);
-                const waitDuration = Date.now() - waitStartTime;
-                const finalResolvedCount = Object.keys(this.app.metadataCache.resolvedLinks).length;
-                const finalUnresolvedCount = Object.keys(this.app.metadataCache.unresolvedLinks).length;
-                this.logger.info('Metadata cache resolved event received', {
-                    waitDuration,
-                    resolvedCount: finalResolvedCount,
-                    unresolvedCount: finalUnresolvedCount
-                });
-                resolve();
-            };
 
             this.app.metadataCache.on('resolved', handleResolved);
         });

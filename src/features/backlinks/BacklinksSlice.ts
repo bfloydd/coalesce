@@ -469,26 +469,52 @@ export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
         this.logger.debug('Cleaning up BacklinksSlice');
 
         try {
-            // Core services
-            this.core.cleanup();
-            this.events.clearAllListeners();
-            this.state.reset();
+            // Core services - check if initialized before accessing
+            if (this.core) {
+                this.core.cleanup();
+            }
+            if (this.events) {
+                this.events.clearAllListeners();
+            }
+            if (this.state) {
+                this.state.reset();
+            }
 
-            // View/controller
-            this.viewController.cleanup();
+            // View/controller - check if initialized before accessing
+            if (this.viewController) {
+                this.viewController.cleanup();
+            }
 
-            // Backlink components (kept for backward compatibility)
-            this.backlinkDiscoverer.cleanup();
-            this.linkResolver.cleanup();
-            this.backlinkCache.cleanup();
+            // Backlink components (kept for backward compatibility) - check if initialized before accessing
+            if (this.backlinkDiscoverer) {
+                this.backlinkDiscoverer.cleanup();
+            }
+            if (this.linkResolver) {
+                this.linkResolver.cleanup();
+            }
+            if (this.backlinkCache) {
+                this.backlinkCache.cleanup();
+            }
 
-            // Block/header components
-            this.blockExtractor.cleanup();
-            this.blockRenderer.cleanup();
-            this.strategyManager.cleanup();
-            this.headerUI.cleanup();
-            this.filterControls.cleanup();
-            this.settingsControls.cleanup();
+            // Block/header components - check if initialized before accessing
+            if (this.blockExtractor) {
+                this.blockExtractor.cleanup();
+            }
+            if (this.blockRenderer) {
+                this.blockRenderer.cleanup();
+            }
+            if (this.strategyManager) {
+                this.strategyManager.cleanup();
+            }
+            if (this.headerUI) {
+                this.headerUI.cleanup();
+            }
+            if (this.filterControls) {
+                this.filterControls.cleanup();
+            }
+            if (this.settingsControls) {
+                this.settingsControls.cleanup();
+            }
 
             this.logger.debug('BacklinksSlice cleanup completed');
         } catch (error) {
@@ -501,7 +527,11 @@ export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
      * Delegates to BacklinksViewController.
      */
     removeAttachment(viewId: string): void {
-        this.viewController.removeAttachment(viewId);
+        if (this.viewController) {
+            this.viewController.removeAttachment(viewId);
+        } else {
+            this.logger.warn('removeAttachment called before viewController initialized', { viewId });
+        }
     }
 }
 
