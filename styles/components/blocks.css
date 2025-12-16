@@ -20,9 +20,16 @@
 .coalesce-toggle-arrow {
     cursor: pointer;
     margin-right: 5px;
-    transition: transform 0.2s ease;
-    font-size: 11px;
-    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Toggle arrow icon styling */
+.coalesce-toggle-arrow svg {
+    width: var(--coalesce-icon-size-sm);
+    height: var(--coalesce-icon-size-sm);
+    transition: opacity 0.2s ease;
 }
 
 /* Block title link */

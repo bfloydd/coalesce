@@ -29,6 +29,7 @@ export class IconProvider {
         sortToggle: 'arrow-up-down',  // For toggle buttons
         chevronDown: 'chevron-down',
         chevronUp: 'chevron-up',
+        chevronRight: 'chevron-right',
 
         // UI controls
         settings: 'more-horizontal',

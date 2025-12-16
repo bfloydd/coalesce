@@ -306,21 +306,12 @@ export class HeaderComponent {
 
         const collapseButton = createIconButton({
             parent: tempContainer,
-            icon: 'chevronDown',
+            icon: isCollapsed ? 'chevronRight' : 'chevronDown',
             size: 'sm',
             ariaLabel: isCollapsed ? 'Expand all' : 'Collapse all',
             classes: ['coalesce-collapse-button'],
             onClick: onCollapseToggle
         });
-
-        const svg = collapseButton.querySelector('svg') as SVGElement | null;
-        if (svg) {
-            if (isCollapsed) {
-                svg.classList.add('is-collapsed');
-            } else {
-                svg.classList.remove('is-collapsed');
-            }
-        }
 
         return collapseButton;
     }

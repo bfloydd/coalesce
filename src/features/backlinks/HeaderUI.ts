@@ -230,9 +230,12 @@ export class HeaderUI implements IHeaderUI {
         try {
             const collapseButton = header.querySelector('.coalesce-collapse-button') as HTMLElement;
             if (collapseButton) {
-                const classesToAdd = isCollapsed ? ['is-collapsed'] : [];
-                const classesToRemove = isCollapsed ? [] : ['is-collapsed'];
-                IconProvider.updateIconClasses(collapseButton, classesToAdd, classesToRemove);
+                // Update icon based on state: chevron-right when collapsed, chevron-down when expanded
+                IconProvider.setIcon(
+                    collapseButton,
+                    isCollapsed ? 'chevronRight' : 'chevronDown',
+                    { size: 'sm' }
+                );
             }
         } catch (error) {
             this.logger.error('Failed to update collapse button state', { header, isCollapsed, error });

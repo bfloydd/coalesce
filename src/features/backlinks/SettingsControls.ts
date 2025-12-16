@@ -1,4 +1,5 @@
 import { Logger } from '../shared-utilities/Logger';
+import { IconProvider } from '../shared-utilities/IconProvider';
 import {
     ISettingsControls,
     SortButtonOptions,
@@ -78,18 +79,12 @@ export class SettingsControls implements ISettingsControls {
 
             const button = createIconButton({
                 parent: buttonContainer,
-                icon: 'chevronDown',
+                icon: options.isCollapsed ? 'chevronRight' : 'chevronDown',
                 size: 'sm',
                 ariaLabel: options.isCollapsed ? 'Expand all' : 'Collapse all',
                 classes: ['coalesce-collapse-button'],
                 onClick: options.onToggle
             });
-
-            // Set initial state
-            const svg = button.querySelector('svg') as SVGElement | null;
-            if (svg && options.isCollapsed) {
-                svg.classList.add('is-collapsed');
-            }
 
             this.logger.debug('Collapse button created successfully', { buttonContainer });
             return buttonContainer;
@@ -244,14 +239,12 @@ export class SettingsControls implements ISettingsControls {
         this.logger.debug('Updating collapse button state', { isCollapsed });
         
         try {
-            const svg = button.querySelector('svg') as SVGElement;
-            if (svg) {
-                if (isCollapsed) {
-                    svg.classList.add('is-collapsed');
-                } else {
-                    svg.classList.remove('is-collapsed');
-                }
-            }
+            // Update icon based on state: chevron-right when collapsed, chevron-down when expanded
+            IconProvider.setIcon(
+                button,
+                isCollapsed ? 'chevronRight' : 'chevronDown',
+                { size: 'sm' }
+            );
         } catch (error) {
             this.logger.error('Failed to update collapse button state', { button, isCollapsed, error });
         }

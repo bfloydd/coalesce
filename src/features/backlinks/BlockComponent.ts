@@ -79,8 +79,10 @@ export class BlockComponent {
     private createToggleButton(): void {
         this.toggleButton = this.headerContainer.createEl('span', {
             cls: 'coalesce-toggle-arrow',
-            text: '▼',
         });
+
+        // Use chevron icon instead of text characters for consistency with header
+        IconProvider.setIcon(this.toggleButton, 'chevronDown', { size: 'sm' });
 
         this.toggleButton.addEventListener('click', (event) => {
             this.logger.debug('Toggle button clicked');
@@ -328,7 +330,13 @@ export class BlockComponent {
         } else {
             this.mainContainer.classList.remove('is-collapsed');
         }
-        this.toggleButton.textContent = collapsed ? '▶' : '▼';
+        
+        // Update icon based on state: chevron-right when collapsed, chevron-down when expanded
+        IconProvider.setIcon(
+            this.toggleButton,
+            collapsed ? 'chevronRight' : 'chevronDown',
+            { size: 'sm' }
+        );
     }
 
     public updateTitleDisplay(headerStyle: string): void {

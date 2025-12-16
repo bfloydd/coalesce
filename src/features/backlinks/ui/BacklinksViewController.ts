@@ -1,6 +1,7 @@
 import { App, TFile, MarkdownView } from 'obsidian';
 import { Logger } from '../../shared-utilities/Logger';
 import { PerformanceMonitor } from '../../shared-utilities/PerformanceMonitor';
+import { IconProvider } from '../../shared-utilities/IconProvider';
 import {
     BlockData,
     BlockRenderOptions,
@@ -760,7 +761,12 @@ export class BacklinksViewController {
                 '.coalesce-toggle-arrow'
             ) as HTMLElement;
             if (toggleArrow) {
-                toggleArrow.textContent = collapsed ? '▶' : '▼';
+                // Update icon based on state: chevron-right when collapsed, chevron-down when expanded
+                IconProvider.setIcon(
+                    toggleArrow,
+                    collapsed ? 'chevronRight' : 'chevronDown',
+                    { size: 'sm' }
+                );
             }
         });
     }

@@ -38,14 +38,7 @@
     flex-wrap: nowrap;
 }
 
-/* Button group and icon transforms */
-.coalesce-button-group svg:not(.is-collapsed) {
-    transform: none;
-}
-
-.coalesce-button-group svg.is-collapsed {
-    transform: rotate(-90deg);
-}
+/* Button group - icon transforms removed since we use different icons for collapsed/expanded states */
 
 .coalesce-button-group svg.sort-ascending {
     transform: rotate(180deg);
