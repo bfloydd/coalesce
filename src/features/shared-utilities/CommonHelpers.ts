@@ -375,4 +375,46 @@ export class CommonHelpers {
         
         current[keys[keys.length - 1]] = value;
     }
+
+    /**
+     * Safely add an event listener with proper passive option for scroll-blocking events.
+     * 
+     * This helper ensures that touch events (touchmove, touchstart, touchend) and wheel events
+     * use passive listeners by default to prevent browser warnings and improve performance.
+     * 
+     * @param element The element to attach the listener to
+     * @param eventType The event type (e.g., 'touchmove', 'wheel', 'click')
+     * @param handler The event handler function
+     * @param options Optional addEventListener options. If not provided, will automatically
+     *                set passive: true for scroll-blocking events (touchmove, touchstart, touchend, wheel)
+     */
+    static addEventListenerSafe(
+        element: EventTarget,
+        eventType: string,
+        handler: EventListenerOrEventListenerObject,
+        options?: boolean | AddEventListenerOptions
+    ): void {
+        // Events that should use passive listeners by default to avoid scroll-blocking warnings
+        const scrollBlockingEvents = ['touchmove', 'touchstart', 'touchend', 'wheel'];
+        const isScrollBlocking = scrollBlockingEvents.includes(eventType.toLowerCase());
+
+        // If no options provided and it's a scroll-blocking event, use passive: true
+        if (options === undefined && isScrollBlocking) {
+            element.addEventListener(eventType, handler, { passive: true });
+            return;
+        }
+
+        // If options is an object and it's a scroll-blocking event, ensure passive is set
+        if (typeof options === 'object' && isScrollBlocking) {
+            const finalOptions: AddEventListenerOptions = {
+                ...options,
+                passive: options.passive !== false ? true : false
+            };
+            element.addEventListener(eventType, handler, finalOptions);
+            return;
+        }
+
+        // For non-scroll-blocking events or when passive is explicitly set to false, use as-is
+        element.addEventListener(eventType, handler, options);
+    }
 }
