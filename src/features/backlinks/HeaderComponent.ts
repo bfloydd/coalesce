@@ -160,9 +160,6 @@ export class HeaderComponent {
         // Create a temporary container to use createDiv
         const tempContainer = document.createElement('div');
         const leftContainer = tempContainer.createDiv({ cls: 'coalesce-backlinks-header-left' });
-
-        // Create and add coalesce icon
-        const svg = this.createCoalesceIcon();
         
         // Create alias dropdown
         const aliasDropdown = this.createAliasDropdown(aliases, unsavedAliases, currentAlias, onAliasSelect);
@@ -174,7 +171,6 @@ export class HeaderComponent {
         const buttonGroup = this.createButtonGroup(sortDescending, onSortToggle, isCollapsed, onCollapseToggle, onRefresh);
 
         // Add elements in order
-        leftContainer.appendChild(svg);
         leftContainer.appendChild(aliasDropdown);
         leftContainer.appendChild(filterInput);
         leftContainer.appendChild(buttonGroup);
@@ -182,98 +178,6 @@ export class HeaderComponent {
         return leftContainer;
     }
 
-    private createCoalesceIcon(): SVGSVGElement {
-        // Create a temporary container to use createSvg
-        const tempContainer = document.createElement('div');
-        const svg = tempContainer.createSvg('svg', {
-            attr: {
-                viewBox: "0 0 200 200",
-                width: "36",
-                height: "36",
-                fill: "currentColor"
-            }
-        });
-        
-        // Create background circle for contrast and premium look
-        const background = tempContainer.createSvg('circle', {
-            attr: {
-                cx: "100",
-                cy: "100", 
-                r: "95",
-                fill: "currentColor",
-                opacity: "0.08"
-            }
-        });
-        
-        // Create the central hexagon - now uses currentColor with opacity for theme adaptation
-        const hexagon = tempContainer.createSvg('polygon', {
-            attr: {
-                points: "70,100 85,75 115,75 130,100 115,125 85,125",
-                fill: "currentColor",
-                opacity: "0.9"
-            }
-        });
-        
-        // Create diagonal arrows group - now uses currentColor with reduced opacity
-        const arrowGroup = tempContainer.createSvg('g', {
-            attr: {
-                fill: "currentColor",
-                opacity: "0.7"
-            }
-        });
-        
-        // Top-left arrow
-        const topLeftArrow = tempContainer.createSvg('polygon', {
-            attr: {
-                points: "42,58 50,50 64,64 70,58 75,82 50,72 57,66"
-            }
-        });
-        
-        // Top-right arrow
-        const topRightArrow = tempContainer.createSvg('polygon', {
-            attr: {
-                points: "158,58 150,50 136,64 130,58 125,82 150,72 143,66"
-            }
-        });
-        
-        // Bottom-left arrow
-        const bottomLeftArrow = tempContainer.createSvg('polygon', {
-            attr: {
-                points: "42,142 50,150 64,136 70,142 75,118 50,128 57,134"
-            }
-        });
-        
-        // Bottom-right arrow
-        const bottomRightArrow = tempContainer.createSvg('polygon', {
-            attr: {
-                points: "158,142 150,150 136,136 130,142 125,118 150,128 143,134"
-            }
-        });
-        
-        // Add subtle inner glow effect for premium look
-        const innerGlow = tempContainer.createSvg('circle', {
-            attr: {
-                cx: "100",
-                cy: "100",
-                r: "85",
-                fill: "none",
-                stroke: "currentColor",
-                "stroke-width": "1",
-                opacity: "0.15"
-            }
-        });
-        
-        svg.appendChild(background);
-        svg.appendChild(innerGlow);
-        svg.appendChild(hexagon);
-        arrowGroup.appendChild(topLeftArrow);
-        arrowGroup.appendChild(topRightArrow);
-        arrowGroup.appendChild(bottomLeftArrow);
-        arrowGroup.appendChild(bottomRightArrow);
-        svg.appendChild(arrowGroup);
-        
-        return svg;
-    }
 
     private createAliasDropdown(
         aliases: string[],
