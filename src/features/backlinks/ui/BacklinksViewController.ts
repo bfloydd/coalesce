@@ -357,7 +357,7 @@ export class BacklinksViewController {
     }
 
     /**
-     * Apply options (sort/collapse/strategy/theme/alias/filter) to the current view.
+     * Apply options (sort/collapse/strategy/theme/alias/filter/headerStyle) to the current view.
      */
     setOptions(options: {
         sort?: boolean;
@@ -367,6 +367,7 @@ export class BacklinksViewController {
         theme?: string;
         alias?: string | null;
         filter?: string;
+        headerStyle?: string;
     }): void {
         this.logger.debug('BacklinksViewController.setOptions', { options });
 
@@ -376,6 +377,11 @@ export class BacklinksViewController {
         this.renderOptions.sortByPath = updatedState.sortByPath;
         this.renderOptions.sortDescending = updatedState.sortDescending;
         this.currentTheme = updatedState.currentTheme;
+
+        if (options.headerStyle !== undefined) {
+            this.renderOptions.headerStyle = updatedState.currentHeaderStyle;
+            this.updateBlockTitleDisplay(updatedState.currentHeaderStyle);
+        }
 
         this.applyCurrentOptions();
     }
@@ -496,6 +502,12 @@ export class BacklinksViewController {
         this.renderOptions.headerStyle = newState.currentHeaderStyle;
 
         this.updateBlockTitleDisplay(newState.currentHeaderStyle);
+
+        // Persist header style selection to settings via DOM custom event
+        const event = new CustomEvent('coalesce-settings-header-style-changed', {
+            detail: { headerStyle: newState.currentHeaderStyle }
+        });
+        document.dispatchEvent(event);
     }
 
     private handleAliasSelection(alias: string | null): void {

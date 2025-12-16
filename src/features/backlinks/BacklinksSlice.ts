@@ -65,6 +65,9 @@ export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
     // View controller (UI layer)
     private viewController: BacklinksViewController;
 
+    // Settings slice reference for restoring persisted settings
+    private settingsSlice: any;
+
     constructor(app: App, options?: Partial<BacklinkDiscoveryOptions>) {
         this.app = app;
         this.logger = new Logger('BacklinksSlice');
@@ -126,6 +129,9 @@ export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
 
         this.logger.debug('BacklinksSlice initialized', { options: this.options });
 
+        // Store settings slice reference for restoring persisted settings
+        this.settingsSlice = dependencies.settings;
+
         // Subscribe to events via EventBus
         if (dependencies.eventBus) {
             dependencies.eventBus.on('noteEditing:headingAdded', (data: any) => {
@@ -142,9 +148,23 @@ export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
 
     /**
      * Start the slice
+     * Restores persisted settings (e.g., header style) from the settings slice.
      */
     async start(): Promise<void> {
         this.logger.debug('Starting BacklinksSlice');
+
+        // Restore header style from settings if available
+        if (this.settingsSlice && typeof this.settingsSlice.getSettings === 'function') {
+            try {
+                const settings = this.settingsSlice.getSettings();
+                if (settings && settings.headerStyle) {
+                    this.logger.debug('Restoring header style from settings', { headerStyle: settings.headerStyle });
+                    this.setOptions({ headerStyle: settings.headerStyle });
+                }
+            } catch (error) {
+                this.logger.error('Failed to restore header style from settings', { error });
+            }
+        }
     }
 
     /**
@@ -348,7 +368,7 @@ export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
     }
 
     /**
-     * Set options for the backlinks feature (sort/collapse/strategy/theme/alias/filter).
+     * Set options for the backlinks feature (sort/collapse/strategy/theme/alias/filter/headerStyle).
      * Delegates to BacklinksViewController.
      */
     setOptions(options: {
@@ -359,6 +379,7 @@ export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
         theme?: string;
         alias?: string | null;
         filter?: string;
+        headerStyle?: string;
     }): void {
         try {
             this.logger.debug('Setting backlinks options', { options });

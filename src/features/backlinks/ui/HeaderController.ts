@@ -296,6 +296,7 @@ export class HeaderController {
         theme?: string;
         alias?: string | null;
         filter?: string;
+        headerStyle?: string;
     }): HeaderState {
         this.logger.debug('HeaderController.updateStateFromOptions', { options });
 
@@ -327,6 +328,10 @@ export class HeaderController {
 
         if (options.filter !== undefined) {
             updated.currentFilter = options.filter;
+        }
+
+        if (options.headerStyle !== undefined) {
+            updated.currentHeaderStyle = options.headerStyle;
         }
 
         this.currentHeaderState = updated;

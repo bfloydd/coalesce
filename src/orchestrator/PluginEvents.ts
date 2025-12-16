@@ -102,6 +102,33 @@ export function registerPluginEvents(
     }
   });
 
+  // coalesce-settings-header-style-changed
+  document.addEventListener('coalesce-settings-header-style-changed', (event: CustomEvent) => {
+    const { headerStyle } = event.detail || {};
+    logger?.debug?.('Received coalesce-settings-header-style-changed event', { headerStyle });
+
+    if (!headerStyle) {
+      return;
+    }
+
+    try {
+      const settingsSlice = orchestrator.getSlice('settings') as any;
+      if (settingsSlice && typeof settingsSlice.updateSetting === 'function') {
+        // Fire-and-forget persistence of header style changes from the header UI
+        void settingsSlice.updateSetting('headerStyle', headerStyle);
+      } else {
+        logger?.warn?.(
+          'Settings slice not available or updateSetting method not found for header style change',
+        );
+      }
+    } catch (error) {
+      logger?.error?.('Failed to handle coalesce-settings-header-style-changed event', {
+        headerStyle,
+        error,
+      });
+    }
+  });
+
   // coalesce-logging-state-changed
   document.addEventListener('coalesce-logging-state-changed', (event: CustomEvent) => {
     const { enabled } = event.detail;
