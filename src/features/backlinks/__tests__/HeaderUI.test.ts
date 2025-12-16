@@ -30,7 +30,8 @@ describe('HeaderUI', () => {
     onAliasSelect: jest.fn(),
     onHeaderStyleChange: jest.fn(),
     onFilterChange: jest.fn(),
-    onSettingsClick: jest.fn()
+    onSettingsClick: jest.fn(),
+    onRefresh: jest.fn()
   });
 
   beforeAll(() => {

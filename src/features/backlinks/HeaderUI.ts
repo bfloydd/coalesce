@@ -67,7 +67,8 @@ export class HeaderUI implements IHeaderUI {
                 options.currentHeaderStyle,
                 options.onHeaderStyleChange,
                 options.onFilterChange,
-                options.currentFilter
+                options.currentFilter,
+                options.onRefresh
             );
             
             // Update statistics

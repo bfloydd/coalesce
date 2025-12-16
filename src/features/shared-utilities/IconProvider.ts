@@ -40,6 +40,7 @@ export class IconProvider {
         minus: 'minus',
         edit: 'edit',
         trash: 'trash-2',
+        refresh: 'refresh-cw',
 
         // Status
         success: 'check-circle',

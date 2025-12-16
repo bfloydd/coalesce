@@ -269,7 +269,8 @@ export class BacklinksViewController {
                 onAliasSelect: (alias: string | null) => this.handleAliasSelection(alias),
                 onHeaderStyleChange: (style: string) => this.handleHeaderStyleChange(style),
                 onFilterChange: (filterText: string) => this.handleFilterChange(filterText),
-                onSettingsClick: () => this.handleSettingsClick()
+                onSettingsClick: () => this.handleSettingsClick(),
+                onRefresh: () => this.handleRefresh(view, currentNotePath)
             });
 
             if (headerElement) {
@@ -553,6 +554,13 @@ export class BacklinksViewController {
 
         this.headerController.settingsClicked();
         this.logger.debug('Settings click handled (delegated elsewhere)');
+    }
+
+    private async handleRefresh(view: MarkdownView, currentNotePath: string): Promise<void> {
+        this.logger.debug('BacklinksViewController.handleRefresh', { currentNotePath });
+
+        // Reload the view for the active note by calling attachToDOM with forceRefresh = true
+        await this.attachToDOM(view, currentNotePath, true);
     }
 
     private handleFullPathTitleChange(show: boolean): void {

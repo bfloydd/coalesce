@@ -34,6 +34,7 @@ describe('HeaderController', () => {
     onHeaderStyleChange: jest.fn(),
     onFilterChange: jest.fn(),
     onSettingsClick: jest.fn(),
+    onRefresh: jest.fn(),
     ...overrides
   });
 

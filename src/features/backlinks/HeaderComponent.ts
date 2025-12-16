@@ -90,7 +90,8 @@ export class HeaderComponent {
         currentHeaderStyle: string,
         onHeaderStyleChange: (style: string) => void,
         onFilterChange: (filterText: string) => void = () => {},
-        currentFilter: string = ''
+        currentFilter: string = '',
+        onRefresh: () => void = () => {}
     ): HTMLElement {
         HeaderComponent.currentHeaderStyle = currentHeaderStyle;
 
@@ -125,7 +126,7 @@ export class HeaderComponent {
             this.onThemeChangeHandler(theme);
         };
 
-        const leftContainer = this.createLeftContainer(aliases, unsavedAliases, currentAlias, onAliasSelect, sortDescending, onSortToggle, isCollapsed, onCollapseToggle, onFilterChange, currentFilter);
+        const leftContainer = this.createLeftContainer(aliases, unsavedAliases, currentAlias, onAliasSelect, sortDescending, onSortToggle, isCollapsed, onCollapseToggle, onFilterChange, currentFilter, onRefresh);
         const rightContainer = this.createRightContainer(
             currentHeaderStyle,
             wrappedHeaderStyleChange,
@@ -153,7 +154,8 @@ export class HeaderComponent {
         isCollapsed: boolean,
         onCollapseToggle: () => void,
         onFilterChange: (filterText: string) => void,
-        currentFilter: string = ''
+        currentFilter: string = '',
+        onRefresh: () => void = () => {}
     ): HTMLElement {
         // Create a temporary container to use createDiv
         const tempContainer = document.createElement('div');
@@ -169,7 +171,7 @@ export class HeaderComponent {
         const filterInput = this.createFilterInput(onFilterChange, currentFilter);
 
         // Create button group
-        const buttonGroup = this.createButtonGroup(sortDescending, onSortToggle, isCollapsed, onCollapseToggle);
+        const buttonGroup = this.createButtonGroup(sortDescending, onSortToggle, isCollapsed, onCollapseToggle, onRefresh);
 
         // Add elements in order
         leftContainer.appendChild(svg);
@@ -344,7 +346,8 @@ export class HeaderComponent {
         sortDescending: boolean,
         onSortToggle: () => void,
         isCollapsed: boolean,
-        onCollapseToggle: () => void
+        onCollapseToggle: () => void,
+        onRefresh: () => void = () => {}
     ): HTMLElement {
         // Create a temporary container to use createDiv
         const tempContainer = document.createElement('div');
@@ -356,8 +359,12 @@ export class HeaderComponent {
         // Create collapse button
         const collapseButton = this.createCollapseButton(isCollapsed, onCollapseToggle);
         
+        // Create refresh button
+        const refreshButton = this.createRefreshButton(onRefresh);
+        
         buttonGroup.appendChild(sortButton);
         buttonGroup.appendChild(collapseButton);
+        buttonGroup.appendChild(refreshButton);
         
         return buttonGroup;
     }
@@ -412,6 +419,21 @@ export class HeaderComponent {
         }
 
         return collapseButton;
+    }
+
+    private createRefreshButton(onRefresh: () => void): HTMLElement {
+        const tempContainer = document.createElement('div');
+
+        const refreshButton = createIconButton({
+            parent: tempContainer,
+            icon: 'refresh',
+            size: 'sm',
+            ariaLabel: 'Refresh',
+            classes: ['coalesce-refresh-button'],
+            onClick: onRefresh
+        });
+
+        return refreshButton;
     }
 
     private createFilterInput(onFilterChange: (filterText: string) => void, initialValue: string = ''): HTMLElement {

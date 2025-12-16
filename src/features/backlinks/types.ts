@@ -529,6 +529,7 @@ export interface HeaderCreateOptions {
     onHeaderStyleChange: (style: string) => void;
     onFilterChange: (filterText: string) => void;
     onSettingsClick: () => void;
+    onRefresh: () => void;
 }
 
 // ============================
