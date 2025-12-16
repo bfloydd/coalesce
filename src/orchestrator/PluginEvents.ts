@@ -188,7 +188,7 @@ export function registerPluginEvents(
     }),
   );
 
-  // active-leaf-change - forward to orchestrator
+  // active-leaf-change - forward to orchestrator and refresh UI
   plugin.registerEvent(
     app.workspace.on('active-leaf-change', () => {
       const activeView = app.workspace.getActiveViewOfType(MarkdownView);
@@ -199,6 +199,44 @@ export function registerPluginEvents(
           file: activeView.file,
           view: activeView,
         });
+
+        // Also refresh the UI for the focused view to ensure backlinks are loaded
+        // This helps with the case where initial load showed "No backlinks found"
+        // due to metadata cache not being ready
+        if (updateCoalesceUIForFile && activeView.file) {
+          const filePath = activeView.file.path;
+          const focusTime = Date.now();
+          const cacheState = {
+            resolvedLinksCount: Object.keys(app.metadataCache.resolvedLinks).length,
+            unresolvedLinksCount: Object.keys(app.metadataCache.unresolvedLinks).length,
+            hasContent: Object.keys(app.metadataCache.resolvedLinks).length > 0 || 
+                       Object.keys(app.metadataCache.unresolvedLinks).length > 0
+          };
+          
+          logger?.info?.('=== NORMAL FOCUS: active-leaf-change ===', {
+            filePath,
+            timestamp: focusTime,
+            metadataCacheState: cacheState
+          });
+          
+          // Use a small delay to ensure the view is fully ready
+          setTimeout(() => {
+            // Re-check that file still exists (defensive check)
+            const currentView = app.workspace.getActiveViewOfType(MarkdownView);
+            if (currentView?.file?.path === filePath) {
+              logger?.info?.('Calling updateForFile from active-leaf-change', {
+                filePath,
+                metadataCacheState: {
+                  resolvedLinksCount: Object.keys(app.metadataCache.resolvedLinks).length,
+                  unresolvedLinksCount: Object.keys(app.metadataCache.unresolvedLinks).length,
+                  hasContent: Object.keys(app.metadataCache.resolvedLinks).length > 0 || 
+                             Object.keys(app.metadataCache.unresolvedLinks).length > 0
+                }
+              });
+              void updateCoalesceUIForFile(filePath);
+            }
+          }, 100);
+        }
       }
     }),
   );
@@ -217,68 +255,106 @@ export function registerPluginEvents(
     if (viewIntegration && backlinks && data.file) {
       logger?.debug?.('Orchestrator processing file:opened', { filePath: data.file.path });
 
-      // Initialize view for the file
-      const activeView = app.workspace.getActiveViewOfType(MarkdownView);
-      if (activeView && activeView.file?.path === data.file.path) {
-        logger?.debug?.('Orchestrator active view matches, proceeding', {
+      // Get all markdown views, not just the active one
+      const allMarkdownViews = app.workspace.getLeavesOfType('markdown');
+      
+      // Filter to only views that have the matching file
+      const matchingViews = allMarkdownViews
+        .map(leaf => leaf.view as MarkdownView)
+        .filter(view => view?.file?.path === data.file.path);
+
+      logger?.debug?.('Orchestrator found matching views', {
+        filePath: data.file.path,
+        matchingCount: matchingViews.length,
+        totalMarkdownViews: allMarkdownViews.length,
+      });
+
+      if (matchingViews.length === 0) {
+        logger?.debug?.('Orchestrator no matching views found', {
           filePath: data.file.path,
         });
+        return;
+      }
 
-        // Initialize view integration
-        await (viewIntegration as any)?.initializeView?.(data.file, activeView);
+      // Get settings slice
+      const settingsSlice = orchestrator.getSlice('settings') as any;
+      let settings = settingsSlice?.getSettings?.() || {};
 
-        // Use the consolidated backlinks slice to attach the complete UI
-        logger?.debug?.('Orchestrator calling attachToDOM', { filePath: data.file.path });
+      // If settings aren't loaded yet, load them now
+      if (!settings || Object.keys(settings).length === 0) {
+        await settingsSlice?.loadSettings?.();
+        settings = settingsSlice?.getSettings?.() || {};
+      }
 
-        // Don't force refresh for orchestrator events (automatic app startup processing)
-        const uiAttached = await (backlinks as any)?.attachToDOM?.(
-          activeView,
-          data.file.path,
-          false,
-        );
+      // Process each matching view
+      for (const view of matchingViews) {
+        if (!view.file) {
+          continue;
+        }
 
-        logger?.debug?.('Orchestrator attachToDOM result', {
-          filePath: data.file.path,
-          uiAttached,
-        });
+        try {
+          logger?.debug?.('Orchestrator processing view', {
+            filePath: data.file.path,
+            leafId: (view.leaf as any).id,
+          });
 
-        // Only apply settings and log if UI was actually attached (not skipped due to recent attachment)
-        if (uiAttached) {
-          logger?.debug?.('Orchestrator applying settings', { filePath: data.file.path });
+          // Initialize view integration
+          await (viewIntegration as any)?.initializeView?.(view.file, view);
 
-          // Apply current settings to the backlinks UI
-          const settingsSlice = orchestrator.getSlice('settings') as any;
-          let settings = settingsSlice?.getSettings?.() || {};
+          // Use the consolidated backlinks slice to attach the complete UI
+          logger?.debug?.('Orchestrator calling attachToDOM', {
+            filePath: data.file.path,
+            leafId: (view.leaf as any).id,
+          });
 
-          // If settings aren't loaded yet, load them now
-          if (!settings || Object.keys(settings).length === 0) {
-            await settingsSlice?.loadSettings?.();
-            settings = settingsSlice?.getSettings?.() || {};
+          // Force refresh for initial view initialization to ensure backlinks are loaded
+          // even if metadata cache isn't fully ready yet
+          const uiAttached = await (backlinks as any)?.attachToDOM?.(
+            view,
+            data.file.path,
+            true, // forceRefresh = true to ensure initial views get backlinks loaded
+          );
+
+          logger?.debug?.('Orchestrator attachToDOM result', {
+            filePath: data.file.path,
+            leafId: (view.leaf as any).id,
+            uiAttached,
+          });
+
+          // Only apply settings and log if UI was actually attached (not skipped due to recent attachment)
+          if (uiAttached) {
+            logger?.debug?.('Orchestrator applying settings', {
+              filePath: data.file.path,
+              leafId: (view.leaf as any).id,
+            });
+
+            (backlinks as any)?.setOptions?.({
+              sort: settings.sortByFullPath || false,
+              sortDescending: settings.sortDescending ?? true,
+              collapsed: settings.blocksCollapsed || false,
+              strategy: 'default',
+              theme: settings.theme || 'default',
+              alias: null,
+              filter: '',
+            });
+
+            logger?.info?.('Consolidated backlinks UI attached for file', {
+              filePath: data.file.path,
+              leafId: (view.leaf as any).id,
+            });
+          } else {
+            logger?.debug?.('Orchestrator UI was not attached (skipped)', {
+              filePath: data.file.path,
+              leafId: (view.leaf as any).id,
+            });
           }
-
-          (backlinks as any)?.setOptions?.({
-            sort: settings.sortByFullPath || false,
-            sortDescending: settings.sortDescending ?? true,
-            collapsed: settings.blocksCollapsed || false,
-            strategy: 'default',
-            theme: settings.theme || 'default',
-            alias: null,
-            filter: '',
-          });
-
-          logger?.info?.('Consolidated backlinks UI attached for file', {
+        } catch (error) {
+          logger?.error?.('Orchestrator failed to process view', {
             filePath: data.file.path,
-          });
-        } else {
-          logger?.debug?.('Orchestrator UI was not attached (skipped)', {
-            filePath: data.file.path,
+            leafId: (view.leaf as any).id,
+            error,
           });
         }
-      } else {
-        logger?.debug?.('Orchestrator active view does not match', {
-          activeViewPath: activeView?.file?.path,
-          eventFilePath: data.file.path,
-        });
       }
     } else {
       logger?.debug?.('Orchestrator missing required slices or data', {

@@ -69,7 +69,20 @@ export class BacklinksCore {
         return this.performanceMonitor.measureAsync(
             'backlinks.update',
             async () => {
-                this.logger.debug('Updating backlinks', { filePath, leafId });
+                const startTime = Date.now();
+                const metadataCacheState = {
+                    resolvedLinksCount: Object.keys(this.app.metadataCache.resolvedLinks).length,
+                    unresolvedLinksCount: Object.keys(this.app.metadataCache.unresolvedLinks).length,
+                    hasContent: Object.keys(this.app.metadataCache.resolvedLinks).length > 0 || 
+                               Object.keys(this.app.metadataCache.unresolvedLinks).length > 0
+                };
+                
+                this.logger.info('=== CODE PATH: BacklinksCore.updateBacklinks ===', {
+                    filePath,
+                    leafId,
+                    timestamp: startTime,
+                    metadataCacheState
+                });
 
                 // Check if we should skip daily notes
                 if (
@@ -100,7 +113,31 @@ export class BacklinksCore {
 
                 // If not from cache, discover backlinks
                 if (!fromCache) {
+                    const discoverStartTime = Date.now();
+                    this.logger.info('Calling backlinkDiscoverer.discoverBacklinks', {
+                        filePath,
+                        metadataCacheStateBefore: {
+                            resolvedLinksCount: Object.keys(this.app.metadataCache.resolvedLinks).length,
+                            unresolvedLinksCount: Object.keys(this.app.metadataCache.unresolvedLinks).length,
+                            hasContent: Object.keys(this.app.metadataCache.resolvedLinks).length > 0 || 
+                                       Object.keys(this.app.metadataCache.unresolvedLinks).length > 0
+                        }
+                    });
+                    
                     backlinks = await this.backlinkDiscoverer.discoverBacklinks(filePath);
+                    
+                    const discoverDuration = Date.now() - discoverStartTime;
+                    this.logger.info('backlinkDiscoverer.discoverBacklinks completed', {
+                        filePath,
+                        backlinkCount: backlinks.length,
+                        duration: discoverDuration,
+                        metadataCacheStateAfter: {
+                            resolvedLinksCount: Object.keys(this.app.metadataCache.resolvedLinks).length,
+                            unresolvedLinksCount: Object.keys(this.app.metadataCache.unresolvedLinks).length,
+                            hasContent: Object.keys(this.app.metadataCache.resolvedLinks).length > 0 || 
+                                       Object.keys(this.app.metadataCache.unresolvedLinks).length > 0
+                        }
+                    });
 
                     // Cache the results
                     if (this.options.useCache) {

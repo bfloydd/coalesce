@@ -45,6 +45,8 @@ export class BacklinksViewController {
     private readonly headerController: HeaderController;
 
     private attachedViews: Map<string, { container: HTMLElement; lastUpdate: number }> = new Map();
+    // Track views that showed "No backlinks found" and might need retry
+    private pendingRetries: Map<string, { filePath: string; view: MarkdownView; retryCount: number }> = new Map();
 
     constructor(
         private readonly app: App,
@@ -93,11 +95,20 @@ export class BacklinksViewController {
         forceRefresh = false
     ): Promise<boolean> {
         const viewId = (view.leaf as any).id || 'unknown';
+        const startTime = Date.now();
+        const metadataCacheState = {
+            resolvedLinksCount: Object.keys(this.app.metadataCache.resolvedLinks).length,
+            unresolvedLinksCount: Object.keys(this.app.metadataCache.unresolvedLinks).length,
+            hasContent: Object.keys(this.app.metadataCache.resolvedLinks).length > 0 || 
+                       Object.keys(this.app.metadataCache.unresolvedLinks).length > 0
+        };
 
-        this.logger.debug('BacklinksViewController.attachToDOM', {
+        this.logger.info('=== CODE PATH: BacklinksViewController.attachToDOM ===', {
             currentNotePath,
             viewId,
-            forceRefresh
+            forceRefresh,
+            timestamp: startTime,
+            metadataCacheState
         });
 
         // Check if UI is already attached and recent (within last 5 seconds), unless force refresh is requested
@@ -112,12 +123,88 @@ export class BacklinksViewController {
         existingContainers.forEach(container => container.remove());
 
         // Get backlinks for the current note via core
-        const backlinks = await this.core.updateBacklinks(currentNotePath, viewId);
+        const backlinksStartTime = Date.now();
+        this.logger.info('Calling core.updateBacklinks', {
+            currentNotePath,
+            viewId,
+            metadataCacheStateBefore: {
+                resolvedLinksCount: Object.keys(this.app.metadataCache.resolvedLinks).length,
+                unresolvedLinksCount: Object.keys(this.app.metadataCache.unresolvedLinks).length,
+                hasContent: Object.keys(this.app.metadataCache.resolvedLinks).length > 0 || 
+                           Object.keys(this.app.metadataCache.unresolvedLinks).length > 0
+            }
+        });
+        
+        let backlinks = await this.core.updateBacklinks(currentNotePath, viewId);
+        
+        const backlinksDuration = Date.now() - backlinksStartTime;
+        this.logger.info('core.updateBacklinks completed', {
+            currentNotePath,
+            viewId,
+            backlinkCount: backlinks.length,
+            duration: backlinksDuration,
+            metadataCacheStateAfter: {
+                resolvedLinksCount: Object.keys(this.app.metadataCache.resolvedLinks).length,
+                unresolvedLinksCount: Object.keys(this.app.metadataCache.unresolvedLinks).length,
+                hasContent: Object.keys(this.app.metadataCache.resolvedLinks).length > 0 || 
+                           Object.keys(this.app.metadataCache.unresolvedLinks).length > 0
+            }
+        });
 
+        // If no backlinks found and metadata cache appears empty, schedule a retry
         if (backlinks.length === 0) {
-            this.logger.debug('No backlinks found, will render UI with no backlinks message', {
-                currentNotePath
-            });
+            const metadataCacheReady = Object.keys(this.app.metadataCache.resolvedLinks).length > 0 ||
+                                      Object.keys(this.app.metadataCache.unresolvedLinks).length > 0;
+            
+            if (!metadataCacheReady) {
+                // Metadata cache might not be ready yet, schedule a retry
+                const retryInfo = this.pendingRetries.get(viewId);
+                const retryCount = retryInfo ? retryInfo.retryCount : 0;
+                
+                if (retryCount < 3) { // Max 3 retries
+                    this.logger.debug('No backlinks found and metadata cache appears empty, scheduling retry', {
+                        currentNotePath,
+                        viewId,
+                        retryCount: retryCount + 1
+                    });
+                    
+                    this.pendingRetries.set(viewId, {
+                        filePath: currentNotePath,
+                        view,
+                        retryCount: retryCount + 1
+                    });
+                    
+                    // Retry after a delay (increasing delay for each retry)
+                    setTimeout(async () => {
+                        const pendingRetry = this.pendingRetries.get(viewId);
+                        if (pendingRetry && pendingRetry.filePath === currentNotePath) {
+                            this.logger.debug('Retrying backlink discovery after delay', {
+                                currentNotePath,
+                                viewId,
+                                retryCount: pendingRetry.retryCount
+                            });
+                            
+                            // Retry with force refresh to bypass duplicate suppression
+                            await this.attachToDOM(view, currentNotePath, true);
+                        }
+                    }, 1000 + (retryCount * 500)); // 1s, 1.5s, 2s delays
+                } else {
+                    this.logger.debug('Max retries reached, showing no backlinks message', {
+                        currentNotePath,
+                        viewId
+                    });
+                    this.pendingRetries.delete(viewId);
+                }
+            } else {
+                // Metadata cache is ready, so there really are no backlinks
+                this.logger.debug('No backlinks found (metadata cache ready), will render UI with no backlinks message', {
+                    currentNotePath
+                });
+                this.pendingRetries.delete(viewId);
+            }
+        } else {
+            // Backlinks found, clear any pending retry
+            this.pendingRetries.delete(viewId);
         }
 
         // Create main container for the backlinks UI
@@ -166,7 +253,22 @@ export class BacklinksViewController {
         const currentNoteName = file && file instanceof TFile ? file.basename : currentNotePath.replace(/\.md$/, '').split('/').pop() || '';
 
         // Extract and render blocks
+        this.logger.info('Extracting and rendering blocks', {
+            currentNotePath,
+            currentNoteName,
+            backlinkCount: backlinks.length,
+            viewId
+        });
+        
         await this.extractAndRenderBlocks(backlinks, currentNoteName, blocksContainer, view);
+        
+        this.logger.info('Blocks extraction and rendering completed', {
+            currentNotePath,
+            currentNoteName,
+            backlinkCount: backlinks.length,
+            viewId,
+            blocksContainerChildren: blocksContainer.children.length
+        });
 
         // Apply current alias filter after blocks are rendered
         const currentAlias = headerState.currentAlias;
@@ -190,7 +292,15 @@ export class BacklinksViewController {
             lastUpdate: Date.now()
         });
 
-        this.logger.debug('Backlinks UI attached successfully (controller)', { currentNotePath });
+        // If backlinks were found, clear any pending retry
+        if (backlinks.length > 0) {
+            this.pendingRetries.delete(viewId);
+        }
+
+        this.logger.debug('Backlinks UI attached successfully (controller)', { 
+            currentNotePath,
+            backlinkCount: backlinks.length
+        });
         return true;
     }
 
@@ -446,6 +556,12 @@ export class BacklinksViewController {
                 });
 
                 this.currentBlocks.set(currentNoteName, allBlocks);
+                
+                this.logger.info('Blocks extracted', {
+                    currentNoteName,
+                    totalBlocks: allBlocks.length,
+                    filePaths: filePaths
+                });
 
                 if (this.renderOptions.sortByPath) {
                     allBlocks = this.sortBlocks(allBlocks, {
@@ -454,6 +570,12 @@ export class BacklinksViewController {
                     });
                 }
 
+                this.logger.info('Rendering blocks to DOM', {
+                    currentNoteName,
+                    blockCount: allBlocks.length,
+                    containerId: container.id || 'no-id'
+                });
+                
                 await this.blockRenderer.renderBlocks(
                     container,
                     allBlocks,
@@ -463,9 +585,18 @@ export class BacklinksViewController {
                     undefined,
                     this.lastRenderContext.view
                 );
+                
+                this.logger.info('Blocks rendered to DOM', {
+                    currentNoteName,
+                    blockCount: allBlocks.length,
+                    containerChildren: container.children.length
+                });
 
                 if (allBlocks.length === 0) {
-                    this.logger.debug('No blocks to render, adding no backlinks message');
+                    this.logger.info('No blocks to render, adding no backlinks message', {
+                        currentNoteName,
+                        filePathCount: filePaths.length
+                    });
                     this.addNoBacklinksMessage(container);
                 }
 
@@ -558,7 +689,9 @@ export class BacklinksViewController {
         });
 
         const blocks = this.getCurrentBlocks(currentNoteName);
-        this.blockRenderer.filterBlocksByAlias(blocks, alias, currentNoteName);
+        // Pass the container from lastRenderContext if available, so filtering only affects the current view
+        const targetContainer = this.lastRenderContext?.container;
+        this.blockRenderer.filterBlocksByAlias(blocks, alias, currentNoteName, targetContainer);
     }
 
     private filterBlocksByText(currentNoteName: string, filterText: string): void {

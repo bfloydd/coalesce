@@ -15,6 +15,8 @@ export class BlockRenderer implements IBlockRenderer {
     private app: App;
     private logger: Logger;
     private renderedBlocks: Map<string, BlockComponent> = new Map();
+    // Map to track which blocks belong to which container (for multi-view support)
+    private containerBlocks: Map<HTMLElement, Set<string>> = new Map();
     private statistics = {
         totalBlocksRendered: 0,
         totalRenders: 0,
@@ -138,26 +140,76 @@ export class BlockRenderer implements IBlockRenderer {
     }
 
     /**
-     * Clear rendered blocks
+     * Get a unique ID for a container
+     */
+    private getContainerId(container: HTMLElement): string {
+        // Try to use an existing ID
+        if (container.id) {
+            return container.id;
+        }
+        
+        // Generate a unique ID based on container's position or create one
+        // Use a combination of class names and a simple hash
+        const classes = Array.from(container.classList).join('-');
+        const hash = container.getBoundingClientRect().top + container.getBoundingClientRect().left;
+        return `${classes}-${hash}`.replace(/[^a-zA-Z0-9-]/g, '');
+    }
+
+    /**
+     * Clear rendered blocks for a specific container only
      */
     clearRenderedBlocks(container: HTMLElement): void {
-        this.logger.debug('Clearing rendered blocks');
+        this.logger.debug('Clearing rendered blocks for container');
         
         try {
-            // Clear all rendered blocks
-            for (const [blockId, blockComponent] of this.renderedBlocks.entries()) {
-                // Remove the block component from DOM
-                const container = blockComponent.getContainer();
-                if (container && container.parentElement) {
-                    container.parentElement.removeChild(container);
+            // Get blocks for this container
+            const containerBlockIds = this.containerBlocks.get(container);
+            const blocksToRemove: string[] = [];
+            
+            if (containerBlockIds) {
+                // Remove blocks that belong to this container
+                for (const blockId of containerBlockIds) {
+                    const blockComponent = this.renderedBlocks.get(blockId);
+                    if (blockComponent) {
+                        const blockContainer = blockComponent.getContainer();
+                        if (blockContainer && blockContainer.parentElement) {
+                            blockContainer.parentElement.removeChild(blockContainer);
+                        }
+                        blocksToRemove.push(blockId);
+                    }
                 }
-                this.renderedBlocks.delete(blockId);
+                
+                // Remove blocks from the map
+                for (const blockId of blocksToRemove) {
+                    this.renderedBlocks.delete(blockId);
+                }
+                
+                // Remove container tracking
+                this.containerBlocks.delete(container);
+            } else {
+                // Fallback: find blocks by checking if they're in the container
+                for (const [blockId, blockComponent] of this.renderedBlocks.entries()) {
+                    const blockContainer = blockComponent.getContainer();
+                    if (blockContainer && container.contains(blockContainer)) {
+                        if (blockContainer.parentElement) {
+                            blockContainer.parentElement.removeChild(blockContainer);
+                        }
+                        blocksToRemove.push(blockId);
+                    }
+                }
+                
+                for (const blockId of blocksToRemove) {
+                    this.renderedBlocks.delete(blockId);
+                }
             }
             
             // Clear container
             container.empty();
             
-            this.logger.debug('Rendered blocks cleared successfully');
+            this.logger.debug('Rendered blocks cleared successfully', {
+                blocksRemoved: blocksToRemove.length,
+                totalBlocksRemaining: this.renderedBlocks.size
+            });
         } catch (error) {
             this.logger.error('Failed to clear rendered blocks', { error });
         }
@@ -235,23 +287,39 @@ export class BlockRenderer implements IBlockRenderer {
     /**
      * Filter blocks by alias
      */
-    filterBlocksByAlias(blocks: BlockData[], alias: string | null, currentNoteName: string): void {
-        this.logger.debug('Filtering blocks by alias', { blockCount: blocks.length, alias, currentNoteName });
+    filterBlocksByAlias(blocks: BlockData[], alias: string | null, currentNoteName: string, targetContainer?: HTMLElement): void {
+        this.logger.debug('Filtering blocks by alias', { blockCount: blocks.length, alias, currentNoteName, hasTargetContainer: !!targetContainer });
 
         try {
-            for (const blockData of blocks) {
-                const blockComponent = this.renderedBlocks.get(blockData.id);
-                if (blockComponent) {
-                    const container = blockComponent.getContainer();
-                    if (container) {
+            // If target container is specified, only filter blocks in that container
+            // Otherwise, filter blocks in all containers (for backward compatibility)
+            const containersToProcess = targetContainer 
+                ? [targetContainer]
+                : Array.from(this.containerBlocks.keys());
+
+            for (const container of containersToProcess) {
+                const containerBlockIds = this.containerBlocks.get(container);
+                if (!containerBlockIds) continue;
+
+                for (const blockId of containerBlockIds) {
+                    const blockComponent = this.renderedBlocks.get(blockId);
+                    if (!blockComponent) continue;
+
+                    // Extract original block ID from the unique ID
+                    const originalBlockId = blockId.split('-').slice(0, -1).join('-');
+                    const blockData = blocks.find(b => b.id === originalBlockId);
+                    if (!blockData) continue;
+
+                    const blockContainer = blockComponent.getContainer();
+                    if (blockContainer) {
                         const hasAlias = alias ? this.blockContainsAlias(blockData, alias, currentNoteName) : true;
 
                         if (hasAlias) {
-                            container.classList.remove('no-alias');
-                            container.classList.add('has-alias');
+                            blockContainer.classList.remove('no-alias');
+                            blockContainer.classList.add('has-alias');
                         } else {
-                            container.classList.remove('has-alias');
-                            container.classList.add('no-alias');
+                            blockContainer.classList.remove('has-alias');
+                            blockContainer.classList.add('no-alias');
                         }
                     }
                 }
@@ -318,7 +386,18 @@ export class BlockRenderer implements IBlockRenderer {
             blockComponent.setCollapsed(options.collapsed);
             
             // Store the rendered block
-            this.renderedBlocks.set(blockData.id, blockComponent);
+            // Use a unique key that includes container reference to support multiple views of the same note
+            // Generate a unique ID based on container's position in DOM or a hash
+            const containerId = this.getContainerId(container);
+            const uniqueBlockId = `${blockData.id}-${containerId}`;
+            this.renderedBlocks.set(uniqueBlockId, blockComponent);
+            
+            // Track which blocks belong to this container
+            if (!this.containerBlocks.has(container)) {
+                this.containerBlocks.set(container, new Set());
+            }
+            this.containerBlocks.get(container)!.add(uniqueBlockId);
+            
             blockData.container = blockComponent.getContainer() || undefined;
             
             this.logger.debug('Single block rendered successfully', { 

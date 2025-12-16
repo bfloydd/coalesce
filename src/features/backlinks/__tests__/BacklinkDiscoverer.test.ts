@@ -237,6 +237,58 @@ describe('BacklinkDiscoverer', () => {
     });
   });
 
+  describe('metadata cache waiting and stabilization', () => {
+    // Note: These tests verify the logic for waiting for metadata cache
+    // In test environment, waitForMetadataCache returns immediately (see BacklinkDiscoverer.ts)
+    // So we test the behavior when cache is empty vs has content
+
+    it('should handle empty cache gracefully', async () => {
+      // Empty cache - waitForMetadataCache should return immediately in test env
+      mockApp.metadataCache.resolvedLinks = {};
+      mockApp.metadataCache.unresolvedLinks = {};
+
+      const backlinks = await discoverer.discoverBacklinks('target.md');
+      expect(backlinks).toEqual([]);
+    });
+
+    it('should discover backlinks when cache has content', async () => {
+      // Cache with content
+      mockApp.metadataCache.resolvedLinks = {
+        'file1.md': { 'target.md': 1 },
+        'file2.md': { 'target.md': 1 }
+      };
+
+      const backlinks = await discoverer.discoverBacklinks('target.md');
+      expect(backlinks).toContain('file1.md');
+      expect(backlinks).toContain('file2.md');
+      expect(backlinks).toHaveLength(2);
+    });
+
+    it('should handle backlinks that appear over time (stabilization)', async () => {
+      // Simulate cache that starts with one backlink, then gets another
+      // In real scenario, this would trigger the stabilization wait
+      mockApp.metadataCache.resolvedLinks = {
+        'file1.md': { 'target.md': 1 }
+      };
+
+      const backlinks1 = await discoverer.discoverBacklinks('target.md');
+      expect(backlinks1).toContain('file1.md');
+      expect(backlinks1).toHaveLength(1);
+
+      // Simulate cache update (in real scenario, this happens during stabilization wait)
+      mockApp.metadataCache.resolvedLinks = {
+        'file1.md': { 'target.md': 1 },
+        'file2.md': { 'target.md': 1 }
+      };
+
+      const backlinks2 = await discoverer.discoverBacklinks('target.md');
+      expect(backlinks2).toContain('file1.md');
+      expect(backlinks2).toContain('file2.md');
+      expect(backlinks2).toHaveLength(2);
+    });
+  });
+
   // Note: Timing-related tests are difficult to test reliably in unit test environment
   // The core functionality of backlink discovery is tested above
+  // For integration tests of metadata cache waiting, see BacklinksSlice.integration.test.ts
 });
