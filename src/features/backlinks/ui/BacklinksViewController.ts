@@ -261,8 +261,8 @@ export class BacklinksViewController {
                 unsavedAliases: [],
                 currentHeaderStyle: headerState.currentHeaderStyle,
                 currentFilter: headerState.currentFilter,
-                onSortToggle: () => this.handleSortToggle(),
-                onCollapseToggle: () => this.handleCollapseToggle(),
+                onSortToggle: () => this.handleSortToggle(container),
+                onCollapseToggle: () => this.handleCollapseToggle(container),
                 onStrategyChange: (strategy: string) => this.handleStrategyChange(strategy),
                 onThemeChange: (theme: string) => this.handleThemeChange(theme),
                 onFullPathTitleChange: (show: boolean) => this.handleFullPathTitleChange(show),
@@ -427,8 +427,8 @@ export class BacklinksViewController {
 
     // ===== Header methods =====
 
-    private handleSortToggle(): void {
-        this.logger.debug('BacklinksViewController.handleSortToggle');
+    private handleSortToggle(container?: HTMLElement): void {
+        this.logger.debug('BacklinksViewController.handleSortToggle', { hasContainer: !!container });
 
         const newState = this.headerController.toggleSort();
 
@@ -436,8 +436,10 @@ export class BacklinksViewController {
         this.renderOptions.sortByPath = newState.sortByPath;
         this.renderOptions.sortDescending = newState.sortDescending;
 
-        if (this.lastRenderContext) {
-            this.applySortingToDOM(this.lastRenderContext.container, newState.sortDescending);
+        // Use the provided container, or fall back to lastRenderContext
+        const targetContainer = container || this.lastRenderContext?.container;
+        if (targetContainer) {
+            this.applySortingToDOM(targetContainer, newState.sortDescending);
         }
 
         // Persist sort direction to settings via DOM custom event
@@ -450,16 +452,27 @@ export class BacklinksViewController {
         document.dispatchEvent(event);
     }
 
-    private handleCollapseToggle(): void {
-        this.logger.debug('BacklinksViewController.handleCollapseToggle');
+    private handleCollapseToggle(container?: HTMLElement): void {
+        this.logger.debug('BacklinksViewController.handleCollapseToggle', { hasContainer: !!container });
 
         const newState = this.headerController.toggleCollapse();
         this.renderOptions.collapsed = newState.isCollapsed;
 
-        this.setAllBlocksCollapsed(newState.isCollapsed);
-
-        if (this.lastRenderContext) {
-            this.applyCollapseStateToDOM(this.lastRenderContext.container, newState.isCollapsed);
+        // Use the provided container, or fall back to lastRenderContext
+        const targetContainer = container || this.lastRenderContext?.container;
+        if (targetContainer) {
+            // Only update blocks in this specific container - this ensures each view's collapse state is independent
+            // This is the critical fix: we no longer use document.querySelector which would affect all views
+            this.applyCollapseStateToDOM(targetContainer, newState.isCollapsed);
+            
+            // Update block data for the note associated with this container
+            // Find note name from lastRenderContext if available, otherwise skip block data update
+            // (DOM update is the critical part for user-visible behavior)
+            const currentNoteName = this.lastRenderContext?.currentNoteName;
+            if (currentNoteName && this.lastRenderContext?.container === targetContainer) {
+                const blocks = this.getCurrentBlocks(currentNoteName);
+                this.blockRenderer.updateBlockCollapsedState(blocks, newState.isCollapsed);
+            }
         }
 
         const event = new CustomEvent('coalesce-settings-collapse-changed', {
@@ -713,17 +726,19 @@ export class BacklinksViewController {
     }
 
     private applyCollapseStateToDOM(container: HTMLElement, collapsed: boolean): void {
+        // First try to find blocks directly in the container
         let blockContainers: NodeListOf<Element> = container.querySelectorAll('.coalesce-backlink-item');
 
+        // If not found, look for the .backlinks-list within this specific container
         if (blockContainers.length === 0) {
-            const backlinksList =
-                container.querySelector('.backlinks-list') ||
-                document.querySelector('.backlinks-list');
+            const backlinksList = container.querySelector('.backlinks-list');
             if (backlinksList) {
                 blockContainers = backlinksList.querySelectorAll('.coalesce-backlink-item');
             }
         }
 
+        // Only update blocks within this specific container - no document-wide fallback
+        // This ensures each view's collapse state is independent
         blockContainers.forEach(blockContainer => {
             const blockElement = blockContainer as HTMLElement;
 
@@ -813,6 +828,9 @@ export class BacklinksViewController {
     private setAllBlocksCollapsed(collapsed: boolean): void {
         this.renderOptions.collapsed = collapsed;
 
+        // Note: This method is no longer used by handleCollapseToggle
+        // as we now scope collapse state to individual containers.
+        // Keeping it for backward compatibility with other callers if any.
         for (const blocks of this.currentBlocks.values()) {
             this.blockRenderer.updateBlockCollapsedState(blocks, collapsed);
         }
