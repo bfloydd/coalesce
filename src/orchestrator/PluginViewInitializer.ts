@@ -180,84 +180,15 @@ export class PluginViewInitializer {
             }, 2000);
           };
           
-          // Check if metadata cache is ready
-          if (cacheState.hasContent) {
-            // Cache already has content, process all views immediately
-            this.logger?.info?.('Metadata cache already ready, processing all views in preview mode immediately');
-            processViews();
-          } else {
-            // Wait for metadata cache 'resolved' event before processing
-            this.logger?.info?.('Waiting for metadata cache resolved event before processing views');
-            
-            let handlerSet = false;
-            let checkInterval: NodeJS.Timeout | null = null;
-            let processed = false;
-            
-            // Check cache periodically in case event already fired
-            const checkCacheAndProcess = () => {
-              const currentCacheState = {
-                resolvedLinksCount: Object.keys(this.app.metadataCache.resolvedLinks).length,
-                unresolvedLinksCount: Object.keys(this.app.metadataCache.unresolvedLinks).length,
-                hasContent: Object.keys(this.app.metadataCache.resolvedLinks).length > 0 || 
-                           Object.keys(this.app.metadataCache.unresolvedLinks).length > 0
-              };
-              
-              if (currentCacheState.hasContent && !processed) {
-                processed = true;
-                // Cache is ready, process all views now
-                if (checkInterval) clearInterval(checkInterval);
-                if (handlerSet) {
-                  this.app.metadataCache.off('resolved', handleResolved);
-                }
-                
-                this.logger?.info?.('Metadata cache populated (checked during wait), processing all views in preview mode', {
-                  metadataCacheState: currentCacheState,
-                  viewsToProcess: viewsToProcess.length,
-                });
-                
-                processViews();
-                return true;
-              }
-              return false;
-            };
-            
-            // Check immediately in case event already fired
-            if (checkCacheAndProcess()) {
-              return; // Already processed
-            }
-            
-            // Check periodically (every 50ms) in case event already fired
-            checkInterval = setInterval(() => {
-              checkCacheAndProcess();
-            }, 50);
-            
-            // Create handler that processes all views when metadata cache is ready
-            const handleResolved = () => {
-              if (checkInterval) clearInterval(checkInterval);
-              this.app.metadataCache.off('resolved', handleResolved);
-              
-              if (processed) return;
-              processed = true;
-              
-              const resolvedCacheState = {
-                resolvedLinksCount: Object.keys(this.app.metadataCache.resolvedLinks).length,
-                unresolvedLinksCount: Object.keys(this.app.metadataCache.unresolvedLinks).length,
-                hasContent: Object.keys(this.app.metadataCache.resolvedLinks).length > 0 || 
-                           Object.keys(this.app.metadataCache.unresolvedLinks).length > 0
-              };
-              
-              this.logger?.info?.('Metadata cache resolved event received, processing all views in preview mode', {
-                metadataCacheState: resolvedCacheState,
-                viewsToProcess: viewsToProcess.length,
-              });
-              
-              processViews();
-            };
-            
-            // Register the event listener
-            handlerSet = true;
-            this.app.metadataCache.on('resolved', handleResolved);
-          }
+        // Cold start spec: attach Coalesce UI to all *open* notes on startup.
+        // Do NOT block on metadata cache readiness here — the view controller already
+        // has retry logic when the cache is empty, and blocking can prevent UI from ever
+        // appearing in vaults where resolved/unresolved links stay empty.
+        this.logger?.info?.('Cold start: processing all views in preview mode immediately', {
+          metadataCacheState: cacheState,
+          viewsToProcess: viewsToProcess.length,
+        });
+        processViews();
         }
 
         // Also set up a periodic check for views that enter preview mode later
@@ -420,14 +351,36 @@ export class PluginViewInitializer {
           continue;
         }
 
-        // If UI is already attached, we *still* need to process this view.
-        // This happens when a leaf is reused and the user opens a different note in the same pane.
-        // In that case, we want to refresh (detach+reattach) the Coalesce UI for the new file.
+        // Spec alignment:
+        // - If the user clicks a visible note that already has Coalesce UI attached, do NOT reload.
+        // - If the leaf is reused and a *different* note is opened in the same pane, DO reload.
         const existingUI = view.contentEl.querySelector('.coalesce-custom-backlinks-container');
         const previousFilePathForView = this.lastFilePathByViewId.get(viewId);
         const fileChangedInThisView =
           !!previousFilePathForView && previousFilePathForView !== filePath;
-        const shouldForceRefresh = !!existingUI || fileChangedInThisView;
+        
+        // If UI is present and we have no record yet, assume it's already correct for this file
+        // and record it (prevents unnecessary reloads on refocus).
+        if (existingUI && !previousFilePathForView) {
+          this.lastFilePathByViewId.set(viewId, filePath);
+          this.logger?.debug?.('Skipping Coalesce UI reload (UI already visible for this view)', {
+            filePath,
+            viewId,
+          });
+          continue;
+        }
+        
+        // If UI is present and the file hasn't changed in this view, skip reloading.
+        if (existingUI && !fileChangedInThisView) {
+          this.logger?.debug?.('Skipping Coalesce UI reload (already attached for this file)', {
+            filePath,
+            viewId,
+          });
+          continue;
+        }
+        
+        // Only force refresh when the leaf is being reused for a different note.
+        const shouldForceRefresh = fileChangedInThisView;
 
         // Only process views in preview mode (UI can only be attached in preview mode)
         const isPreviewMode = view.getMode() === 'preview';
