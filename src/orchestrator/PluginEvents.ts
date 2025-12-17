@@ -188,22 +188,26 @@ export function registerPluginEvents(
   plugin.registerEvent(
     app.workspace.on('file-open', (file: TFile) => {
       if (file) {
-        // Skip during cold start - views are already being processed by initializeExistingViews
-        if (viewInitializer?.isColdStartProcessing?.()) {
-          logger?.debug?.('Skipping file-open event during cold start', {
-            path: file.path,
-          });
-          return;
-        }
+        // NOTE:
+        // We do NOT skip file-open during cold start.
+        // The previous "skip during cold start" logic could leave the plugin stuck if cold-start
+        // never flips to false (e.g., because resolvedLinks/unresolvedLinks stay empty).
+        // updateForFile already has its own duplicate suppression, so it's safe to call here.
+        const inColdStart = !!viewInitializer?.isColdStartProcessing?.();
 
         logger?.debug?.('File open event (fallback)', {
           path: file.path,
           extension: file.extension,
           basename: file.basename,
+          inColdStart,
         });
 
         if (updateCoalesceUIForFile) {
-          void updateCoalesceUIForFile(file.path);
+          // Small delay so the view DOM has a chance to settle after the file switch.
+          // This improves reliability when a note is opened into an existing pane/leaf.
+          setTimeout(() => {
+            void updateCoalesceUIForFile(file.path);
+          }, inColdStart ? 250 : 50);
         }
       }
     }),

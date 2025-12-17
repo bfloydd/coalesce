@@ -20,6 +20,7 @@ export class PluginViewInitializer {
   private coldStartProcessing: boolean = false;
   private processingFiles: Set<string> = new Set(); // Track files currently being processed
   private processingViews: Map<string, Promise<void>> = new Map(); // Track views currently being processed with their promises
+  private lastFilePathByViewId: Map<string, string> = new Map(); // Track last file we rendered per leaf/view
 
   constructor(
     private readonly app: App,
@@ -40,6 +41,19 @@ export class PluginViewInitializer {
     // where event handlers might fire before coldStartProcessing is set
     this.coldStartProcessing = true;
     this.coldStartProcessedFiles.clear();
+
+    // Safety valve:
+    // Cold start processing should never block normal note switching indefinitely.
+    // The previous "cache has content" heuristic can remain empty in some vaults,
+    // so always release cold start after a reasonable timeout.
+    setTimeout(() => {
+      if (this.coldStartProcessing) {
+        this.coldStartProcessing = false;
+        this.logger?.warn?.('Cold start processing timeout reached; releasing event handlers', {
+          timeoutMs: 15000,
+        });
+      }
+    }, 15000);
 
     // Use requestAnimationFrame to ensure workspace is fully ready
     requestAnimationFrame(() => {
@@ -406,19 +420,14 @@ export class PluginViewInitializer {
           continue;
         }
 
-        // Check if UI is already attached to this view
-        // This check must come before we start processing
+        // If UI is already attached, we *still* need to process this view.
+        // This happens when a leaf is reused and the user opens a different note in the same pane.
+        // In that case, we want to refresh (detach+reattach) the Coalesce UI for the new file.
         const existingUI = view.contentEl.querySelector('.coalesce-custom-backlinks-container');
-        if (existingUI) {
-          this.logger?.error?.('ERROR: updateForFile attempting to process a view that already has coalesce UI attached!', {
-            filePath,
-            viewId,
-            codePath: this.initialActiveViewProcessed ? 'COLD_START_ACTIVE_VIEW' : 'NORMAL_FOCUS',
-            coldStartProcessing: this.coldStartProcessing,
-            callStack: new Error().stack?.split('\n').slice(1, 6).join(' -> ')
-          });
-          continue;
-        }
+        const previousFilePathForView = this.lastFilePathByViewId.get(viewId);
+        const fileChangedInThisView =
+          !!previousFilePathForView && previousFilePathForView !== filePath;
+        const shouldForceRefresh = !!existingUI || fileChangedInThisView;
 
         // Only process views in preview mode (UI can only be attached in preview mode)
         const isPreviewMode = view.getMode() === 'preview';
@@ -434,7 +443,15 @@ export class PluginViewInitializer {
         // Mark as being processed IMMEDIATELY before creating the promise
         // This prevents race conditions where updateForFile is called twice
         this.processedViewIds.add(viewId);
-        const processingPromise = this.processView(view, filePath, viewId, viewIntegration, backlinksSlice, settings);
+        const processingPromise = this.processView(
+          view,
+          filePath,
+          viewId,
+          viewIntegration,
+          backlinksSlice,
+          settings,
+          shouldForceRefresh,
+        );
         
         // Mark view as being processed in the map IMMEDIATELY
         // This must happen synchronously before any await to prevent race conditions
@@ -477,46 +494,38 @@ export class PluginViewInitializer {
     viewId: string,
     viewIntegration: any,
     backlinksSlice: any,
-    settings: any
+    settings: any,
+    forceRefresh: boolean
   ): Promise<void> {
     try {
-      // Check if UI is already attached to this view BEFORE doing any work
-      // This prevents duplicate processing if processView is called multiple times
-      const existingUI = view.contentEl.querySelector('.coalesce-custom-backlinks-container');
-      if (existingUI) {
-        // If UI is already attached, skip processing (even during cold start)
-        // The view-level check in updateForFile should prevent this, but this is a safety net
-        this.logger?.debug?.('Skipping processView - UI already attached', {
-          filePath,
-          viewId,
-          coldStartProcessing: this.coldStartProcessing,
-        });
-        return;
-      }
+      // IMPORTANT:
+      // If the leaf is reused (user opens a different note in the same pane),
+      // the previous Coalesce container may still exist in the view DOM.
+      // In that case we intentionally refresh (detach+reattach) for the new file.
 
       // Initialize view integration first
       await viewIntegration.initializeView?.(view.file, view);
 
-      // CRITICAL: Check if UI is already attached in the DOM - this is an ERROR condition
+      // If UI is already attached in the DOM, remove it before (re)attaching.
+      // This is expected when forceRefresh is true (e.g., note switched within same pane).
       const existingContainers =
         view.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
       if (existingContainers.length > 0) {
-        this.logger?.error?.('ERROR: processView called for a view that already has coalesce UI attached!', {
+        const logFn =
+          forceRefresh ? this.logger?.debug?.bind(this.logger) : this.logger?.warn?.bind(this.logger);
+        logFn?.('Removing existing coalesce UI container(s) before (re)attach', {
           filePath,
           viewId: (view.leaf as any).id,
           existingContainerCount: existingContainers.length,
+          forceRefresh,
           coldStartProcessing: this.coldStartProcessing,
           codePath: this.initialActiveViewProcessed ? 'COLD_START_ACTIVE_VIEW' : 'NORMAL_FOCUS',
-          callStack: new Error().stack?.split('\n').slice(1, 6).join(' -> ')
         });
-        // Still clear and reattach to prevent duplicates, but log the error
         existingContainers.forEach((container) => container.remove());
       }
 
       // Use the consolidated backlinks slice to attach the complete UI
       // The slice will handle backlink discovery, block extraction, header UI, and rendering
-      // Only force refresh if we're not in cold start (cold start should be fresh)
-      const forceRefresh = !this.coldStartProcessing;
       const attachStartTime = Date.now();
       this.logger?.info?.('Calling attachToDOM', {
         filePath,
@@ -542,6 +551,10 @@ export class PluginViewInitializer {
         duration: attachDuration,
         codePath: this.initialActiveViewProcessed ? 'COLD_START_ACTIVE_VIEW' : 'NORMAL_FOCUS'
       });
+
+      // Record last file rendered for this view, so we can force refresh when the leaf is reused
+      // and a different note is opened in the same pane (even if Obsidian re-renders and removes our DOM).
+      this.lastFilePathByViewId.set(viewId, filePath);
 
       // Only apply settings and log if UI was actually attached (not skipped due to recent attachment)
       if (uiAttached) {
