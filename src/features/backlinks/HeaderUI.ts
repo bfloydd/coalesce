@@ -16,8 +16,6 @@ export class HeaderUI implements IHeaderUI {
     private logger: Logger;
     private headerComponent: HeaderComponent;
     private statistics: HeaderStatistics;
-    private resizeObserver: ResizeObserver | null = null;
-    private observedContainer: HTMLElement | null = null;
 
     constructor(app: App, logger: Logger, settingsControls: SettingsControls) {
         this.app = app;
@@ -73,9 +71,6 @@ export class HeaderUI implements IHeaderUI {
             
             // Update statistics
             this.statistics.totalHeadersCreated++;
-            
-            // Apply responsive layout
-            this.applyResponsiveLayout(header, container);
             
             this.logger.debug('Header created successfully', { 
                 headerElement: header,
@@ -153,49 +148,6 @@ export class HeaderUI implements IHeaderUI {
     }
 
     /**
-     * Apply responsive layout
-     */
-    private applyResponsiveLayout(header: HTMLElement, container: HTMLElement): void {
-        this.logger.debug('Applying responsive layout');
-        
-        try {
-            // Cleanup existing observer
-            this.cleanupResizeObserver();
-            
-            // Set up new observer
-            this.observedContainer = container;
-            
-            this.resizeObserver = new ResizeObserver((entries) => {
-                for (const entry of entries) {
-                    const width = entry.contentRect.width;
-                    const isCompact = width < 450;
-                    
-                    if (isCompact) {
-                        header.classList.add('compact');
-                    } else {
-                        header.classList.remove('compact');
-                    }
-                    
-                    this.logger.debug('Responsive layout updated', { width, isCompact });
-                }
-            });
-            
-            // Check initial width
-            const initialWidth = container.getBoundingClientRect().width;
-            if (initialWidth < 450) {
-                header.classList.add('compact');
-            }
-            
-            // Start observing
-            this.resizeObserver.observe(container);
-            
-            this.logger.debug('Responsive layout applied successfully');
-        } catch (error) {
-            this.logger.error('Failed to apply responsive layout', { header, container, error });
-        }
-    }
-
-    /**
      * Update sort button state
      */
     private updateSortButtonState(header: HTMLElement, sortDescending: boolean): void {
@@ -258,18 +210,6 @@ export class HeaderUI implements IHeaderUI {
     }
 
     /**
-     * Cleanup resize observer
-     */
-    private cleanupResizeObserver(): void {
-        if (this.resizeObserver && this.observedContainer) {
-            this.resizeObserver.unobserve(this.observedContainer);
-            this.resizeObserver.disconnect();
-            this.resizeObserver = null;
-            this.observedContainer = null;
-        }
-    }
-
-    /**
      * Reset statistics
      */
     resetStatistics(): void {
@@ -299,9 +239,6 @@ export class HeaderUI implements IHeaderUI {
         try {
             // Cleanup header component
             this.headerComponent.cleanup();
-            
-            // Cleanup resize observer
-            this.cleanupResizeObserver();
             
             // Reset statistics
             this.resetStatistics();

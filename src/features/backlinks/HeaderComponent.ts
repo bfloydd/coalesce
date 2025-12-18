@@ -13,6 +13,18 @@ export class HeaderComponent {
     private static currentHeaderStyle: string = HeaderStyleFactory.getValidStyles()[0];
     private resizeObserver: ResizeObserver | null = null;
     private observedContainer: HTMLElement | null = null;
+
+    /**
+     * ResizeObserver callbacks can be re-entrant if we synchronously mutate layout-affecting
+     * properties (like toggling CSS classes) inside the observer callback. That can surface as:
+     * "ResizeObserver loop completed with undelivered notifications."
+     *
+     * To prevent this, we coalesce updates into a single requestAnimationFrame tick and only
+     * toggle the class when the compact state actually changes.
+     */
+    private responsiveLayoutRafId: number | null = null;
+    private pendingIsCompact: boolean | null = null;
+    private lastAppliedIsCompact: boolean | null = null;
     private settingsManager: any = null;
     private settingsControls: SettingsControls;
 
@@ -44,6 +56,13 @@ export class HeaderComponent {
             this.resizeObserver = null;
             this.observedContainer = null;
         }
+
+        if (this.responsiveLayoutRafId !== null) {
+            cancelAnimationFrame(this.responsiveLayoutRafId);
+            this.responsiveLayoutRafId = null;
+        }
+        this.pendingIsCompact = null;
+        this.lastAppliedIsCompact = null;
     }
 
     private applyResponsiveLayout(header: HTMLElement, container: HTMLElement): void {
@@ -54,20 +73,39 @@ export class HeaderComponent {
         this.resizeObserver = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const width = entry.contentRect.width;
-                if (width < 450) {
-                    header.classList.add('compact');
-                } else {
-                    header.classList.remove('compact');
-                }
+                this.scheduleResponsiveClassUpdate(header, width < 450);
             }
         });
         
         const initialWidth = container.getBoundingClientRect().width;
-        if (initialWidth < 450) {
-            header.classList.add('compact');
-        }
+        this.scheduleResponsiveClassUpdate(header, initialWidth < 450);
         
         this.resizeObserver.observe(container);
+    }
+
+    /**
+     * Defer classList mutations out of the ResizeObserver microtask to avoid resize loops.
+     */
+    private scheduleResponsiveClassUpdate(header: HTMLElement, isCompact: boolean): void {
+        this.pendingIsCompact = isCompact;
+
+        // If an update is already scheduled, just update pendingIsCompact.
+        if (this.responsiveLayoutRafId !== null) return;
+
+        this.responsiveLayoutRafId = requestAnimationFrame(() => {
+            this.responsiveLayoutRafId = null;
+
+            // If the header was detached (common during edit <-> preview switches), do nothing.
+            if (!header.isConnected) return;
+
+            if (this.pendingIsCompact === null) return;
+
+            // No-op if state hasn't changed.
+            if (this.lastAppliedIsCompact === this.pendingIsCompact) return;
+
+            header.classList.toggle('compact', this.pendingIsCompact);
+            this.lastAppliedIsCompact = this.pendingIsCompact;
+        });
     }
 
     createHeader(
