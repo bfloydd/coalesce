@@ -322,9 +322,11 @@
 
 .coalesce-filter-input:focus {
     outline: none;
-    background-color: var(--background-modifier-form-highlight, var(--background-secondary-alt));
+    /* background-color: var(--background-modifier-form-highlight, var(--background-secondary-alt)); */
     position: relative;
     z-index: 10;
+    box-shadow: none !important;
+    background-color: var(--background-primary) !important;
 }
 
 .coalesce-filter-clear-button {
