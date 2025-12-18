@@ -16,7 +16,6 @@
     background: var(--background-secondary);
     border: none;
     border-radius: 6px;
-    
     width: calc(100% - 8px);
     /* Performance optimization */
     will-change: transform;
