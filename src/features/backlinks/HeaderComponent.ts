@@ -208,9 +208,10 @@ export class HeaderComponent {
         // Create button group
         const buttonGroup = this.createButtonGroup(sortDescending, onSortToggle, isCollapsed, onCollapseToggle, onRefresh);
 
-        // Add elements in order
-        leftContainer.appendChild(aliasDropdown);
-        leftContainer.appendChild(filterInput);
+        // Add elements in order - wrap dropdown and filter in a connected group
+        const filterGroup = leftContainer.createDiv({ cls: 'coalesce-filter-group' });
+        filterGroup.appendChild(aliasDropdown);
+        filterGroup.appendChild(filterInput);
         leftContainer.appendChild(buttonGroup);
 
         return leftContainer;

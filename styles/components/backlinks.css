@@ -4,7 +4,7 @@
 
 /* Backlinks container & placement under Markdown content */
 .coalesce-custom-backlinks-container {
-    border-top: 1px solid var(--background-modifier-border);
+    /* border-top: 1px solid var(--background-modifier-border); */
     margin-top: 20px;
     position: relative;
     z-index: 10;
