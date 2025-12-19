@@ -140,6 +140,31 @@ export function registerPluginEvents(
     }
   });
 
+  // coalesce-settings-content-filter-changed (hideBacklinkLine, hideFirstHeader)
+  document.addEventListener('coalesce-settings-content-filter-changed', (event: CustomEvent) => {
+    const { hideBacklinkLine, hideFirstHeader } = event.detail || {};
+    logger?.debug?.('Received coalesce-settings-content-filter-changed event', { hideBacklinkLine, hideFirstHeader });
+
+    try {
+      const backlinksSlice = orchestrator.getSlice('backlinks') as any;
+      if (backlinksSlice && typeof backlinksSlice.setOptions === 'function') {
+        backlinksSlice.setOptions({ hideBacklinkLine, hideFirstHeader });
+        // Trigger a refresh to re-render blocks with new filter settings
+        if (typeof backlinksSlice.refreshAllViews === 'function') {
+          backlinksSlice.refreshAllViews();
+        }
+      } else {
+        logger?.warn?.('Backlinks slice not available for content filter change');
+      }
+    } catch (error) {
+      logger?.error?.('Failed to handle coalesce-settings-content-filter-changed event', {
+        hideBacklinkLine,
+        hideFirstHeader,
+        error,
+      });
+    }
+  });
+
   // coalesce-navigate (navigation via backlinks)
   document.addEventListener('coalesce-navigate', (event: CustomEvent) => {
     const { filePath, openInNewTab, blockId } = event.detail;

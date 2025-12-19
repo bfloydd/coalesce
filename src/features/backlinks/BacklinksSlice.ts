@@ -153,16 +153,24 @@ export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
     async start(): Promise<void> {
         this.logger.debug('Starting BacklinksSlice');
 
-        // Restore header style from settings if available
+        // Restore settings from settings slice if available
         if (this.settingsSlice && typeof this.settingsSlice.getSettings === 'function') {
             try {
                 const settings = this.settingsSlice.getSettings();
-                if (settings && settings.headerStyle) {
-                    this.logger.debug('Restoring header style from settings', { headerStyle: settings.headerStyle });
-                    this.setOptions({ headerStyle: settings.headerStyle });
+                if (settings) {
+                    this.logger.debug('Restoring settings', { 
+                        headerStyle: settings.headerStyle,
+                        hideBacklinkLine: settings.hideBacklinkLine,
+                        hideFirstHeader: settings.hideFirstHeader
+                    });
+                    this.setOptions({ 
+                        headerStyle: settings.headerStyle,
+                        hideBacklinkLine: settings.hideBacklinkLine,
+                        hideFirstHeader: settings.hideFirstHeader
+                    });
                 }
             } catch (error) {
-                this.logger.error('Failed to restore header style from settings', { error });
+                this.logger.error('Failed to restore settings', { error });
             }
         }
     }
@@ -380,6 +388,8 @@ export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
         alias?: string | null;
         filter?: string;
         headerStyle?: string;
+        hideBacklinkLine?: boolean;
+        hideFirstHeader?: boolean;
     }): void {
         try {
             this.logger.debug('Setting backlinks options', { options });
@@ -398,6 +408,14 @@ export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
     requestFocusWhenReady(leafId: string): void {
         this.logger.debug('Requesting focus when ready (slice)', { leafId });
         this.viewController.requestFocusWhenReady(leafId);
+    }
+
+    /**
+     * Refresh all attached views to re-render with current options.
+     */
+    async refreshAllViews(): Promise<void> {
+        this.logger.debug('Refreshing all views (slice)');
+        await this.viewController.refreshAllViews();
     }
 
     // ===== Navigation =====

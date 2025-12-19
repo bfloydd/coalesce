@@ -16,7 +16,6 @@
     background: var(--background-secondary);
     border: none;
     border-radius: 6px;
-    width: calc(100% - 8px);
     /* Performance optimization */
     will-change: transform;
     transform: translateZ(0);
@@ -281,7 +280,7 @@
 .coalesce-filter-input {
     padding: 2px 8px;
     padding-right: 28px;
-    border-radius: 0 4px 4px 0;
+    border-radius: 0 4px 4px 0 !important;
     border: none !important;
     background-color: var(--background-primary);
     color: var(--text-muted);

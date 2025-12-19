@@ -96,7 +96,7 @@
 /* Block item container and states */
 .coalesce-backlink-item {
     /* Performance optimization */
-    will-change: transform;
+    /* will-change: transform; */
     transform: translateZ(0);
     transition: opacity 0.15s ease-out;
 }

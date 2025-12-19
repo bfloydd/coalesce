@@ -147,6 +147,17 @@ export class SettingsCore {
                 this.updateLoggingState(updates.enableLogging);
             }
 
+            // Notify backlinks view of content filter changes
+            if (updates.hideBacklinkLine !== undefined || updates.hideFirstHeader !== undefined) {
+                const event = new CustomEvent('coalesce-settings-content-filter-changed', {
+                    detail: {
+                        hideBacklinkLine: this.currentSettings.hideBacklinkLine,
+                        hideFirstHeader: this.currentSettings.hideFirstHeader
+                    }
+                });
+                document.dispatchEvent(event);
+            }
+
             await this.saveSettings();
             this.logger.debug('Multiple settings updated successfully', { updates });
         } catch (error) {

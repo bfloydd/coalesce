@@ -359,7 +359,7 @@ export class BacklinksViewController {
     }
 
     /**
-     * Apply options (sort/collapse/strategy/theme/alias/filter/headerStyle) to the current view.
+     * Apply options (sort/collapse/strategy/theme/alias/filter/headerStyle/hideBacklinkLine/hideFirstHeader) to the current view.
      */
     setOptions(options: {
         sort?: boolean;
@@ -370,6 +370,8 @@ export class BacklinksViewController {
         alias?: string | null;
         filter?: string;
         headerStyle?: string;
+        hideBacklinkLine?: boolean;
+        hideFirstHeader?: boolean;
     }): void {
         this.logger.debug('BacklinksViewController.setOptions', { options });
 
@@ -383,6 +385,14 @@ export class BacklinksViewController {
         if (options.headerStyle !== undefined) {
             this.renderOptions.headerStyle = updatedState.currentHeaderStyle;
             this.updateBlockTitleDisplay(updatedState.currentHeaderStyle);
+        }
+
+        if (options.hideBacklinkLine !== undefined) {
+            this.renderOptions.hideBacklinkLine = options.hideBacklinkLine;
+        }
+
+        if (options.hideFirstHeader !== undefined) {
+            this.renderOptions.hideFirstHeader = options.hideFirstHeader;
         }
 
         this.applyCurrentOptions();
@@ -425,6 +435,23 @@ export class BacklinksViewController {
         this.attachedViews.clear();
         this.processingViews.clear();
         this.headerController.reset();
+    }
+
+    /**
+     * Refresh all attached views to re-render with current options.
+     */
+    async refreshAllViews(): Promise<void> {
+        this.logger.debug('BacklinksViewController.refreshAllViews', { 
+            attachedViewCount: this.attachedViews.size 
+        });
+
+        const leaves = this.app.workspace.getLeavesOfType('markdown');
+        for (const leaf of leaves) {
+            const view = leaf.view as MarkdownView;
+            if (view?.file) {
+                await this.attachToDOM(view, view.file.path, true);
+            }
+        }
     }
 
     // ===== Header methods =====
