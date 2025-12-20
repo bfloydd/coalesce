@@ -22,6 +22,17 @@ export function registerPluginEvents(
   updateCoalesceUIForFile?: (filePath: string) => Promise<void>,
   viewInitializer?: { isColdStartProcessing?: () => boolean },
 ): void {
+  /**
+   * Normalize a path into a vault path (no wiki-link brackets).
+   * Defensive: some event sources may accidentally provide [[...]] strings.
+   */
+  const cleanVaultPath = (input: unknown): string => {
+    let p = String(input ?? '').trim();
+    while (p.startsWith('[[')) p = p.slice(2);
+    while (p.endsWith(']]')) p = p.slice(0, -2);
+    return p;
+  };
+
   // ========== DOM Custom Events ==========
 
   // coalesce-settings-collapse-changed
@@ -168,8 +179,9 @@ export function registerPluginEvents(
   // coalesce-navigate (navigation via backlinks)
   document.addEventListener('coalesce-navigate', (event: CustomEvent) => {
     const { filePath, openInNewTab, blockId } = event.detail;
+    const cleanedFilePath = cleanVaultPath(filePath);
     logger?.debug?.('Received coalesce-navigate event for navigation', {
-      filePath,
+      filePath: cleanedFilePath,
       openInNewTab,
       blockId,
     });
@@ -177,15 +189,20 @@ export function registerPluginEvents(
     try {
       const backlinks = orchestrator.getSlice('backlinks') as any;
       if (backlinks && typeof backlinks.handleNavigation === 'function') {
-        backlinks.handleNavigation(filePath, openInNewTab || false, blockId);
+        backlinks.handleNavigation(cleanedFilePath, openInNewTab || false, blockId);
       } else {
         // Fallback to direct navigation if backlinks slice not available
-        const linkText = blockId ? `[[${filePath}#^${blockId}]]` : `[[${filePath}]]`;
+        // IMPORTANT:
+        // openLinkText expects a link-text like "path" or "path#^blockId".
+        // Do NOT wrap in [[...]] (that's markdown syntax, not part of a filename).
+        const linkText = blockId
+          ? `${cleanedFilePath}#^${blockId}`
+          : cleanedFilePath;
         app.workspace.openLinkText(linkText, '', openInNewTab || false);
       }
     } catch (error) {
       logger?.error?.('Failed to handle coalesce-navigate event', {
-        filePath,
+        filePath: cleanedFilePath,
         openInNewTab,
         blockId,
         error,

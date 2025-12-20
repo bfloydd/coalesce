@@ -12,7 +12,7 @@ export class FirstHeadingTidyHeaderStyle extends AbstractHeaderStyle {
         if (!firstHeading) {
             this.logger.debug('No heading found, showing guidance message');
             // Show clean guidance message when no heading exists
-            return '📝 Add a heading';
+            return 'Add a heading';
         }
         
         this.logger.debug('Final title formatted', {

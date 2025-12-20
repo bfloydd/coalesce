@@ -18,6 +18,7 @@ import { HeaderUI } from '../HeaderUI';
 import { FilterControls } from '../FilterControls';
 import { SettingsControls } from '../SettingsControls';
 import { HeaderController } from './HeaderController';
+import type { INoteEditingSlice } from '../../shared-contracts/slice-interfaces';
 
 /**
  * BacklinksViewController
@@ -60,7 +61,8 @@ export class BacklinksViewController {
         private readonly strategyManager: StrategyManager,
         private readonly headerUI: HeaderUI,
         private readonly filterControls: FilterControls,
-        private readonly settingsControls: SettingsControls
+        private readonly settingsControls: SettingsControls,
+        private readonly noteEditingSlice?: INoteEditingSlice
     ) {
         // Initial render options mirror the previous BacklinksSlice defaults
         this.renderOptions = {
@@ -710,7 +712,7 @@ export class BacklinksViewController {
                     this.renderOptions,
                     currentNoteName,
                     this.strategyManager.getCurrentStrategy(),
-                    undefined,
+                    this.noteEditingSlice,
                     this.lastRenderContext.view
                 );
                 

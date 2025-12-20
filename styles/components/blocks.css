@@ -127,6 +127,19 @@
     transition: all 0.2s ease !important;
 }
 
+.coalesce-add-heading-icon {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 6px;
+    vertical-align: middle;
+    opacity: 0.9;
+}
+
+.coalesce-add-heading-separator {
+    color: var(--text-faint);
+    margin: 0 4px;
+}
+
 .coalesce-add-heading-prompt:hover {
     color: var(--text-accent) !important;
     text-decoration-color: var(--text-accent) !important;

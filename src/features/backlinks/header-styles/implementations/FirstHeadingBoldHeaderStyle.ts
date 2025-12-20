@@ -12,7 +12,7 @@ export class FirstHeadingBoldHeaderStyle extends AbstractHeaderStyle {
         
         if (!firstHeading) {
             this.logger.debug('No heading found, showing filename with guidance', { fileName });
-            return `${fileName} - 📝 Add a heading`;
+            return `${fileName} - Add a heading`;
         }
         
         const processedText = this.convertToBoldText(firstHeading);

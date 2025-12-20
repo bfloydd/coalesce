@@ -2,6 +2,7 @@ import { App, MarkdownView } from 'obsidian';
 import { Logger } from '../shared-utilities/Logger';
 import { IBlockRenderer, BlockData, BlockRenderOptions, BlockRenderResult } from './types';
 import { BlockComponent } from './BlockComponent';
+import type { INoteEditingSlice } from '../shared-contracts/slice-interfaces';
 
 import { HeaderStyleManager } from './header-styles/HeaderStyleManager';
 
@@ -40,7 +41,7 @@ export class BlockRenderer implements IBlockRenderer {
         options: BlockRenderOptions,
         currentNoteName?: string,
         blockBoundaryStrategy?: string,
-        headingPopupComponent?: any,
+        noteEditingSlice?: INoteEditingSlice,
         view?: MarkdownView
     ): Promise<void> {
         this.logger.debug('Rendering blocks', { blockCount: blocks.length, options });
@@ -59,7 +60,7 @@ export class BlockRenderer implements IBlockRenderer {
                     options,
                     currentNoteName,
                     blockBoundaryStrategy,
-                    headingPopupComponent,
+                    noteEditingSlice,
                     view
                 );
             }
@@ -356,7 +357,7 @@ export class BlockRenderer implements IBlockRenderer {
         options: BlockRenderOptions,
         currentNoteName?: string,
         blockBoundaryStrategy?: string,
-        headingPopupComponent?: any,
+        noteEditingSlice?: INoteEditingSlice,
         view?: MarkdownView
     ): Promise<void> {
         try {
@@ -370,7 +371,7 @@ export class BlockRenderer implements IBlockRenderer {
                 blockBoundaryStrategy || 'default', // Use provided strategy or default
                 options.hideBacklinkLine,
                 options.hideFirstHeader,
-                headingPopupComponent, // Pass through heading popup component
+                noteEditingSlice, // Pass through note editing slice (for Add Heading prompt)
                 this.app,
                 blockData.id, // Pass the block ID for navigation
                 blockData.startLine // Pass the start line for navigation

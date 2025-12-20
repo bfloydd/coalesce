@@ -3,7 +3,7 @@ import { Logger } from '../shared-utilities/Logger';
 import { IconProvider } from '../shared-utilities/IconProvider';
 import { HeaderStyleFactory } from './header-styles/HeaderStyleFactory';
 import { AbstractHeaderStyle } from './header-styles/base/AbstractHeaderStyle';
-import { HeadingPopupComponent } from '../note-editing/HeadingPopupComponent';
+import type { INoteEditingSlice } from '../shared-contracts/slice-interfaces';
 
 export class BlockComponent {
     private mainContainer: HTMLElement;
@@ -26,7 +26,7 @@ export class BlockComponent {
         private strategy: string = 'default',
         private hideBacklinkLine: boolean = false,
         private hideFirstHeader: boolean = false,
-        private headingPopupComponent?: HeadingPopupComponent,
+        private noteEditingSlice?: INoteEditingSlice,
         app?: any,
         private blockId?: string,
         private startLine?: number
@@ -76,6 +76,40 @@ export class BlockComponent {
         });
     }
 
+    /**
+     * Normalize the file path into a vault path (no wiki-link brackets).
+     * Some upstream code paths may pass wiki-link formatted strings like [[path/to/file.md]].
+     * Downstream navigation code will wrap paths into wiki-links, so we must keep this clean
+     * to avoid accidental `[[[[...]]]]` formatting.
+     */
+    private getCleanVaultPath(): string {
+        let p = (this.filePath || '').trim();
+        while (p.startsWith('[[')) p = p.slice(2);
+        while (p.endsWith(']]')) p = p.slice(0, -2);
+        return p;
+    }
+
+    /**
+     * Get a clean, user-friendly file title for display in the block header.
+     * This is used for the "filename" link when the header style is showing an "Add a heading" prompt.
+     */
+    private getFileTitleForLink(): string {
+        const cleanFilePath = this.getCleanVaultPath().replace(/\.md$/, '');
+        const parts = cleanFilePath.split('/');
+        return parts[parts.length - 1] || cleanFilePath;
+    }
+
+    /**
+     * Dispatch the navigation event used by the backlinks UI to open a note (and optionally a block).
+     */
+    private dispatchNavigateEvent(openInNewTab: boolean): void {
+        const navigationEvent = new CustomEvent('coalesce-navigate', {
+            detail: { filePath: this.getCleanVaultPath(), openInNewTab, blockId: this.blockId },
+            bubbles: true
+        });
+        this.headerContainer!.dispatchEvent(navigationEvent);
+    }
+
     private createToggleButton(): void {
         this.toggleButton = this.headerContainer.createEl('span', {
             cls: 'coalesce-toggle-arrow',
@@ -92,28 +126,68 @@ export class BlockComponent {
     }
 
     private createBlockTitle(onLinkClick: (path: string, openInNewTab?: boolean) => void): void {
-        const displayTitle = this.getDisplayTitle(this.filePath, this.headerStyle);
         const showsAddHeading = this.headerStyleInstance.showsAddHeadingPrompt();
 
-        if (showsAddHeading && this.headingPopupComponent) {
-            // Create clickable "Add a heading" text
-            const addHeadingSpan = this.headerContainer.createEl('span', {
-                text: displayTitle,
-                cls: 'coalesce-block-title coalesce-add-heading-prompt',
+        if (showsAddHeading && this.noteEditingSlice) {
+            // Filename link (navigates to the note)
+            const fileLink = this.headerContainer.createEl('a', {
+                text: this.getFileTitleForLink(),
+                cls: 'coalesce-block-title coalesce-block-title-link',
+                href: '#'
             });
-
-
-            addHeadingSpan.addEventListener('click', (event) => {
+            fileLink.addEventListener('click', (event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                this.logger.debug('Add heading prompt clicked', { filePath: this.filePath });
-                this.headingPopupComponent!.show({
+                this.logger.debug('File title clicked (add heading state)', {
                     filePath: this.filePath,
-                    onHeadingAdded: () => {
-                        // Refresh the content after heading is added
-                        this.refreshContentFromFile();
-                    }
+                    ctrlKey: event.ctrlKey,
+                    blockId: this.blockId
                 });
+                this.dispatchNavigateEvent(event.ctrlKey);
+            });
+
+            // Separator
+            this.headerContainer.createEl('span', {
+                text: ' — ',
+                cls: 'coalesce-add-heading-separator',
+                attr: { 'aria-hidden': 'true' }
+            });
+
+            // "Add a heading" action (opens modal)
+            const addHeadingAction = this.headerContainer.createEl('span', {
+                cls: 'coalesce-add-heading-prompt',
+                attr: {
+                    role: 'button',
+                    tabindex: '0',
+                    'aria-label': 'Add a heading'
+                }
+            });
+
+            const addHeadingIcon = addHeadingAction.createEl('span', {
+                cls: 'coalesce-add-heading-icon',
+                attr: { 'aria-hidden': 'true' }
+            });
+            IconProvider.setIcon(addHeadingIcon, 'heading', { size: 'sm' });
+            addHeadingAction.createSpan({ text: 'Add a heading' });
+
+            const openAddHeadingModal = async (): Promise<void> => {
+                this.logger.debug('Add heading prompt clicked', { filePath: this.filePath });
+                this.noteEditingSlice!.showHeadingPopup(this.getCleanVaultPath(), async () => {
+                    await this.refreshContentFromFile();
+                });
+            };
+
+            addHeadingAction.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                void openAddHeadingModal();
+            });
+            addHeadingAction.addEventListener('keydown', (e: KeyboardEvent) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    void openAddHeadingModal();
+                }
             });
 
             // Add a small open-note icon next to the prompt
@@ -130,11 +204,7 @@ export class BlockComponent {
                 event.preventDefault();
                 event.stopPropagation();
                 const openInNewTab = (event as MouseEvent).ctrlKey || (event as MouseEvent).metaKey;
-                const navigationEvent = new CustomEvent('coalesce-navigate', {
-                    detail: { filePath: this.filePath, openInNewTab, blockId: this.blockId },
-                    bubbles: true
-                });
-                this.headerContainer!.dispatchEvent(navigationEvent);
+                this.dispatchNavigateEvent(openInNewTab);
             });
             linkIcon.addEventListener('keydown', (e: KeyboardEvent) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -144,6 +214,7 @@ export class BlockComponent {
             });
         } else {
             // Create regular clickable title
+            const displayTitle = this.getDisplayTitle(this.filePath, this.headerStyle);
             const blockTitle = this.headerContainer.createEl('a', {
                 text: displayTitle,
                 cls: 'coalesce-block-title',
@@ -160,7 +231,7 @@ export class BlockComponent {
                 });
 
                 // Handle navigation directly
-                const cleanFilePath = this.filePath.replace(/^\[\[|\]\]$/g, ''); // Remove surrounding brackets if present
+                const cleanFilePath = this.getCleanVaultPath(); // Remove surrounding brackets if present
                 if (this.startLine && this.app) {
                     // Open file and scroll to the block's start line
                     const file = this.app.vault.getAbstractFileByPath(cleanFilePath);
@@ -349,15 +420,14 @@ export class BlockComponent {
         const displayTitle = this.getDisplayTitle(this.filePath, headerStyle);
         const showsAddHeading = this.headerStyleInstance.showsAddHeadingPrompt();
 
-        // Remove existing title elements
-        const existingTitle = this.headerContainer?.querySelector('.coalesce-block-title');
-        const existingAddHeading = this.headerContainer?.querySelector('.coalesce-add-heading-prompt');
-
-        if (existingTitle) existingTitle.remove();
-        if (existingAddHeading) existingAddHeading.remove();
+        // Remove existing title elements (filename link, add heading action, separator, open-note icon)
+        const elementsToRemove = this.headerContainer?.querySelectorAll(
+            '.coalesce-block-title, .coalesce-add-heading-prompt, .coalesce-add-heading-open-note, .coalesce-add-heading-separator'
+        );
+        elementsToRemove?.forEach(el => el.remove());
 
         // Create the appropriate title element based on current state
-        if (showsAddHeading && this.headingPopupComponent) {
+        if (showsAddHeading && this.noteEditingSlice) {
             this.createAddHeadingPrompt(displayTitle);
         } else {
             this.createRegularTitle(displayTitle);
@@ -365,23 +435,60 @@ export class BlockComponent {
     }
 
     private createAddHeadingPrompt(displayTitle: string): void {
-        const addHeadingSpan = this.headerContainer!.createEl('span', {
-            text: displayTitle,
-            cls: 'coalesce-block-title coalesce-add-heading-prompt',
+        // Filename link (navigates to the note)
+        const fileLink = this.headerContainer!.createEl('a', {
+            text: this.getFileTitleForLink(),
+            cls: 'coalesce-block-title coalesce-block-title-link',
+            href: '#'
         });
-
-
-        addHeadingSpan.addEventListener('click', (event) => {
+        fileLink.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
+            this.dispatchNavigateEvent(event.ctrlKey);
+        });
+
+        // Separator
+        this.headerContainer!.createEl('span', {
+            text: ' — ',
+            cls: 'coalesce-add-heading-separator',
+            attr: { 'aria-hidden': 'true' }
+        });
+
+        // "Add a heading" action (opens modal)
+        const addHeadingAction = this.headerContainer!.createEl('span', {
+            cls: 'coalesce-add-heading-prompt',
+            attr: {
+                role: 'button',
+                tabindex: '0',
+                'aria-label': 'Add a heading'
+            }
+        });
+
+        const addHeadingIcon = addHeadingAction.createEl('span', {
+            cls: 'coalesce-add-heading-icon',
+            attr: { 'aria-hidden': 'true' }
+        });
+        IconProvider.setIcon(addHeadingIcon, 'heading', { size: 'sm' });
+        addHeadingAction.createSpan({ text: 'Add a heading' });
+
+        const openAddHeadingModal = async (): Promise<void> => {
             this.logger.debug('Add heading prompt clicked', { filePath: this.filePath });
-            this.headingPopupComponent!.show({
-                filePath: this.filePath,
-                onHeadingAdded: () => {
-                    // Refresh the content after heading is added
-                    this.refreshContentFromFile();
-                }
+            this.noteEditingSlice!.showHeadingPopup(this.getCleanVaultPath(), async () => {
+                await this.refreshContentFromFile();
             });
+        };
+
+        addHeadingAction.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            void openAddHeadingModal();
+        });
+        addHeadingAction.addEventListener('keydown', (e: KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                void openAddHeadingModal();
+            }
         });
 
         // Add a small open-note icon next to the prompt
@@ -398,11 +505,7 @@ export class BlockComponent {
             event.preventDefault();
             event.stopPropagation();
             const openInNewTab = (event as MouseEvent).ctrlKey || (event as MouseEvent).metaKey;
-            const navigationEvent = new CustomEvent('coalesce-navigate', {
-                detail: { filePath: this.filePath, openInNewTab },
-                bubbles: true
-            });
-            this.headerContainer!.dispatchEvent(navigationEvent);
+            this.dispatchNavigateEvent(openInNewTab);
         });
         linkIcon.addEventListener('keydown', (e: KeyboardEvent) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -430,11 +533,7 @@ export class BlockComponent {
                 filePath: this.filePath,
                 openInNewTab: event.ctrlKey
             });
-            const navigationEvent = new CustomEvent('coalesce-navigate', {
-                detail: { filePath: this.filePath, openInNewTab: event.ctrlKey, blockId: this.blockId },
-                bubbles: true
-            });
-            this.headerContainer!.dispatchEvent(navigationEvent);
+            this.dispatchNavigateEvent(event.ctrlKey);
         });
     }
 
@@ -453,7 +552,7 @@ export class BlockComponent {
 
         try {
             // Read the updated file content
-            const file = this.app.vault.getAbstractFileByPath(this.filePath);
+            const file = this.app.vault.getAbstractFileByPath(this.getCleanVaultPath());
             if (file && file instanceof TFile) {
                 const newContent = await this.app.vault.read(file);
                 this.contents = newContent;

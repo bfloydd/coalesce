@@ -191,7 +191,7 @@ export class NoteEditingSlice implements IPluginSlice, INoteEditingSlice {
     /**
      * Show the heading popup for a file
      */
-    showHeadingPopup(filePath: string, onHeadingAdded?: (heading: string) => void): void {
+    showHeadingPopup(filePath: string, onHeadingAdded?: (heading: string) => void | Promise<void>): void {
         this.logger.debug('Showing heading popup', { filePath });
 
         try {
@@ -207,7 +207,15 @@ export class NoteEditingSlice implements IPluginSlice, INoteEditingSlice {
             // Show the popup
             this.headingPopupComponent.show({
                 filePath,
-                onHeadingAdded
+                onHeadingAdded: async (heading) => {
+                    // Always perform the core action (write heading to file)
+                    await this.handleHeadingAddedFromPopup(filePath, heading);
+
+                    // Then allow callers (e.g., backlinks UI) to refresh themselves
+                    if (onHeadingAdded) {
+                        await onHeadingAdded(heading);
+                    }
+                }
             });
 
             this.logger.debug('Heading popup shown successfully', { filePath });

@@ -10,12 +10,12 @@ import { IHeadingPopupComponent } from './types';
  */
 export class HeadingPopupComponent extends Modal implements IHeadingPopupComponent {
     private logger: Logger;
-    private onHeadingAdded?: (heading: string) => void;
+    private onHeadingAdded?: (heading: string) => void | Promise<void>;
     private filePath: string;
     private inputElement?: HTMLInputElement;
     private isPopupVisible = false;
 
-    constructor(app: App, filePath: string, onHeadingAdded?: (heading: string) => void) {
+    constructor(app: App, filePath: string, onHeadingAdded?: (heading: string) => void | Promise<void>) {
         super(app);
         this.filePath = filePath;
         this.onHeadingAdded = onHeadingAdded;
@@ -29,7 +29,7 @@ export class HeadingPopupComponent extends Modal implements IHeadingPopupCompone
      */
     show(options: {
         filePath: string;
-        onHeadingAdded?: (heading: string) => void;
+        onHeadingAdded?: (heading: string) => void | Promise<void>;
         initialText?: string;
     }): void {
         this.logger.debug('Showing heading popup', { options });
@@ -167,7 +167,7 @@ export class HeadingPopupComponent extends Modal implements IHeadingPopupCompone
                     text.inputEl.addEventListener('keydown', (event) => {
                         if (event.key === 'Enter') {
                             event.preventDefault();
-                            this.handleAddHeading();
+                            void this.handleAddHeading();
                         } else if (event.key === 'Escape') {
                             event.preventDefault();
                             this.hide();
@@ -185,7 +185,7 @@ export class HeadingPopupComponent extends Modal implements IHeadingPopupCompone
             });
             
             addButton.addEventListener('click', () => {
-                this.handleAddHeading();
+                void this.handleAddHeading();
             });
             
             // Cancel button
@@ -230,7 +230,7 @@ export class HeadingPopupComponent extends Modal implements IHeadingPopupCompone
     /**
      * Handle adding the heading
      */
-    private handleAddHeading(): void {
+    private async handleAddHeading(): Promise<void> {
         this.logger.debug('Handling add heading');
         
         try {
@@ -243,7 +243,7 @@ export class HeadingPopupComponent extends Modal implements IHeadingPopupCompone
             
             // Call the callback if provided
             if (this.onHeadingAdded) {
-                this.onHeadingAdded(headingText);
+                await this.onHeadingAdded(headingText);
             }
             
             // Hide the popup

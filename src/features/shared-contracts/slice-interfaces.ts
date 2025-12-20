@@ -128,7 +128,10 @@ export interface INoteEditingSlice {
     /**
      * Show heading popup for user input
      */
-    showHeadingPopup(filePath: string, onHeadingAdded?: (heading: string) => void): void;
+    showHeadingPopup(
+        filePath: string,
+        onHeadingAdded?: (heading: string) => void | Promise<void>
+    ): void;
 
     /**
      * Validate heading content

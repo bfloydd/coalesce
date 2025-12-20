@@ -19,6 +19,7 @@ import { FilterControls } from './FilterControls';
 import { SettingsControls } from './SettingsControls';
 import { NavigationService } from '../navigation/NavigationService';
 import { getSharedNavigation } from '../navigation/NavigationFacade';
+import type { INoteEditingSlice } from '../shared-contracts/slice-interfaces';
 
 /**
  * BacklinksSlice
@@ -115,6 +116,7 @@ export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
         this.filterControls = new FilterControls(this.logger);
 
         // Initialize view controller (UI layer)
+        const noteEditingSlice = dependencies.noteEditing as INoteEditingSlice | undefined;
         this.viewController = new BacklinksViewController(
             this.app,
             this.logger,
@@ -124,7 +126,8 @@ export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
             this.strategyManager,
             this.headerUI,
             this.filterControls,
-            this.settingsControls
+            this.settingsControls,
+            noteEditingSlice
         );
 
         this.logger.debug('BacklinksSlice initialized', { options: this.options });
@@ -429,7 +432,15 @@ export class BacklinksSlice implements IPluginSlice, IBacklinksSlice {
     handleNavigation(filePath: string, openInNewTab = false, blockId?: string): void {
         this.logger.debug('Handling navigation from backlinks', { filePath, openInNewTab, blockId });
 
-        const linkText = blockId ? `[[${filePath}#^${blockId}]]` : `[[${filePath}]]`;
+        // Defensive: ensure we never wrap an already-wrapped [[...]] path.
+        let cleanPath = (filePath || '').trim();
+        while (cleanPath.startsWith('[[')) cleanPath = cleanPath.slice(2);
+        while (cleanPath.endsWith(']]')) cleanPath = cleanPath.slice(0, -2);
+
+        // IMPORTANT:
+        // This is link *text* for Obsidian's openLinkText API, not a filename.
+        // Do NOT wrap in [[...]]; brackets are markdown syntax and can leak into filenames.
+        const linkText = blockId ? `${cleanPath}#^${blockId}` : cleanPath;
 
         try {
             void this.navigationService.openWikiLink(linkText, openInNewTab);

@@ -30,16 +30,46 @@ export class NavigationService {
     }
 
     /**
+     * Normalize a vault path so it never includes wiki-link brackets.
+     * This prevents accidental creation of files literally named with `[[` / `]]`.
+     */
+    private normalizeVaultPath(path: string): string {
+        let p = (path || '').trim();
+        while (p.startsWith('[[')) p = p.slice(2);
+        while (p.endsWith(']]')) p = p.slice(0, -2);
+        return p;
+    }
+
+    /**
+     * Normalize link text for Obsidian's openLinkText API.
+     *
+     * Important: openLinkText expects a "link text", NOT a filename. For example:
+     * - "Folder/File"
+     * - "Folder/File#Heading"
+     * - "Folder/File#^blockId"
+     *
+     * It does NOT require (and should not be given) surrounding [[...]] brackets.
+     * If callers pass wiki-link formatted strings, strip them here defensively.
+     */
+    private normalizeOpenLinkText(linkText: string): string {
+        let t = (linkText || '').trim();
+        while (t.startsWith('[[')) t = t.slice(2);
+        while (t.endsWith(']]')) t = t.slice(0, -2);
+        return t.trim();
+    }
+
+    /**
      * Open a path using the file opener
      */
     async openPath(path: string, openInNewTab: boolean = false): Promise<void> {
-        this.logger.debug('Opening path via navigation service', { path, openInNewTab });
+        const cleanedPath = this.normalizeVaultPath(path);
+        this.logger.debug('Opening path via navigation service', { path: cleanedPath, openInNewTab });
         
         try {
-            await this.fileOpener.openFile(path, openInNewTab);
-            this.logger.debug('Path opened successfully via navigation service', { path, openInNewTab });
+            await this.fileOpener.openFile(cleanedPath, openInNewTab);
+            this.logger.debug('Path opened successfully via navigation service', { path: cleanedPath, openInNewTab });
         } catch (error) {
-            this.logger.error('Failed to open path via navigation service', { path, openInNewTab, error });
+            this.logger.error('Failed to open path via navigation service', { path: cleanedPath, openInNewTab, error });
             throw error;
         }
     }
@@ -49,15 +79,16 @@ export class NavigationService {
      * This centralizes openLinkText usage so feature slices don't touch App.workspace directly.
      */
     async openWikiLink(linkText: string, openInNewTab: boolean = false): Promise<void> {
-        this.logger.debug('Opening wiki link via navigation service', { linkText, openInNewTab });
+        const normalized = this.normalizeOpenLinkText(linkText);
+        this.logger.debug('Opening link text via navigation service', { linkText: normalized, openInNewTab });
 
         try {
             // Use empty source path to let Obsidian resolve from the current context
-            (this.app.workspace as any).openLinkText(linkText, '', openInNewTab);
-            this.logger.debug('Wiki link navigation initiated', { linkText, openInNewTab });
+            (this.app.workspace as any).openLinkText(normalized, '', openInNewTab);
+            this.logger.debug('Link text navigation initiated', { linkText: normalized, openInNewTab });
         } catch (error) {
-            this.logger.error('Failed to open wiki link via navigation service', {
-                linkText,
+            this.logger.error('Failed to open link text via navigation service', {
+                linkText: normalized,
                 openInNewTab,
                 error
             });
