@@ -188,6 +188,13 @@ export class HeaderUI implements IHeaderUI {
                     isCollapsed ? 'chevronRight' : 'chevronDown',
                     { size: 'sm' }
                 );
+
+                // Keep a simple state class on the injected SVG for easy testing/styling.
+                IconProvider.updateIconClasses(
+                    collapseButton,
+                    isCollapsed ? ['is-collapsed'] : [],
+                    isCollapsed ? [] : ['is-collapsed']
+                );
             }
         } catch (error) {
             this.logger.error('Failed to update collapse button state', { header, isCollapsed, error });

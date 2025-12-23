@@ -292,6 +292,36 @@ export class BlockRenderer implements IBlockRenderer {
         this.logger.debug('Filtering blocks by alias', { blockCount: blocks.length, alias, currentNoteName, hasTargetContainer: !!targetContainer });
 
         try {
+            /**
+             * Backward-compatibility + testability:
+             * - Production uses unique IDs like `${blockId}-${containerId}` so a single note can be rendered in multiple views.
+             * - Some unit tests (and legacy callers) still seed `renderedBlocks` with the original `blockData.id`.
+             *
+             * If container tracking is unavailable, fall back to scanning `renderedBlocks` by ID prefix.
+             */
+            const hasContainerTracking = this.containerBlocks.size > 0;
+            if (!hasContainerTracking) {
+                for (const blockData of blocks) {
+                    const hasAlias = alias ? this.blockContainsAlias(blockData, alias, currentNoteName) : true;
+
+                    for (const [key, blockComponent] of this.renderedBlocks.entries()) {
+                        if (key !== blockData.id && !key.startsWith(`${blockData.id}-`)) continue;
+                        const blockContainer = blockComponent.getContainer();
+                        if (!blockContainer) continue;
+                        if (targetContainer && !targetContainer.contains(blockContainer)) continue;
+
+                        if (hasAlias) {
+                            blockContainer.classList.remove('no-alias');
+                            blockContainer.classList.add('has-alias');
+                        } else {
+                            blockContainer.classList.remove('has-alias');
+                            blockContainer.classList.add('no-alias');
+                        }
+                    }
+                }
+                return;
+            }
+
             // If target container is specified, only filter blocks in that container
             // Otherwise, filter blocks in all containers (for backward compatibility)
             const containersToProcess = targetContainer 

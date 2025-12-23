@@ -352,6 +352,13 @@ export class HeaderComponent {
             onClick: onCollapseToggle
         });
 
+        // Tests (and some CSS) rely on this state being represented on the icon element as well.
+        const svg = collapseButton.querySelector('svg') as SVGElement | null;
+        if (svg) {
+            if (isCollapsed) svg.classList.add('is-collapsed');
+            else svg.classList.remove('is-collapsed');
+        }
+
         return collapseButton;
     }
 

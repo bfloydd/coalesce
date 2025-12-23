@@ -132,10 +132,12 @@ export class BacklinksViewController {
         this.processingViews.add(viewId);
 
         try {
-            // CRITICAL: Check if UI is already attached in the DOM - this is an ERROR condition
+            // If the UI already exists in the DOM, we will remove it and reattach.
+            // This is expected for user-triggered refreshes and some view reuse scenarios.
             const existingContainersInDOM = view.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
             if (existingContainersInDOM.length > 0) {
-                this.logger.error('ERROR: Attempting to attach coalesce UI to a note that already has it!', {
+                const logFn = forceRefresh ? this.logger.debug.bind(this.logger) : this.logger.warn.bind(this.logger);
+                logFn('Removing existing coalesce UI container(s) before (re)attach', {
                     currentNotePath,
                     viewId,
                     existingContainerCount: existingContainersInDOM.length,
@@ -143,7 +145,6 @@ export class BacklinksViewController {
                     timestamp: startTime,
                     callStack: new Error().stack?.split('\n').slice(1, 6).join(' -> ')
                 });
-                // Still clear and reattach to prevent duplicates, but log the error
                 existingContainersInDOM.forEach(container => container.remove());
             }
 
@@ -152,6 +153,11 @@ export class BacklinksViewController {
             if (!forceRefresh && existingAttachment && Date.now() - existingAttachment.lastUpdate < 5000) {
                 this.logger.debug('UI already attached recently, skipping', { viewId, currentNotePath });
                 return false;
+            }
+
+            // If we're forcing a refresh, clear the tracked attachment so "full refresh" is a true detach+reattach.
+            if (forceRefresh) {
+                this.removeAttachment(viewId);
             }
 
             // Clear any existing coalesce containers from the view (defensive cleanup)
@@ -171,6 +177,12 @@ export class BacklinksViewController {
                 }
             });
             
+            // Force refresh should mean "fresh data", not just "re-render".
+            // Invalidate the cache so BacklinksCore re-discovers backlinks from the current metadata state.
+            if (forceRefresh) {
+                this.core.invalidateCache(currentNotePath);
+            }
+
             let backlinks = await this.core.updateBacklinks(currentNotePath, viewId);
             
             const backlinksDuration = Date.now() - backlinksStartTime;
@@ -273,7 +285,9 @@ export class BacklinksViewController {
                 onHeaderStyleChange: (style: string) => this.handleHeaderStyleChange(style),
                 onFilterChange: (filterText: string) => this.handleFilterChange(filterText),
                 onSettingsClick: () => this.handleSettingsClick(),
-                onRefresh: () => this.handleRefresh(view, currentNotePath)
+                // IMPORTANT: Derive the file path from the view at click time so refresh always targets
+                // the currently-open note in this pane (leaf reuse can make currentNotePath stale).
+                onRefresh: () => this.handleRefresh(view)
             });
 
             if (headerElement) {
@@ -320,10 +334,11 @@ export class BacklinksViewController {
             // Apply current theme
             this.applyThemeToContainer(this.currentTheme);
 
-            // CRITICAL: Check RIGHT BEFORE attaching if UI is already attached - this catches concurrent calls
+            // Final safety check before attaching (this catches last-moment races).
             const existingContainersBeforeAttach = view.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
             if (existingContainersBeforeAttach.length > 0) {
-                this.logger.error('ERROR: About to attach coalesce UI to a note that already has it! (detected right before attach)', {
+                const logFn = forceRefresh ? this.logger.debug.bind(this.logger) : this.logger.warn.bind(this.logger);
+                logFn('Removing existing coalesce UI container(s) right before attach (race defense)', {
                     currentNotePath,
                     viewId,
                     existingContainerCount: existingContainersBeforeAttach.length,
@@ -586,11 +601,18 @@ export class BacklinksViewController {
         this.logger.debug('Settings click handled (delegated elsewhere)');
     }
 
-    private async handleRefresh(view: MarkdownView, currentNotePath: string): Promise<void> {
-        this.logger.debug('BacklinksViewController.handleRefresh', { currentNotePath });
+    private async handleRefresh(view: MarkdownView): Promise<void> {
+        const viewId = (view.leaf as any).id || 'unknown';
+        const filePath = view.file?.path;
+        this.logger.debug('BacklinksViewController.handleRefresh', { viewId, filePath });
 
-        // Reload the view for the active note by calling attachToDOM with forceRefresh = true
-        await this.attachToDOM(view, currentNotePath, true);
+        if (!filePath) {
+            this.logger.warn('BacklinksViewController.handleRefresh called but view has no file', { viewId });
+            return;
+        }
+
+        // Reload the UI for the currently-open note in this view.
+        await this.attachToDOM(view, filePath, true);
     }
 
     private handleFullPathTitleChange(show: boolean): void {
@@ -609,7 +631,8 @@ export class BacklinksViewController {
         // This catches the case where two calls are racing and both pass earlier checks
         const existingContainers = view.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
         if (existingContainers.length > 0) {
-            this.logger.error('ERROR: About to insert coalesce container but one already exists in DOM! (final check)', {
+            // This can happen due to races or view reuse. We remove and proceed.
+            this.logger.warn('Removing existing coalesce UI container(s) before final insert (race defense)', {
                 filePath: view.file?.path,
                 viewId: (view.leaf as any).id || 'unknown',
                 existingContainerCount: existingContainers.length,
