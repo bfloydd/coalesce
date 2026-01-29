@@ -200,7 +200,7 @@ describe('BacklinksSlice Integration', () => {
       // Add existing container
       const existingContainer = document.createElement('div');
       existingContainer.className = 'coalesce-custom-backlinks-container';
-      mockView.contentEl.appendChild(existingContainer);
+      mockView.containerEl.appendChild(existingContainer);
 
       // Setup backlinks
       mockApp.metadataCache.resolvedLinks = {
@@ -218,6 +218,30 @@ describe('BacklinksSlice Integration', () => {
       // Existing container should be removed
       const remainingContainers = mockView.containerEl.querySelectorAll('.coalesce-custom-backlinks-container');
       expect(remainingContainers.length).toBe(1); // Only the new one should exist
+    });
+
+    it('should reattach UI if it was removed externally within the suppression window', async () => {
+      // Make cache look "ready" so controller doesn't schedule retries
+      mockApp.metadataCache.resolvedLinks = { 'some-note.md': {} };
+      mockApp.metadataCache.unresolvedLinks = {};
+
+      await backlinksSlice.attachToDOM(mockView, 'target.md');
+
+      const firstContainer = mockView.containerEl.querySelector(
+        '.coalesce-custom-backlinks-container'
+      ) as HTMLElement;
+      expect(firstContainer).toBeTruthy();
+
+      // Simulate Obsidian re-render removing our injected UI container
+      firstContainer.remove();
+
+      // Immediately reattach (would previously be skipped due to "recent attachment")
+      await backlinksSlice.attachToDOM(mockView, 'target.md');
+
+      const secondContainer = mockView.containerEl.querySelector(
+        '.coalesce-custom-backlinks-container'
+      ) as HTMLElement;
+      expect(secondContainer).toBeTruthy();
     });
 
     it('should attach UI below the markdown preview section', async () => {
@@ -262,7 +286,7 @@ describe('BacklinksSlice Integration', () => {
       backlinksSlice.setOptions({ collapsed: true });
 
       // Simulate UI re-creation (like switching files)
-      const existingContainer = mockView.contentEl.querySelector('.coalesce-custom-backlinks-container');
+      const existingContainer = mockView.containerEl.querySelector('.coalesce-custom-backlinks-container');
       if (existingContainer) {
         existingContainer.remove();
       }

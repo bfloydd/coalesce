@@ -46,7 +46,10 @@ export class BacklinksViewController {
 
     private readonly headerController: HeaderController;
 
-    private attachedViews: Map<string, { container: HTMLElement; lastUpdate: number }> = new Map();
+    private attachedViews: Map<
+        string,
+        { container: HTMLElement; lastUpdate: number; filePath: string }
+    > = new Map();
     // Track views that showed "No backlinks found" and might need retry
     private pendingRetries: Map<string, { filePath: string; view: MarkdownView; retryCount: number }> = new Map();
     // Track views currently being processed to prevent concurrent attachToDOM calls
@@ -101,6 +104,7 @@ export class BacklinksViewController {
     ): Promise<boolean> {
         const viewId = (view.leaf as any).id || 'unknown';
         const startTime = Date.now();
+        const viewRoot = view.containerEl ?? view.contentEl;
         const metadataCacheState = {
             resolvedLinksCount: Object.keys(this.app.metadataCache.resolvedLinks).length,
             unresolvedLinksCount: Object.keys(this.app.metadataCache.unresolvedLinks).length,
@@ -132,11 +136,43 @@ export class BacklinksViewController {
         this.processingViews.add(viewId);
 
         try {
+            const existingContainersInDOM = viewRoot.querySelectorAll(
+                '.coalesce-custom-backlinks-container'
+            );
+            const existingAttachment = this.attachedViews.get(viewId);
+
+            // Duplicate suppression: only skip if we still see a container in the DOM for this view.
+            // This avoids getting "stuck" when Obsidian re-renders the view and removes our injected DOM.
+            if (
+                !forceRefresh &&
+                existingAttachment &&
+                existingAttachment.filePath === currentNotePath &&
+                Date.now() - existingAttachment.lastUpdate < 5000
+            ) {
+                if (existingContainersInDOM.length > 0) {
+                    // Defensive: if the tracked container was replaced, update our reference.
+                    const first = existingContainersInDOM[0] as HTMLElement;
+                    if (existingAttachment.container !== first) {
+                        this.attachedViews.set(viewId, {
+                            ...existingAttachment,
+                            container: first
+                        });
+                    }
+
+                    this.logger.debug('UI already attached recently, skipping', {
+                        viewId,
+                        currentNotePath
+                    });
+                    return false;
+                }
+            }
+
             // If the UI already exists in the DOM, we will remove it and reattach.
             // This is expected for user-triggered refreshes and some view reuse scenarios.
-            const existingContainersInDOM = view.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
             if (existingContainersInDOM.length > 0) {
-                const logFn = forceRefresh ? this.logger.debug.bind(this.logger) : this.logger.warn.bind(this.logger);
+                const logFn = forceRefresh
+                    ? this.logger.debug.bind(this.logger)
+                    : this.logger.warn.bind(this.logger);
                 logFn('Removing existing coalesce UI container(s) before (re)attach', {
                     currentNotePath,
                     viewId,
@@ -148,21 +184,10 @@ export class BacklinksViewController {
                 existingContainersInDOM.forEach(container => container.remove());
             }
 
-            // Check if UI is already attached and recent (within last 5 seconds), unless force refresh is requested
-            const existingAttachment = this.attachedViews.get(viewId);
-            if (!forceRefresh && existingAttachment && Date.now() - existingAttachment.lastUpdate < 5000) {
-                this.logger.debug('UI already attached recently, skipping', { viewId, currentNotePath });
-                return false;
-            }
-
             // If we're forcing a refresh, clear the tracked attachment so "full refresh" is a true detach+reattach.
             if (forceRefresh) {
                 this.removeAttachment(viewId);
             }
-
-            // Clear any existing coalesce containers from the view (defensive cleanup)
-            const existingContainers = view.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
-            existingContainers.forEach(container => container.remove());
 
             // Get backlinks for the current note via core
             const backlinksStartTime = Date.now();
@@ -356,7 +381,8 @@ export class BacklinksViewController {
             // Track the attachment
             this.attachedViews.set(viewId, {
                 container,
-                lastUpdate: Date.now()
+                lastUpdate: Date.now(),
+                filePath: currentNotePath
             });
 
             // If backlinks were found, clear any pending retry
@@ -629,7 +655,8 @@ export class BacklinksViewController {
 
         // FINAL CHECK: Right before DOM insertion, check if container already exists
         // This catches the case where two calls are racing and both pass earlier checks
-        const existingContainers = view.contentEl.querySelectorAll('.coalesce-custom-backlinks-container');
+        const viewRoot = view.containerEl ?? view.contentEl;
+        const existingContainers = viewRoot.querySelectorAll('.coalesce-custom-backlinks-container');
         if (existingContainers.length > 0) {
             // This can happen due to races or view reuse. We remove and proceed.
             this.logger.warn('Removing existing coalesce UI container(s) before final insert (race defense)', {

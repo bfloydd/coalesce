@@ -117,6 +117,15 @@ export class SettingsCore {
             }
 
             await this.saveSettings();
+
+            // Notify listeners about visibility-gating changes so open views can update immediately.
+            if (key === 'hideInDailyNotesOrStreams') {
+                const event = new CustomEvent('coalesce-settings-visibility-changed', {
+                    detail: { hideInDailyNotesOrStreams: value as boolean }
+                });
+                document.dispatchEvent(event);
+            }
+
             this.logger.debug('Setting updated successfully', { key, oldValue, newValue: value });
         } catch (error) {
             // Revert the change if save failed
@@ -159,6 +168,17 @@ export class SettingsCore {
             }
 
             await this.saveSettings();
+
+            // Notify listeners about visibility-gating changes so open views can update immediately.
+            if (updates.hideInDailyNotesOrStreams !== undefined) {
+                const event = new CustomEvent('coalesce-settings-visibility-changed', {
+                    detail: {
+                        hideInDailyNotesOrStreams: this.currentSettings.hideInDailyNotesOrStreams
+                    }
+                });
+                document.dispatchEvent(event);
+            }
+
             this.logger.debug('Multiple settings updated successfully', { updates });
         } catch (error) {
             // Revert all changes if save failed
@@ -345,6 +365,7 @@ export class SettingsCore {
             theme: this.themeManager ? this.themeManager.getDefaultTheme() : 'default',
             showFullPathTitle: false,
             onlyDailyNotes: false,
+            hideInDailyNotesOrStreams: false,
             headerStyle: 'full',
             hideBacklinkLine: false,
             hideFirstHeader: false,

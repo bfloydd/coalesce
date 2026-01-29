@@ -29,7 +29,18 @@ export class SettingsStore {
         try {
             const savedData = await this.plugin.loadData();
             const defaultSettings = this.getDefaultSettings();
-            const settings = Object.assign({}, defaultSettings, savedData);
+            const settings = Object.assign({}, defaultSettings, savedData) as CoalescePluginSettings;
+
+            // Migration:
+            // Historical setting `onlyDailyNotes` was previously used (and mislabeled in UI).
+            // If a user had it enabled, migrate to the new explicit visibility gate.
+            const savedAny = savedData as any;
+            if (
+                savedAny?.hideInDailyNotesOrStreams === undefined &&
+                savedAny?.onlyDailyNotes === true
+            ) {
+                settings.hideInDailyNotesOrStreams = true;
+            }
             
             this.cache = settings;
             this.lastLoadTime = new Date();
@@ -158,7 +169,8 @@ export class SettingsStore {
         const booleanSettings = [
             'sortDescending', 'showInDailyNotes',
             'showFullPathTitle', 'onlyDailyNotes', 'hideBacklinkLine',
-            'hideFirstHeader', 'sortByFullPath', 'enableLogging'
+            'hideFirstHeader', 'sortByFullPath', 'enableLogging',
+            'hideInDailyNotesOrStreams'
         ];
         
         for (const setting of booleanSettings) {
@@ -228,6 +240,7 @@ export class SettingsStore {
             theme: 'default',
             showFullPathTitle: false,
             onlyDailyNotes: false,
+            hideInDailyNotesOrStreams: false,
             headerStyle: 'full',
             hideBacklinkLine: false,
             hideFirstHeader: false,

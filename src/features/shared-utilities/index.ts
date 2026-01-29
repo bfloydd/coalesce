@@ -6,6 +6,7 @@
 
 export { Logger, LogLevel } from './Logger';
 export { DailyNote } from './DailyNote';
+export { getStreamsApi, isFileInAnyStream } from './Streams';
 export { CommonHelpers } from './CommonHelpers';
 export { IconProvider } from './IconProvider';
 export { SharedUtilitiesSlice } from './SharedUtilitiesSlice';

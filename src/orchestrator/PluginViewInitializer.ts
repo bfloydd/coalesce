@@ -431,10 +431,8 @@ export class PluginViewInitializer {
     } catch (error) {
       this.logger?.error?.('Failed to update Coalesce UI for file', { filePath, error });
     } finally {
-      // Remove from processing set after a short delay to allow reprocessing if needed
-      setTimeout(() => {
-        this.processingFiles.delete(filePath);
-      }, 1000);
+      // Clear the processing lock immediately; shouldProcessFile() already handles rate limiting.
+      this.processingFiles.delete(filePath);
     }
   }
 

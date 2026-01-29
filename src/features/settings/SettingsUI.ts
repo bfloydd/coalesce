@@ -188,15 +188,26 @@ class CoalesceSettingTab extends PluginSettingTab {
                     this.onSettingsChange({ enableLogging: value });
                 }));
 
+        const streamsUrl = 'https://github.com/bfloydd/streams';
+        const visibilityDesc = document.createDocumentFragment();
+        visibilityDesc.append('When enabled, Coalesce UI will not appear in Daily Notes or ');
+        const streamsLink = document.createElement('a');
+        streamsLink.textContent = 'Streams';
+        streamsLink.href = streamsUrl;
+        streamsLink.target = '_blank';
+        streamsLink.rel = 'noopener';
+        visibilityDesc.appendChild(streamsLink);
+        visibilityDesc.append(' notes.');
+
         new Setting(containerEl)
-            .setName('Only show in daily notes')
-            .setDesc('Only show Coalesce backlinks in daily notes')
+            .setName("Don't show Coalesce UI in daily notes or Streams")
+            .setDesc(visibilityDesc)
             .addToggle(toggle => toggle
-                .setValue(this.currentSettings.onlyDailyNotes)
+                .setValue(this.currentSettings.hideInDailyNotesOrStreams)
                 .onChange(async (value) => {
-                    this.logger.debug('Only daily notes setting changed', { value });
-                    this.currentSettings.onlyDailyNotes = value;
-                    this.onSettingsChange({ onlyDailyNotes: value });
+                    this.logger.debug('hideInDailyNotesOrStreams setting changed', { value });
+                    this.currentSettings.hideInDailyNotesOrStreams = value;
+                    this.onSettingsChange({ hideInDailyNotesOrStreams: value });
                 }));
     }
 

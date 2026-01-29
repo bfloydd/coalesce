@@ -21,6 +21,11 @@ export interface CoalescePluginSettings {
     theme: string;
     showFullPathTitle: boolean;
     onlyDailyNotes: boolean;
+    /**
+     * If true, Coalesce UI should NOT be attached for Daily Notes or Streams notes.
+     * This is a UI-visibility gate (not a backlink discovery filter).
+     */
+    hideInDailyNotesOrStreams: boolean;
     headerStyle: string;
     hideBacklinkLine: boolean;
     hideFirstHeader: boolean;
