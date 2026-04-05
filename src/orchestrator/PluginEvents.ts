@@ -19,7 +19,7 @@ export function registerPluginEvents(
   plugin: PluginLike,
   orchestrator: PluginOrchestrator,
   logger?: DebugLogger,
-  updateCoalesceUIForFile?: (filePath: string) => Promise<void>,
+  updateCoalesceUIForFile?: (filePath: string, forceRefresh?: boolean) => Promise<void>,
   viewInitializer?: { isColdStartProcessing?: () => boolean },
 ): void {
   /**
@@ -316,7 +316,8 @@ export function registerPluginEvents(
                              Object.keys(app.metadataCache.unresolvedLinks).length > 0
                 }
               });
-              void updateCoalesceUIForFile(filePath);
+              // FORCE refresh to bypass duplicate suppression
+              void updateCoalesceUIForFile(filePath, true);
             }
           }, 100);
         } else if (viewInitializer?.isColdStartProcessing?.()) {
@@ -336,233 +337,35 @@ export function registerPluginEvents(
       filePath: data.file?.path,
     });
 
-    const viewIntegration = orchestrator.getSlice('viewIntegration');
-    const backlinks = orchestrator.getSlice('backlinks'); // Consolidated slice
-
-    if (viewIntegration && backlinks && data.file) {
-      logger?.debug?.('Orchestrator processing file:opened', { filePath: data.file.path });
-
-      // Get all markdown views, not just the active one
-      const allMarkdownViews = app.workspace.getLeavesOfType('markdown');
-      
-      // Filter to only views that have the matching file
-      const matchingViews = allMarkdownViews
-        .map(leaf => leaf.view as MarkdownView)
-        .filter(view => view?.file?.path === data.file.path);
-
-      logger?.debug?.('Orchestrator found matching views', {
-        filePath: data.file.path,
-        matchingCount: matchingViews.length,
-        totalMarkdownViews: allMarkdownViews.length,
-      });
-
-      if (matchingViews.length === 0) {
-        logger?.debug?.('Orchestrator no matching views found', {
-          filePath: data.file.path,
-        });
-        return;
-      }
-
-      // Get settings slice
-      const settingsSlice = orchestrator.getSlice('settings') as any;
-      let settings = settingsSlice?.getSettings?.() || {};
-
-      // If settings aren't loaded yet, load them now
-      if (!settings || Object.keys(settings).length === 0) {
-        await settingsSlice?.loadSettings?.();
-        settings = settingsSlice?.getSettings?.() || {};
-      }
-
-      // Process each matching view that is in preview mode
-      for (const view of matchingViews) {
-        if (!view.file) {
-          continue;
-        }
-
-        const viewId = (view.leaf as any).id || 'unknown';
-
-        // Only process views in preview mode (UI can only be attached in preview mode)
-        const isPreviewMode = view.getMode() === 'preview';
-        if (!isPreviewMode) {
-          logger?.debug?.('Orchestrator skipping view - not in preview mode', {
-            filePath: data.file.path,
-            leafId: viewId,
-            mode: view.getMode(),
-          });
-          continue;
-        }
-
-        // Check if UI is already attached to this view
-        const existingUI = view.contentEl.querySelector('.coalesce-custom-backlinks-container');
-        if (existingUI) {
-          logger?.debug?.('Orchestrator skipping view - UI already attached', {
-            filePath: data.file.path,
-            leafId: viewId,
-          });
-          continue;
-        }
-
-        try {
-          logger?.debug?.('Orchestrator processing view in preview mode', {
-            filePath: data.file.path,
-            leafId: viewId,
-          });
-
-          // Initialize view integration
-          await (viewIntegration as any)?.initializeView?.(view.file, view);
-
-          // CRITICAL: Check again if UI is already attached - this is an ERROR condition
-          const existingUIAfterInit = view.contentEl.querySelector('.coalesce-custom-backlinks-container');
-          if (existingUIAfterInit) {
-            logger?.error?.('ERROR: Orchestrator about to attach UI to a view that already has it!', {
-              filePath: data.file.path,
-              leafId: viewId,
-              callStack: new Error().stack?.split('\n').slice(1, 6).join(' -> ')
-            });
-            continue;
-          }
-
-          // Use the consolidated backlinks slice to attach the complete UI
-          logger?.debug?.('Orchestrator calling attachToDOM', {
-            filePath: data.file.path,
-            leafId: viewId,
-          });
-
-          // Don't force refresh - let attachToDOM's duplicate check work
-          // Only force refresh if metadata cache isn't ready (handled inside attachToDOM)
-          const uiAttached = await (backlinks as any)?.attachToDOM?.(
-            view,
-            data.file.path,
-            false, // Don't force refresh - let duplicate check work
-          );
-
-          logger?.debug?.('Orchestrator attachToDOM result', {
-            filePath: data.file.path,
-            leafId: (view.leaf as any).id,
-            uiAttached,
-          });
-
-          // Only apply settings and log if UI was actually attached (not skipped due to recent attachment)
-          if (uiAttached) {
-            logger?.debug?.('Orchestrator applying settings', {
-              filePath: data.file.path,
-              leafId: (view.leaf as any).id,
-            });
-
-            (backlinks as any)?.setOptions?.({
-              sort: settings.sortByFullPath || false,
-              sortDescending: settings.sortDescending ?? true,
-              collapsed: settings.blocksCollapsed || false,
-              strategy: 'default',
-              theme: settings.theme || 'default',
-              alias: null,
-              filter: '',
-            });
-
-            logger?.info?.('Consolidated backlinks UI attached for file', {
-              filePath: data.file.path,
-              leafId: (view.leaf as any).id,
-            });
-          } else {
-            logger?.debug?.('Orchestrator UI was not attached (skipped)', {
-              filePath: data.file.path,
-              leafId: (view.leaf as any).id,
-            });
-          }
-        } catch (error) {
-          logger?.error?.('Orchestrator failed to process view', {
-            filePath: data.file.path,
-            leafId: (view.leaf as any).id,
-            error,
-          });
-        }
-      }
-    } else {
-      logger?.debug?.('Orchestrator missing required slices or data', {
-        hasViewIntegration: !!viewIntegration,
-        hasBacklinks: !!backlinks,
-        hasFile: !!data.file,
-      });
+    if (data.file && updateCoalesceUIForFile) {
+        logger?.debug?.('Delegating file:opened to updateCoalesceUIForFile', { filePath: data.file.path });
+        void updateCoalesceUIForFile(data.file.path);
+    } else if (!updateCoalesceUIForFile) {
+        logger?.warn?.('updateCoalesceUIForFile is not defined during file:opened event');
     }
   });
 
   // layout:changed - process all views that are in preview mode
   orchestrator.on('layout:changed', (data: any) => {
     const viewIntegration = orchestrator.getSlice('viewIntegration');
-    const backlinks = orchestrator.getSlice('backlinks');
-    const settingsSlice = orchestrator.getSlice('settings') as any;
 
     if (viewIntegration && data.file && data.view) {
       // Handle mode switch for the view that triggered the event
       (viewIntegration as any)?.handleModeSwitch?.(data.file, data.view);
       
       // If the view is now in preview mode, ensure it has UI attached
-      if (data.view.getMode() === 'preview' && backlinks && data.view.file) {
-        logger?.debug?.('Layout changed - view entered preview mode, checking if UI needed', {
+      if (data.view.getMode() === 'preview' && data.view.file && updateCoalesceUIForFile) {
+        logger?.debug?.('Layout changed - view entered preview mode, delegating to updateCoalesceUIForFile', {
           filePath: data.file.path,
           leafId: (data.view.leaf as any).id,
         });
         
-        // Check if UI is already attached
-        const hasUI = data.view.contentEl.querySelector('.coalesce-custom-backlinks-container') !== null;
-        
-        if (!hasUI) {
-          logger?.debug?.('Layout changed - view in preview mode needs UI, attaching', {
-            filePath: data.file.path,
-            leafId: (data.view.leaf as any).id,
-          });
-          
-          // Process this view to attach UI
-          void (async () => {
-            try {
-              // Initialize view integration
-              await (viewIntegration as any)?.initializeView?.(data.view.file, data.view);
-              
-              // Get settings
-              let settings = settingsSlice?.getSettings?.() || {};
-              if (!settings || Object.keys(settings).length === 0) {
-                await settingsSlice?.loadSettings?.();
-                settings = settingsSlice?.getSettings?.() || {};
-              }
-              
-              // Attach UI
-              const uiAttached = await (backlinks as any)?.attachToDOM?.(
-                data.view,
-                data.file.path,
-                true, // forceRefresh
-              );
-              
-              if (uiAttached) {
-                (backlinks as any)?.setOptions?.({
-                  sort: settings.sortByFullPath || false,
-                  sortDescending: settings.sortDescending ?? true,
-                  collapsed: settings.blocksCollapsed || false,
-                  strategy: 'default',
-                  theme: settings.theme || 'default',
-                  alias: null,
-                  filter: '',
-                });
-                
-                logger?.info?.('UI attached for view that entered preview mode', {
-                  filePath: data.file.path,
-                  leafId: (data.view.leaf as any).id,
-                });
-              }
-            } catch (error) {
-              logger?.error?.('Failed to attach UI for view that entered preview mode', {
-                filePath: data.file.path,
-                leafId: (data.view.leaf as any).id,
-                error,
-              });
-            }
-          })();
-        }
+        void updateCoalesceUIForFile(data.file.path);
       }
     }
     
     // Also check all other visible views to ensure they have UI if in preview mode
-    // This handles the case where multiple views are visible and one switches mode
-    if (backlinks && viewIntegration) {
+    if (viewIntegration && updateCoalesceUIForFile) {
       const allViews = app.workspace.getLeavesOfType('markdown');
       allViews.forEach((leaf) => {
         const view = leaf.view as MarkdownView;
@@ -574,8 +377,7 @@ export function registerPluginEvents(
               leafId: (leaf as any).id,
             });
             
-            // Process this view
-            orchestrator.emit('file:opened', { file: view.file });
+            void updateCoalesceUIForFile(view.file.path);
           }
         }
       });

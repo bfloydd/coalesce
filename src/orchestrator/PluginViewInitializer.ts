@@ -238,7 +238,7 @@ export class PluginViewInitializer {
    * Processes all markdown views displaying this file, not just the active one.
    * This mirrors CoalescePlugin.updateCoalesceUIForFile.
    */
-  async updateForFile(filePath: string): Promise<void> {
+  async updateForFile(filePath: string, externalForceRefresh = false): Promise<void> {
     const codePath = this.initialActiveViewProcessed ? 'COLD_START_ACTIVE_VIEW' : 'NORMAL_FOCUS';
     const timestamp = Date.now();
     const callStack = new Error().stack;
@@ -259,32 +259,9 @@ export class PluginViewInitializer {
       }
     });
 
-    // Prevent duplicate processing - check if file is currently being processed (atomic check)
-    if (this.processingFiles.has(filePath)) {
-      this.logger?.warn?.('BLOCKED: file is currently being processed', { filePath, codePath, timestamp });
-      return;
-    }
-    
-    // Mark file as being processed IMMEDIATELY (atomic operation)
-    // This must happen before checking coldStartProcessedFiles to prevent race conditions
-    this.processingFiles.add(filePath);
-    
-    // During cold start, check if this file was already processed by another call
-    // If we just added it to processingFiles above, we're the first call and should proceed
-    // If it's in coldStartProcessedFiles but NOT in processingFiles, another call is processing it
-    if (this.coldStartProcessing && this.coldStartProcessedFiles.has(filePath)) {
-      // Check if we're the one processing it (we just added it to processingFiles)
-      // If another call is processing it, they would have added it to processingFiles first
-      // So if we're here and it's in coldStartProcessedFiles, we should allow it (we're the first)
-      // Actually, wait - if it's in coldStartProcessedFiles, that means initializeExistingViews marked it
-      // So we should proceed with processing
-      this.logger?.debug?.('File marked in coldStartProcessedFiles, proceeding with processing', { filePath, codePath });
-    }
-    
     // Prevent duplicate processing - check both file-level and view-level
-    if (!this.shouldProcessFile(filePath)) {
+    if (!externalForceRefresh && !this.shouldProcessFile(filePath)) {
       this.logger?.debug?.('Returning early due to shouldProcessFile check', { filePath, codePath });
-      this.processingFiles.delete(filePath); // Remove since we're not processing
       return;
     }
 
@@ -341,14 +318,27 @@ export class PluginViewInitializer {
 
         const viewId = (view.leaf as any).id || 'unknown';
         
-        // CRITICAL: Check if this view is already being processed FIRST
-        // This must be the first check to prevent race conditions
+        // Wait for prior operations on this view to finish before checking DOM state
         if (this.processingViews.has(viewId)) {
-          this.logger?.debug?.('View already being processed, skipping duplicate', {
+          this.logger?.debug?.('View already being processed, waiting for completion', {
             filePath,
             viewId,
           });
-          continue;
+          try {
+            await this.processingViews.get(viewId);
+          } catch (e) {
+            // ignore previous rejection
+          }
+          
+          // Re-validate the active file since it may have changed while waiting
+          if (view.file?.path !== filePath) {
+            this.logger?.debug?.('View file changed while waiting, skipping', {
+              filePath,
+              newFilePath: view.file?.path,
+              viewId,
+            });
+            continue;
+          }
         }
 
         // Spec alignment:
@@ -361,7 +351,7 @@ export class PluginViewInitializer {
         
         // If UI is present and we have no record yet, assume it's already correct for this file
         // and record it (prevents unnecessary reloads on refocus).
-        if (existingUI && !previousFilePathForView) {
+        if (existingUI && !previousFilePathForView && !externalForceRefresh) {
           this.lastFilePathByViewId.set(viewId, filePath);
           this.logger?.debug?.('Skipping Coalesce UI reload (UI already visible for this view)', {
             filePath,
@@ -371,7 +361,7 @@ export class PluginViewInitializer {
         }
         
         // If UI is present and the file hasn't changed in this view, skip reloading.
-        if (existingUI && !fileChangedInThisView) {
+        if (existingUI && !fileChangedInThisView && !externalForceRefresh) {
           this.logger?.debug?.('Skipping Coalesce UI reload (already attached for this file)', {
             filePath,
             viewId,
@@ -380,7 +370,7 @@ export class PluginViewInitializer {
         }
         
         // Only force refresh when the leaf is being reused for a different note.
-        const shouldForceRefresh = fileChangedInThisView;
+        const shouldForceRefresh = fileChangedInThisView || externalForceRefresh;
 
         // Only process views in preview mode (UI can only be attached in preview mode)
         const isPreviewMode = view.getMode() === 'preview';
@@ -412,7 +402,10 @@ export class PluginViewInitializer {
         
         // Clean up after processing completes
         processingPromise.finally(() => {
-          this.processingViews.delete(viewId);
+          // Only clear if the promise in the map is still OUR promise
+          if (this.processingViews.get(viewId) === processingPromise) {
+            this.processingViews.delete(viewId);
+          }
           // Remove from processed set after 5 seconds to allow reprocessing if needed
           setTimeout(() => {
             this.processedViewIds.delete(viewId);
@@ -430,9 +423,6 @@ export class PluginViewInitializer {
       }
     } catch (error) {
       this.logger?.error?.('Failed to update Coalesce UI for file', { filePath, error });
-    } finally {
-      // Clear the processing lock immediately; shouldProcessFile() already handles rate limiting.
-      this.processingFiles.delete(filePath);
     }
   }
 
