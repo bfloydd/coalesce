@@ -4,7 +4,7 @@ import { IconProvider } from '../shared-utilities/IconProvider';
 import { HeaderStyleManager } from './header-styles/HeaderStyleManager';
 import { BlockFinderFactory } from './block-finders/BlockFinderFactory';
 import { HeaderStyleFactory } from './header-styles/HeaderStyleFactory';
-import { Menu } from 'obsidian';
+import { Menu, setIcon } from 'obsidian';
 import { SettingsControls } from './SettingsControls';
 import { createButton } from '../../shared/ui/Button';
 import { createIconButton } from '../../shared/ui/IconButton';
@@ -164,14 +164,19 @@ export class HeaderComponent {
             this.onThemeChangeHandler(theme);
         };
 
-        const leftContainer = this.createLeftContainer(aliases, unsavedAliases, currentAlias, onAliasSelect, sortDescending, onSortToggle, isCollapsed, onCollapseToggle, onFilterChange, currentFilter, onRefresh);
+        const leftContainer = this.createLeftContainer(aliases, unsavedAliases, currentAlias, onAliasSelect, onFilterChange, currentFilter);
         const rightContainer = this.createRightContainer(
             currentHeaderStyle,
             wrappedHeaderStyleChange,
             currentStrategy,
             wrappedStrategyChange,
             currentTheme,
-            wrappedThemeChange
+            wrappedThemeChange,
+            sortDescending,
+            onSortToggle,
+            isCollapsed,
+            onCollapseToggle,
+            onRefresh
         );
 
         header.appendChild(leftContainer);
@@ -187,13 +192,8 @@ export class HeaderComponent {
         unsavedAliases: string[],
         currentAlias: string | null,
         onAliasSelect: (alias: string | null) => void,
-        sortDescending: boolean,
-        onSortToggle: () => void,
-        isCollapsed: boolean,
-        onCollapseToggle: () => void,
         onFilterChange: (filterText: string) => void,
-        currentFilter: string = '',
-        onRefresh: () => void = () => {}
+        currentFilter: string = ''
     ): HTMLElement {
         // Create a temporary container to use createDiv
         const tempContainer = document.createElement('div');
@@ -205,14 +205,10 @@ export class HeaderComponent {
         // Create filter input
         const filterInput = this.createFilterInput(onFilterChange, currentFilter);
 
-        // Create button group
-        const buttonGroup = this.createButtonGroup(sortDescending, onSortToggle, isCollapsed, onCollapseToggle, onRefresh);
-
         // Add elements in order - wrap dropdown and filter in a connected group
         const filterGroup = leftContainer.createDiv({ cls: 'coalesce-filter-group' });
         filterGroup.appendChild(aliasDropdown);
         filterGroup.appendChild(filterInput);
-        leftContainer.appendChild(buttonGroup);
 
         return leftContainer;
     }
@@ -285,29 +281,24 @@ export class HeaderComponent {
         });
     }
 
-    private createButtonGroup(
+    private createFilterStateGroup(
         sortDescending: boolean,
         onSortToggle: () => void,
         isCollapsed: boolean,
-        onCollapseToggle: () => void,
-        onRefresh: () => void = () => {}
+        onCollapseToggle: () => void
     ): HTMLElement {
-        // Create a temporary container to use createDiv
         const tempContainer = document.createElement('div');
         const buttonGroup = tempContainer.createDiv({ cls: 'coalesce-button-group' });
         
-        // Create sort button
         const sortButton = this.createSortButton(sortDescending, onSortToggle);
-        
-        // Create collapse button
         const collapseButton = this.createCollapseButton(isCollapsed, onCollapseToggle);
         
-        // Create refresh button
-        const refreshButton = this.createRefreshButton(onRefresh);
-        
         buttonGroup.appendChild(sortButton);
+        
+        const divider = tempContainer.createDiv({ cls: 'coalesce-button-group-divider' });
+        buttonGroup.appendChild(divider);
+        
         buttonGroup.appendChild(collapseButton);
-        buttonGroup.appendChild(refreshButton);
         
         return buttonGroup;
     }
@@ -381,6 +372,11 @@ export class HeaderComponent {
         const container = document.createElement('div');
         container.classList.add('coalesce-filter-input-container');
         
+        const searchIcon = document.createElement('div');
+        searchIcon.classList.add('coalesce-filter-search-icon');
+        setIcon(searchIcon, 'search');
+        container.appendChild(searchIcon);
+
         const filterInput = document.createElement('input');
         filterInput.type = 'text';
         filterInput.placeholder = 'Filter...';
@@ -475,13 +471,25 @@ export class HeaderComponent {
         currentStrategy: string = 'default',
         onStrategyChange: (strategy: string) => void = () => {},
         currentTheme: string = 'default',
-        onThemeChange: (theme: string) => void = () => {}
+        onThemeChange: (theme: string) => void = () => {},
+        sortDescending: boolean,
+        onSortToggle: () => void,
+        isCollapsed: boolean,
+        onCollapseToggle: () => void,
+        onRefresh: () => void = () => {}
     ): HTMLElement {
-        // Create a temporary container to use createDiv
         const tempContainer = document.createElement('div');
         const rightContainer = tempContainer.createDiv({ cls: 'coalesce-backlinks-header-right' });
 
-        // Add settings button to right container
+        const filterStateGroup = this.createFilterStateGroup(sortDescending, onSortToggle, isCollapsed, onCollapseToggle);
+        rightContainer.appendChild(filterStateGroup);
+
+        const refreshButton = this.createRefreshButton(onRefresh);
+        rightContainer.appendChild(refreshButton);
+
+        const divider = tempContainer.createDiv({ cls: 'coalesce-header-divider' });
+        rightContainer.appendChild(divider);
+
         const settingsButton = this.createSettingsButton(
             currentHeaderStyle,
             onHeaderStyleChange,
@@ -490,7 +498,6 @@ export class HeaderComponent {
             currentTheme,
             onThemeChange
         );
-        
         rightContainer.appendChild(settingsButton);
         
         return rightContainer;
