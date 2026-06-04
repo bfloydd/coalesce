@@ -18,8 +18,8 @@
     display: none;
 }
 
-.theme-naked .coalesce-content-preview {
-    display: block !important;
+body.theme-naked .coalesce-backlink-item .coalesce-content-preview.coalesce-content-preview {
+    display: block;
     padding: 0;
     margin: 0;
 }

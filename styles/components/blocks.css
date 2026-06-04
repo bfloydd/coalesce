@@ -114,17 +114,17 @@
 }
 
 /* Collapsed block content */
-.is-collapsed .coalesce-content-preview {
-    display: none !important;
+body .coalesce-backlink-item.is-collapsed .coalesce-content-preview {
+    display: none;
 }
 
 /* Add Heading prompt in block header */
-.coalesce-add-heading-prompt {
-    color: var(--text-muted) !important;
-    cursor: pointer !important;
-    text-decoration: underline !important;
-    text-decoration-style: dotted !important;
-    transition: all 0.2s ease !important;
+body .coalesce-custom-backlinks-container .coalesce-add-heading-prompt {
+    color: var(--text-muted);
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    transition: all 0.2s ease;
 }
 
 .coalesce-add-heading-icon {
@@ -140,13 +140,13 @@
     margin: 0 4px;
 }
 
-.coalesce-add-heading-prompt:hover {
-    color: var(--text-accent) !important;
-    text-decoration-color: var(--text-accent) !important;
+body .coalesce-custom-backlinks-container .coalesce-add-heading-prompt:hover {
+    color: var(--text-accent);
+    text-decoration-color: var(--text-accent);
 }
 
-.coalesce-add-heading-prompt:active {
-    color: var(--text-accent-hover) !important;
+body .coalesce-custom-backlinks-container .coalesce-add-heading-prompt:active {
+    color: var(--text-accent-hover);
 }
 
 /* Open note icon next to Add heading */
@@ -166,25 +166,25 @@
 }
 
 /* Heading popup modal styles */
-.coalesce-heading-popup-modal {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    background: rgba(0, 0, 0, 0.5) !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    z-index: 10000 !important;
+body div.coalesce-heading-popup-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
 }
 
-.coalesce-heading-popup-content {
-    background: var(--background-primary) !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: 8px !important;
-    padding: 20px !important;
-    min-width: 300px !important;
-    max-width: 500px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+body div.coalesce-heading-popup-modal .coalesce-heading-popup-content {
+    background: var(--background-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    min-width: 300px;
+    max-width: 500px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }

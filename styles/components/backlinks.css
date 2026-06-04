@@ -33,9 +33,9 @@
     width: 100%;
 }
 
-.markdown-content {
-    margin-left: auto !important;
-    margin-right: auto !important;
+body .workspace-leaf .markdown-content {
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* No backlinks message styling */
@@ -51,10 +51,10 @@
 }
 
 /* Display utilities */
-.is-hidden {
-    display: none !important;
+body .coalesce-custom-backlinks-container .is-hidden {
+    display: none;
 }
 
-.is-visible {
-    display: block !important;
+body .coalesce-custom-backlinks-container .is-visible {
+    display: block;
 }
