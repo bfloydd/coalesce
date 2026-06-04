@@ -3,7 +3,7 @@
 	"name": "Coalesce",
 	"version": "2.0.3",
 	"minAppVersion": "0.15.0",
-	"description": "Coalesce your notes into a single view.",
+	"description": "Transform your notes into a single view.",
 	"author": "Floyd",
 	"authorUrl": "https://floyd.pro",
 	"fundingUrl": {
