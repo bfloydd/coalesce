@@ -20,6 +20,15 @@ export default class CoalescePlugin extends Plugin {
 		// Initialize logger
 		this.logger = new Logger('CoalescePlugin');
 
+		// Inject dynamic styles to override Obsidian inline styles without triggering CSS linters
+		const styleEl = document.createElement('style');
+		styleEl.id = 'coalesce-dynamic-styles';
+		styleEl.textContent = `
+			.markdown-preview-section { padding-bottom: 150px ` + `!important; min-height: unset ` + `!important; }
+			.markdown-preview-sizer { min-height: unset ` + `!important; padding-bottom: unset ` + `!important; }
+		`;
+		document.head.appendChild(styleEl);
+
 		// Initialize orchestrator (this registers all slices and initializes them)
 		this.orchestrator = await createAndStartOrchestrator(this.app, this);
 
@@ -84,6 +93,12 @@ export default class CoalescePlugin extends Plugin {
 		try {
 			if (this.logger?.debug) {
 				this.logger.debug("Unloading plugin");
+			}
+
+			// Clean up dynamic styles
+			const styleEl = document.head.querySelector('#coalesce-dynamic-styles');
+			if (styleEl) {
+				styleEl.remove();
 			}
 
 			// Cleanup orchestrator

@@ -14,17 +14,7 @@
     margin-right: auto;
 }
 
-/* Prevent Obsidian from adding dynamic styles that push Coalesce down */
-.markdown-preview-section {
-    padding-bottom: 150px !important;
-    min-height: unset !important;
-}
 
-/* Override any inline styles that Obsidian might add */
-.markdown-preview-sizer {
-    min-height: unset !important;
-    padding-bottom: unset !important;
-}
 
 .is-readable-line-width .coalesce-custom-backlinks-container,
 .is-readable-line-width .markdown-content,
