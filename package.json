@@ -1,6 +1,6 @@
 {
 	"name": "coalesce",
-	"version": "2.0.1",
+	"version": "2.0.2",
 	"description": "Coalesce your (backlinked) notes into a single document stream (with style)",
 	"main": "main.js",
 	"scripts": {
