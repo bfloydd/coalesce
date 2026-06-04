@@ -260,11 +260,13 @@ export class FileModifier implements IFileModifier {
         this.logger.debug('Getting backup files', { filePath });
         
         try {
-            // Get all files in the vault
-            const allFiles = this.app.vault.getFiles();
+            const originalFile = this.app.vault.getAbstractFileByPath(filePath);
+            if (!originalFile || !originalFile.parent) {
+                return [];
+            }
             
-            // Filter for backup files of the given file
-            const backupFiles = allFiles
+            // Filter children in the parent folder for backup files
+            const backupFiles = originalFile.parent.children
                 .filter(file => file.path.includes(`${filePath}.coalesce-backup-`))
                 .map(file => file.path)
                 .sort(); // Sort by timestamp (newest last)

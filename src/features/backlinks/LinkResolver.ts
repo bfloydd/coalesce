@@ -45,11 +45,11 @@ export class LinkResolver implements ILinkResolver {
             if (resolvedPath) {
                 resolutionMethod = 'direct';
             } else {
-                resolvedPath = this.tryNameResolution(linkPath);
+                resolvedPath = this.tryNameResolution(linkPath, sourceFilePath);
                 if (resolvedPath) {
                     resolutionMethod = 'name';
                 } else {
-                    resolvedPath = this.tryAliasResolution(linkPath);
+                    resolvedPath = this.tryAliasResolution(linkPath, sourceFilePath);
                     if (resolvedPath) {
                         resolutionMethod = 'alias';
                     }
@@ -112,13 +112,13 @@ export class LinkResolver implements ILinkResolver {
             }
             
             // Try name resolution
-            const name = this.tryNameResolution(linkPath);
+            const name = this.tryNameResolution(linkPath, "");
             if (name && !resolutions.includes(name)) {
                 resolutions.push(name);
             }
             
             // Try alias resolution
-            const alias = this.tryAliasResolution(linkPath);
+            const alias = this.tryAliasResolution(linkPath, "");
             if (alias && !resolutions.includes(alias)) {
                 resolutions.push(alias);
             }
@@ -219,36 +219,27 @@ export class LinkResolver implements ILinkResolver {
     /**
      * Try name resolution (match by file name)
      */
-    private tryNameResolution(linkPath: string): string | null {
+    private tryNameResolution(linkPath: string, sourcePath: string): string | null {
         this.logger.debug('Trying name resolution', { linkPath });
         
         try {
             // Normalize the link path
             const normalizedPath = this.normalizeLinkPath(linkPath);
             
-            // Get all markdown files
-            const markdownFiles = this.app.vault.getMarkdownFiles();
+            // Obsidian's native resolution
+            const resolvedFile = this.app.metadataCache.getFirstLinkpathDest(normalizedPath, sourcePath);
             
-            // Look for exact name match
-            for (const file of markdownFiles) {
-                if (file.basename === normalizedPath || file.name === normalizedPath) {
+            if (resolvedFile) {
+                // Verify it was a name match, not an alias match
+                const nameMatch = resolvedFile.basename.toLowerCase() === normalizedPath.toLowerCase() || 
+                                  resolvedFile.name.toLowerCase() === normalizedPath.toLowerCase();
+                                  
+                if (nameMatch) {
                     this.logger.debug('Name resolution successful', { 
                         linkPath, 
-                        resolved: file.path 
+                        resolved: resolvedFile.path 
                     });
-                    return file.path;
-                }
-            }
-            
-            // Look for case-insensitive match
-            for (const file of markdownFiles) {
-                if (file.basename.toLowerCase() === normalizedPath.toLowerCase() || 
-                    file.name.toLowerCase() === normalizedPath.toLowerCase()) {
-                    this.logger.debug('Name resolution successful (case-insensitive)', { 
-                        linkPath, 
-                        resolved: file.path 
-                    });
-                    return file.path;
+                    return resolvedFile.path;
                 }
             }
             
@@ -263,32 +254,31 @@ export class LinkResolver implements ILinkResolver {
     /**
      * Try alias resolution (match by aliases in frontmatter)
      */
-    private tryAliasResolution(linkPath: string): string | null {
+    private tryAliasResolution(linkPath: string, sourcePath: string): string | null {
         this.logger.debug('Trying alias resolution', { linkPath });
         
         try {
             // Normalize the link path
             const normalizedPath = this.normalizeLinkPath(linkPath);
             
-            // Get all markdown files
-            const markdownFiles = this.app.vault.getMarkdownFiles();
+            // Obsidian's native resolution
+            const resolvedFile = this.app.metadataCache.getFirstLinkpathDest(normalizedPath, sourcePath);
             
-            // Look for files with matching aliases
-            for (const file of markdownFiles) {
-                const cache = this.app.metadataCache.getCache(file.path);
+            if (resolvedFile) {
+                const cache = this.app.metadataCache.getFileCache(resolvedFile);
                 const aliases = cache?.frontmatter?.aliases;
                 
                 if (aliases) {
                     const aliasArray = Array.isArray(aliases) ? aliases : [aliases];
                     
                     for (const alias of aliasArray) {
-                        if (typeof alias === 'string' && alias === normalizedPath) {
+                        if (typeof alias === 'string' && alias.toLowerCase() === normalizedPath.toLowerCase()) {
                             this.logger.debug('Alias resolution successful', { 
                                 linkPath, 
-                                resolved: file.path,
+                                resolved: resolvedFile.path,
                                 alias
                             });
-                            return file.path;
+                            return resolvedFile.path;
                         }
                     }
                 }

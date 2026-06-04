@@ -1,4 +1,4 @@
-import { App } from 'obsidian';
+import { App, TFolder, TFile } from 'obsidian';
 import { AppWithInternalPlugins } from '../shared-contracts/obsidian';
 
 /**
@@ -147,13 +147,23 @@ export class DailyNote {
      */
     static getAllDailyNotePaths(app: App): string[] {
         try {
-            const allFiles = app.vault.getMarkdownFiles();
             const dailyNotePaths: string[] = [];
-
-            for (const file of allFiles) {
-                if (this.isDaily(app as AppWithInternalPlugins, file.path)) {
-                    dailyNotePaths.push(file.path);
-                }
+            const folderPath = this.getDailyNotesFolder(app as AppWithInternalPlugins);
+            const folder = folderPath ? app.vault.getAbstractFileByPath(folderPath) : app.vault.getRoot();
+            
+            if (folder instanceof TFolder) {
+                const scanFolder = (f: TFolder) => {
+                    for (const child of f.children) {
+                        if (child instanceof TFile && child.extension === 'md') {
+                            if (this.isDaily(app as AppWithInternalPlugins, child.path)) {
+                                dailyNotePaths.push(child.path);
+                            }
+                        } else if (child instanceof TFolder) {
+                            scanFolder(child);
+                        }
+                    }
+                };
+                scanFolder(folder);
             }
 
             // Sort by date (newest first)
